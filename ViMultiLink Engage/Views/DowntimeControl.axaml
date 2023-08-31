@@ -1,0 +1,30 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="using:ViMultiSync.Views">
+  <Design.PreviewWith>
+    <controls:DowntimeControl />
+
+
+  </Design.PreviewWith>
+
+  <Style Selector="controls|DowntimeControl">
+    <!-- Set Defaults -->
+    <Setter Property="Template">
+      <ControlTemplate>
+          <Grid ColumnDefinitions="Auto, Auto, Auto, *">
+              <StackPanel Grid.Column="0">
+				  <Button>AWDASDASD</Button>
+                  <Button>AWDASDASD</Button>
+                  <Button>AWDASDASD</Button>
+                  <Button>AWDASDASD</Button>
+                  <Button>AWDASDASD</Button>
+                  <Button>AWDASDASD</Button>
+                  <Button>AWDASDASD</Button>
+                  <Button>AWDASDASD</Button>
+
+              </StackPanel>
+          </Grid>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+</Styles>

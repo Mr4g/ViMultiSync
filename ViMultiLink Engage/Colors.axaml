@@ -1,0 +1,13 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <!-- Add Resources Here -->
+
+
+  <!-- Tryb Jasny -->
+  <Color x:Key="BackgroundColorLight">#FFFFFF</Color>
+  <Color x:Key="TextColorLight">#000000</Color>
+
+  <!-- Tryb Ciemny -->
+  <Color x:Key="BackgroundColorDark">#000000</Color>
+  <Color x:Key="TextColorDark">#FFFFFF</Color>
+</ResourceDictionary>
