@@ -17,7 +17,8 @@
     <Application.Styles>
         <FluentTheme />
         <StyleInclude Source="/Views/DowntimeControl.axaml"></StyleInclude>
-        <StyleInclude Source="Colors.xaml" />
-        <StyleInclude Source="Styles.xaml" />
+
+        <!--<StyleInclude Source="Colors.xaml" />
+        <StyleInclude Source="Styles.xaml" />-->
     </Application.Styles>
 </Application>

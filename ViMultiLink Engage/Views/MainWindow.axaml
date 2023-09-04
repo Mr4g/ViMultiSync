@@ -42,10 +42,10 @@
 					</Style>
 				</Grid.Styles>
 
-				<Button Grid.Column="4">
+				<Button Grid.Column="4" Command="{Binding LoadPageSap}">
 					<Image Source="{SvgImage /Assets/icons/sap.svg}"/>
 				</Button>
-				<Button Grid.Column="5">
+				<Button Grid.Column="5" Command="{Binding LoadPageSplunk}">
 					<Image Source="{SvgImage /Assets/icons/splunk.svg}"/>
 				</Button>
 				<Button Grid.Column="6">

@@ -1,14 +1,14 @@
 <ResourceDictionary xmlns="https://github.com/avaloniaui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <!-- Style dla trybu jasnego -->
-    <Style x:Key="ButtonStyleLight">
+    <!--<Style x:Key="ButtonStyleLight">
         <Setter Property="Button.Background" Value="{DynamicResource BackgroundColorLight}" />
         <Setter Property="Button.Foreground" Value="{DynamicResource TextColorLight}" />
-    </Style>
+    </Style>-->
 
     <!-- Style dla trybu ciemnego -->
-    <Style x:Key="ButtonStyleDark">
+    <!--<Style x:Key="ButtonStyleDark">
         <Setter Property="Button.Background" Value="{DynamicResource BackgroundColorDark}" />
         <Setter Property="Button.Foreground" Value="{DynamicResource TextColorDark}" />
-    </Style>
+    </Style>-->
 </ResourceDictionary>

@@ -4,10 +4,10 @@
 
 
   <!-- Tryb Jasny -->
-  <Color x:Key="BackgroundColorLight">#FFFFFF</Color>
-  <Color x:Key="TextColorLight">#000000</Color>
+  <!--<Color x:Key="BackgroundColorLight">#FFFFFF</Color>
+  <Color x:Key="TextColorLight">#000000</Color>-->
 
   <!-- Tryb Ciemny -->
-  <Color x:Key="BackgroundColorDark">#000000</Color>
-  <Color x:Key="TextColorDark">#FFFFFF</Color>
+  <!--<Color x:Key="BackgroundColorDark">#000000</Color>
+  <Color x:Key="TextColorDark">#FFFFFF</Color>-->
 </ResourceDictionary>

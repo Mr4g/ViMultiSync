@@ -1,7 +1,7 @@
 ﻿using System.Drawing;
 using System.Windows.Input;
 using Avalonia.Controls;
-using GalaSoft.MvvmLight.Command;
+using CommunityToolkit.Mvvm.ComponentModel;
 using ReactiveUI;
 using ViMultiSync.Views;
 
@@ -35,6 +35,14 @@ namespace ViMultiSync.ViewModels
         public void LoadPageLogistic()
         {
             ActivePage = new UCLogistic();
+        }
+        public void LoadPageSap()
+        {
+            ActivePage = new UCBrowser();
+        }
+        public void LoadPageSplunk()
+        {
+            ActivePage = new UCWebBrowser();
         }
     }
 }
