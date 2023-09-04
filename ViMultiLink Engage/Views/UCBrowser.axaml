@@ -6,6 +6,6 @@
              x:Class="ViMultiSync.Views.UCBrowser">
 	<DockPanel>
 		<TextBox x:Name="addressTextBox" DockPanel.Dock="Top" KeyDown="OnAddressTextBoxKeyDown" />
-		<Decorator x:Name="browserWrapper"/>
+		<Decorator x:Name="browserWrapper" />
 	</DockPanel>
 </UserControl>

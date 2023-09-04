@@ -24,16 +24,7 @@
     <!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
     <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="11.0.4" />
     <PackageReference Include="Avalonia.ReactiveUI" Version="11.0.4" />
-    <PackageReference Include="cef.redist.osx64" Version="112.3.0" />
-    <PackageReference Include="cef.redist.x64" Version="116.0.15" />
-    <PackageReference Include="CefGlue.Avalonia" Version="106.5249.21" />
-    <PackageReference Include="CefGlue.Avalonia.ARM64" Version="106.5249.21" />
-    <PackageReference Include="CefGlue.Common" Version="106.5249.21" />
-    <PackageReference Include="CefGlue.Common.ARM64" Version="106.5249.21" />
-    <PackageReference Include="chromiumembeddedframework.runtime.win-arm64" Version="106.0.26" />
-    <PackageReference Include="chromiumembeddedframework.runtime.win-x64" Version="116.0.15" />
+    <PackageReference Include="CefGlue.Avalonia" Version="106.5249.19-avalonia11" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.1" />
-    <PackageReference Include="NP.Avalonia.Visuals" Version="1.0.38" />
-    <PackageReference Include="WebViewControl-Avalonia" Version="2.106.12" />
   </ItemGroup>
 </Project>

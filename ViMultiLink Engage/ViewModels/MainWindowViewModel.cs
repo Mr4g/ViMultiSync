@@ -42,7 +42,6 @@ namespace ViMultiSync.ViewModels
         }
         public void LoadPageSplunk()
         {
-            ActivePage = new UCWebBrowser();
         }
     }
 }
