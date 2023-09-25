@@ -7,14 +7,15 @@ using ViMultiSync.Views;
 
 namespace ViMultiSync.ViewModels
 {
-    public class MainWindowViewModel : ViewModelBase
+    public class MainWindowViewModel : ObservableObject
     {
+
         private UserControl _activeUserControl;
 
         public UserControl ActivePage
         {
-            get => _activeUserControl; 
-            set => this.RaiseAndSetIfChanged(ref _activeUserControl, value);
+            get => _activeUserControl;
+            set => SetProperty(ref _activeUserControl, value);
         }
 
 

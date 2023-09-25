@@ -9,9 +9,6 @@
 
     <Application.DataTemplates>
         <viMultiSync:ViewLocator/>
-        <DataTemplate DataType="{x:Type viewModels:UCDowntimeViewModel}">
-            <views:UCDowntime/>
-        </DataTemplate>
     </Application.DataTemplates>
   
     <Application.Styles>

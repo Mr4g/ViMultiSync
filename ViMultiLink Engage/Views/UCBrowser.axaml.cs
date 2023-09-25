@@ -26,7 +26,7 @@ public partial class UCBrowser : UserControl
         var browserWrapper = this.FindControl<Decorator>("browserWrapper");
 
         browser = new AvaloniaCefBrowser();
-        browser.Address = "https://w6228w05.viessmann.net:8000/en-GB/app/VI_W16/w16heliumtester1odu_kpi";
+        browser.Address = "http://ps094w05.viessmann.net:51100/manufacturing/com/sap/me/activity/client/ActivityManager.jsp";
         browser.RegisterJavascriptObject(new BindingTestClass(), "boundBeforeLoadObject");
         browser.LoadStart += OnBrowserLoadStart;
         browser.TitleChanged += OnBrowserTitleChanged;
