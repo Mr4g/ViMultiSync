@@ -26,5 +26,10 @@
     <PackageReference Include="Avalonia.ReactiveUI" Version="11.0.4" />
     <PackageReference Include="CefGlue.Avalonia" Version="106.5249.19-avalonia11" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.1" />
+    <PackageReference Include="NetLoggings" Version="1.0.0" />
+    <PackageReference Include="Splunk.Logging.Common" Version="1.7.2" />
+    <PackageReference Include="Splunk.Logging.Common.Core" Version="1.0.0" />
+    <PackageReference Include="Splunk.Logging.TraceListener" Version="1.7.2" />
+    <PackageReference Include="Splunk.Logging.TraceListener.Core" Version="1.0.0" />
   </ItemGroup>
 </Project>
