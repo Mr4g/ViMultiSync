@@ -5,7 +5,9 @@
         xmlns:viewModels="clr-namespace:ViMultiSync.ViewModels"
 		xmlns:controls="clr-namespace:ViMultiSync"
         xmlns:local="clr-namespace:ViMultiSync"
-        mc:Ignorable="d" d:DesignWidth="1100" d:DesignHeight="700"
+        mc:Ignorable="d" d:DesignWidth="1240" d:DesignHeight="860"
+        Width="1600"  
+        Height="800"  
         x:Class="ViMultiSync.Views.MainWindow"
         x:DataType="viewModels:MainWindowViewModel"
 		WindowStartupLocation="CenterScreen"
@@ -23,7 +25,51 @@
 		<viewModels:MainWindowViewModel/>
 	</Design.DataContext>
 
-	<Grid RowDefinitions="Auto, *, Auto">
+
+
+	<Grid Name="MainGrid" RowDefinitions="Auto, *, Auto">
+
+
+        <!-- Downtime Panel Popup Open -->
+
+		<controls:AnimatedPopup
+            Grid.Row="0"
+            Grid.RowSpan="2"
+			Margin="20"
+			AnimationTime="0.3"
+			UnderlayOpacity="0.5"
+            Name="DowntimePanelPopup"
+            >
+			<Border Background="WhiteSmoke" Padding="20" CornerRadius="24">
+				<Expander HorizontalAlignment="Center" VerticalAlignment="Center">
+					<Expander.Header>
+						<Label Content="STATUS"></Label>
+                    </Expander.Header>
+                    <StackPanel >
+                        <Label Content="Hello World"></Label>
+                        <Label Content="Hello World"></Label>
+                        <Label Content="Hello World"></Label>
+                        <Label Content="Hello World"></Label>
+                        <Label Content="Hello World"></Label>
+                        <Label Content="Hello World"></Label>
+                        <Label Content="Hello World"></Label>
+                        <Label Content="Hello World"></Label>
+                        <Label Content="Hello World"></Label>
+                        <Label Content="Hello World"></Label>
+                        <Label Content="Hello World"></Label>
+                        <Label Content="Hello World"></Label>
+                        <Label Content="Hello World"></Label>
+                        <Label Content="Hello World"></Label>
+                        <Label Content="Hello World"></Label>
+                        <Label Content="Hello World"></Label>
+                    </StackPanel>
+                </Expander>
+
+
+
+            </Border>
+		</controls:AnimatedPopup>
+
 
 		<!-- Title bar -->
 
@@ -56,12 +102,12 @@
 
 		<!-- Main area -->
 
-		<Grid Grid.Row="1" ColumnDefinitions="Auto, *" >
+		<Grid  Grid.Row="1" ColumnDefinitions="Auto, *" >
 			<!-- Navigation bar -->
-			
+
 			<StackPanel Grid.Row="0" Grid.Column="0" Width="250" Margin="10, 60, 20, 10" Orientation="Vertical" VerticalAlignment="Top" HorizontalAlignment="Center">
-				
-                <StackPanel.Styles>
+
+				<StackPanel.Styles>
 					<Style Selector="Button">
 						<Setter Property="FontSize" Value="18" />
 						<Setter Property="Margin" Value="10"></Setter>
@@ -91,13 +137,13 @@
 						<Setter Property="Background" Value="#F54B08" />
 					</Style>
 				</StackPanel.Styles>
-				<Button Command="{Binding LoadPageDowntime}">
+				<Button Name="DowntimePanelButton" Command="{Binding #DowntimePanelPopup.BeginOpen}">
 					<StackPanel Orientation="Horizontal" Margin="5">
 						<Image HorizontalAlignment="Left" Source="{SvgImage /Assets/icons/emergencyColor.svg}"/>
 						<TextBlock Text="Downtime" />
 					</StackPanel>
 				</Button>
-				<Button Command="{Binding LoadPageSetting}">
+				<Button Command="{Binding #DowntimePanelPopup.BeginClose}">
 					<StackPanel Orientation="Horizontal"  Margin="5">
 						<Image HorizontalAlignment="Left" Source="{SvgImage /Assets/icons/maintenance2.svg}"/>
 						<TextBlock Text="Setting" />
@@ -116,8 +162,9 @@
 					</StackPanel>
 				</Button>
 				<Grid RowDefinitions="*">
-                    <Button 
-                        Grid.Row="0" 
+					<Button
+						IsVisible="{Binding DowntimePanelIsOpen}"
+                        Grid.Row="0"
 						CornerRadius="30"
 						Margin="10,40,0,0"
                         HorizontalAlignment="Center"
@@ -127,37 +174,38 @@
                         BorderBrush="Black"
                         BorderThickness="2"
                         VerticalAlignment="Bottom">
-						
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"  Margin="5">
-                            <TextBlock Text="AKTUALNY STATUS"/>
-                        </StackPanel>
-                    </Button>
 
-                </Grid>
+						<StackPanel Orientation="Horizontal" HorizontalAlignment="Center"  Margin="5">
+							<TextBlock Text="AKTUALNY STATUS"/>
+						</StackPanel>
+					</Button>
+
+				</Grid>
 			</StackPanel>
 
 
 
 			<!-- ControlPanel -->
 			<Border Grid.Column="1">
-                <ContentControl  
-                Grid.Column="1" 
-                CornerRadius="20 " 
-                Background="#232228" 
-                Content="{Binding ActivePage}" 
-                HorizontalAlignment="Stretch" 
+				<ContentControl
+                Grid.Column="1"
+                CornerRadius="20 "
+                Background="#232228"
+                Content="{Binding ActivePage}"
+                HorizontalAlignment="Stretch"
 				Margin="10 20, 40, 30"
                 VerticalAlignment="Stretch">
-			</ContentControl>
-            </Border>
+				</ContentControl>
+			</Border>
 
-			</Grid>
-		
+		</Grid>
+
 
 		<!-- Bottom bar -->
 		<Grid Grid.Row="2">
 
 		</Grid>
 	</Grid>
+
 
 </Window>

@@ -13,9 +13,6 @@
   
     <Application.Styles>
         <FluentTheme />
-        <StyleInclude Source="/Views/DowntimeControl.axaml"></StyleInclude>
-
-        <!--<StyleInclude Source="Colors.xaml" />
-        <StyleInclude Source="Styles.xaml" />-->
+        <StyleInclude Source="Styles/AnimatedPopup.axaml"></StyleInclude>
     </Application.Styles>
 </Application>

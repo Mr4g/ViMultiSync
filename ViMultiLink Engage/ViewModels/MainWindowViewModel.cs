@@ -2,15 +2,19 @@
 using System.Windows.Input;
 using Avalonia.Controls;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using ReactiveUI;
 using ViMultiSync.Views;
 
 namespace ViMultiSync.ViewModels
 {
-    public class MainWindowViewModel : ObservableObject
+    public partial class MainWindowViewModel : ObservableObject
     {
 
         private UserControl _activeUserControl;
+
+        [ObservableProperty]
+        private bool downtimePanelIsOpen = false;
 
         public UserControl ActivePage
         {
@@ -18,6 +22,8 @@ namespace ViMultiSync.ViewModels
             set => SetProperty(ref _activeUserControl, value);
         }
 
+        [RelayCommand]
+        public void DowntimePanelButtonPressed() => DowntimePanelIsOpen ^= true;
 
         public void LoadPageDowntime()
         {
@@ -44,5 +50,6 @@ namespace ViMultiSync.ViewModels
         public void LoadPageSplunk()
         {
         }
+
     }
 }

@@ -3,10 +3,12 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+			 xmlns:sys="clr-namespace:System;assembly=mscorlib"
              mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="800"
              Background="Transparent"
-             xmlns:viewModels="clr-namespace:ViMultiSync.ViewModels"
+             xmlns:viewModels="clr-namespace:ViMultiSync.ViewModels"		
              xmlns:views="clr-namespace:ViMultiSync.Views"
+			 xmlns:local="clr-namespace:ViMultiSync.AuxiliaryClasses"
              x:DataType="viewModels:UCDowntimeViewModel">
 
     <UserControl.DataContext>
@@ -56,11 +58,26 @@
                 </Style>
             </Grid.Styles>
 
-            <Button Grid.Column="1" Grid.Row="1" Content="{Binding Downtime01}" Command="{Binding ActionDowntime}"></Button>
-			<Button Grid.Column="1" Grid.Row="2" Content="{Binding Downtime02}" Command="{Binding ActionDowntime2}"></Button>
-            <Button Grid.Column="1" Grid.Row="3">Downtime</Button>
-                                                 
-            <Button Grid.Column="2" Grid.Row="1">Downtime</Button>
+			<Button Grid.Column="1" Grid.Row="1" Content="{Binding Downtime01}" Command="{Binding ActionDowntime2}">
+				<Button.CommandParameter>
+					<local:CommandParameters Name="S1.Downtime" Status="Uszkodzony wąż" Value="true" SapCode="D125"/>
+				</Button.CommandParameter>
+			</Button>
+					
+			<Button Grid.Column="1" Grid.Row="2" Content="{Binding Downtime02}" Command="{Binding ActionDowntime2}">
+				<Button.CommandParameter>
+					<local:CommandParameters Name="S1.Downtime" Status="Brak zasilania" Value="true" SapCode="D126"/>
+				</Button.CommandParameter>			
+			</Button>
+			
+            <Button Grid.Column="1" Grid.Row="3" Content="{Binding Downtime03}" Command="{Binding ActionDowntime2}">
+				<Button.CommandParameter>
+					<local:CommandParameters Name="S1.Downtime" Status="Awaria silnika" Value="true" SapCode="D127"/>
+				</Button.CommandParameter>
+			</Button>
+
+			<Button Grid.Column="2" Grid.Row="1" Content="Get Data" Command="{Binding ActionDowntime3}"> 
+			</Button>
             <Button Grid.Column="2" Grid.Row="2">Downtime</Button>
             <Button Grid.Column="2" Grid.Row="3">Downtime</Button>
                                                  
