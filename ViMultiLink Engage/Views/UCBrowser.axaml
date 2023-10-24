@@ -4,8 +4,8 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="ViMultiSync.Views.UCBrowser">
-	<DockPanel>
-		<TextBox x:Name="addressTextBox" DockPanel.Dock="Top" KeyDown="OnAddressTextBoxKeyDown" />
-		<Decorator x:Name="browserWrapper" />
-	</DockPanel>
+		<DockPanel>
+			<TextBox x:Name="addressTextBox" DockPanel.Dock="Top" KeyDown="OnAddressTextBoxKeyDown" />
+			<Decorator x:Name="browserWrapper"/>
+		</DockPanel>
 </UserControl>

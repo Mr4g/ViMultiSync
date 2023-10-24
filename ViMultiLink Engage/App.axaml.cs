@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using ViMultiSync.Services;
 using ViMultiSync.ViewModels;
 using ViMultiSync.Views;
 
@@ -15,11 +16,18 @@ namespace ViMultiSync
 
         public override void OnFrameworkInitializationCompleted()
         {
+
+            // Initialize the dependencies
+            var statusInterface = new DummyStatusInterfaceService();
+            var mainViewModel = new MainWindowViewModel(statusInterface);
+
+
+
             if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
             {
                 desktop.MainWindow = new MainWindow
                 {
-                    DataContext = new MainWindowViewModel(),
+                    DataContext = mainViewModel
                 };
             }
 

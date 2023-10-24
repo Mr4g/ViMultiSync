@@ -5,6 +5,8 @@
         xmlns:viewModels="clr-namespace:ViMultiSync.ViewModels"
 		xmlns:controls="clr-namespace:ViMultiSync"
         xmlns:local="clr-namespace:ViMultiSync"
+        xmlns:collections="clr-namespace:CommunityToolkit.Mvvm.Collections;assembly=CommunityToolkit.Mvvm"
+        xmlns:dataModel="clr-namespace:ViMultiSync.DataModel"
         mc:Ignorable="d" d:DesignWidth="1240" d:DesignHeight="860"
         Width="1600"  
         Height="800"  
@@ -32,43 +34,60 @@
 
         <!-- Downtime Panel Popup Open -->
 
-		<controls:AnimatedPopup
+        <controls:AnimatedPopup
             Grid.Row="0"
-            Grid.RowSpan="2"
-			Margin="20"
-			AnimationTime="0.3"
-			UnderlayOpacity="0.5"
+            Grid.RowSpan="3"
+			Grid.ColumnSpan="6"
+            Margin="20"
+            AnimationTime="0.3"
+            UnderlayOpacity="0.2"
             Name="DowntimePanelPopup"
-            >
-			<Border Background="WhiteSmoke" Padding="20" CornerRadius="24">
-				<Expander HorizontalAlignment="Center" VerticalAlignment="Center">
-					<Expander.Header>
-						<Label Content="STATUS"></Label>
+            Background="#232228"
+        >
+            <Border Background="#232228" Padding="20" CornerRadius="24" >
+
+
+                <ItemsControl ItemsSource="{Binding StatusPanel}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Expander>
+                                <Expander.Header>
+                                    <Grid>
+                                        <Label x:DataType="collections:IReadOnlyObservableGroup" Content="{Binding Key}" />
+                                    </Grid>
+                                </Expander.Header>
+
+                                <ItemsControl ItemsSource="{Binding }">
+									<ItemsControl.ItemTemplate>
+										<DataTemplate x:DataType="dataModel:DowntimePanelItem">
+                                            <Button
+                                                Content="{Binding LongText}"
+												Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).DowntimePanelItemPressedCommand}"
+                                                ></Button>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </Expander>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+
+
+
+
+				<!--<Expander Background ="#232228" HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <Expander.Header>
+                        <Label  Content="STATUS"></Label>
                     </Expander.Header>
-                    <StackPanel >
-                        <Label Content="Hello World"></Label>
-                        <Label Content="Hello World"></Label>
-                        <Label Content="Hello World"></Label>
-                        <Label Content="Hello World"></Label>
-                        <Label Content="Hello World"></Label>
-                        <Label Content="Hello World"></Label>
-                        <Label Content="Hello World"></Label>
-                        <Label Content="Hello World"></Label>
-                        <Label Content="Hello World"></Label>
-                        <Label Content="Hello World"></Label>
-                        <Label Content="Hello World"></Label>
-                        <Label Content="Hello World"></Label>
-                        <Label Content="Hello World"></Label>
-                        <Label Content="Hello World"></Label>
-                        <Label Content="Hello World"></Label>
-                        <Label Content="Hello World"></Label>
+                    <StackPanel>
+                        <Button Classes="PopupButton" Content="MECHANICZNA"/>
+                        <Button Classes="PopupButton" Content="ELEKTRYCZNA"/>
+                        <Button Classes="PopupButton" Content= "USTAWIACZ" />
                     </StackPanel>
-                </Expander>
-
-
-
+                </Expander>-->
             </Border>
-		</controls:AnimatedPopup>
+        </controls:AnimatedPopup>
 
 
 		<!-- Title bar -->
@@ -183,11 +202,9 @@
 				</Grid>
 			</StackPanel>
 
-
-
 			<!-- ControlPanel -->
-			<Border Grid.Column="1">
-				<ContentControl
+			<Border  Grid.Column="1">
+				<UserControl
                 Grid.Column="1"
                 CornerRadius="20 "
                 Background="#232228"
@@ -195,9 +212,8 @@
                 HorizontalAlignment="Stretch"
 				Margin="10 20, 40, 30"
                 VerticalAlignment="Stretch">
-				</ContentControl>
+				</UserControl>
 			</Border>
-
 		</Grid>
 
 

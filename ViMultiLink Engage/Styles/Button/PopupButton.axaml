@@ -1,0 +1,41 @@
+﻿<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Design.PreviewWith>
+        <Border Padding="20">
+            <Button Classes="PopupButton" Content="Click me"/>
+        </Border>
+    </Design.PreviewWith>
+
+
+
+    <Style Selector="Button.PopupButton">
+        <Setter Property="Margin" Value="20"/>
+        <Setter Property="CornerRadius" Value="18" />
+        <Setter Property="MinWidth" Value="200" />
+        <Setter Property="MinHeight" Value="100" />
+        <Setter Property="Foreground" Value="WhiteSmoke" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="VerticalAlignment" Value="Stretch" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="BorderBrush" Value="Black"/>
+        <Setter Property="BorderThickness" Value="3"/>
+		<Setter Property="Background">
+            <Setter.Value>
+                <ConicGradientBrush Center="0.5,0.5">
+                    <GradientStop Color="WhiteSmoke" Offset="0" />
+                    <GradientStop Color="#0B0A0F" Offset="0.28" />
+                </ConicGradientBrush>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style Selector="Button:pointerover.PopupButton /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="LightGray" />
+    </Style>
+
+    <Style Selector="Button:pointerover.PopupButton:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="OrangeRed" />
+        </Style>
+
+</Styles>

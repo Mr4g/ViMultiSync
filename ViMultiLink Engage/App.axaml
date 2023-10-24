@@ -14,5 +14,6 @@
     <Application.Styles>
         <FluentTheme />
         <StyleInclude Source="Styles/AnimatedPopup.axaml"></StyleInclude>
+        <StyleInclude Source="Styles/Button/PopupButton.axaml"/>
     </Application.Styles>
 </Application>

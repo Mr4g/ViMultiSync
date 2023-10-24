@@ -1,5 +1,6 @@
 using System;
 using System.Threading;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -25,7 +26,15 @@ namespace ViMultiSync.Views
             mDowntimePanelButton = this.FindControl<Control>("DowntimePanelButton") ?? throw new Exception("Cannot find Channel Configuration Button by name ");
             mDowntimePanelPopup = this.FindControl<Control>("DowntimePanelPopup") ?? throw new Exception("Cannot find Channel Configuration Popup by name ");
             mMainGrid = this.FindControl<Control>("MainGrid") ?? throw new Exception("Cannot find Channel Configuration MainGrid by name ");
+            this.Opened += OnOpened;
             this.Resized += MainWindow_Resized;
+
+        }
+
+
+        private async void OnOpened(object sender, EventArgs e)
+        {
+            await ((MainWindowViewModel)DataContext).LoadSettingsCommand.ExecuteAsync(null);
         }
 
         private void MainWindow_Resized(object sender, EventArgs e)
@@ -41,6 +50,7 @@ namespace ViMultiSync.Views
 
         private void InputElement_OnPointerPressed(object? sender, PointerPressedEventArgs e) =>
             ((MainWindowViewModel)DataContext).DowntimePanelButtonPressedCommand.Execute(null);
+
 
     }
 }

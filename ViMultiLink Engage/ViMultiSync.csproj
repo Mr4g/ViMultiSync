@@ -10,9 +10,9 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Folder Include="TemporaryFixes\" />
     <Folder Include="Models\" />
     <AvaloniaResource Include="Assets\**" />
-    <Folder Include="Services\" />
   </ItemGroup>
 
 
