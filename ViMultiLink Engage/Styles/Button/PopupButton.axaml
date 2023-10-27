@@ -6,7 +6,7 @@
         </Border>
     </Design.PreviewWith>
 
-
+    <!-- Style for Button of Popup Window -->
 
     <Style Selector="Button.PopupButton">
         <Setter Property="Margin" Value="20"/>
@@ -37,5 +37,42 @@
     <Style Selector="Button:pointerover.PopupButton:pressed /template/ ContentPresenter#PART_ContentPresenter">
         <Setter Property="Background" Value="OrangeRed" />
         </Style>
+
+   <!-- Style for Button of Menu Navigation -->
+
+    <Style Selector="Button.NavigationButton">
+        <Setter Property="FontSize" Value="18" />
+        <Setter Property="Margin" Value="10"></Setter>
+        <Setter Property="HorizontalAlignment" Value="Center"></Setter>
+        <Setter Property="VerticalAlignment" Value="Center"></Setter>
+        <Setter Property="HorizontalContentAlignment" Value="Left"></Setter>
+        <Setter Property="VerticalContentAlignment" Value="Center"></Setter>
+        <Setter Property="MinWidth" Value="250"></Setter>
+        <Setter Property="MinHeight" Value="50"></Setter>
+        <Setter Property="Background" Value="#0B0A0F"></Setter>
+        <Setter Property="Foreground" Value="#FFFFFF"></Setter>
+        <Setter Property="CornerRadius" Value="18"></Setter>
+    </Style>
+
+    <Style Selector="Button.NavigationButton TextBlock">
+        <Setter Property="FontSize" Value="18" />
+        <Setter Property="HorizontalAlignment" Value="Left" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <Style Selector="Button.NavigationButton Image">
+        <Setter Property="MaxWidth" Value="40"/>
+        <Setter Property="Margin" Value="0,0,20,0"></Setter>
+    </Style>
+
+	<Style Selector="Button:pointerover.NavigationButton /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="#232228"/>
+        <Setter Property="Foreground" Value="WhiteSmoke"/>
+    </Style>
+
+    <Style Selector="Button:pointerover.NavigationButton:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="OrangeRed" />
+        <Setter Property="Foreground" Value="#0B0A0F"/>
+    </Style>
 
 </Styles>

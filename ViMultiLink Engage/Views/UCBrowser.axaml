@@ -5,7 +5,12 @@
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="ViMultiSync.Views.UCBrowser">
 		<DockPanel>
-			<TextBox x:Name="addressTextBox" DockPanel.Dock="Top" KeyDown="OnAddressTextBoxKeyDown" />
+            <StackPanel Orientation="Horizontal" DockPanel.Dock="Top">
+                <Button Content="◄" Click="OnBackButtonClicked" Background="WhiteSmoke" />
+                <Button Content="►" Click="OnForwardButtonClicked" Background="WhiteSmoke"/>
+                <Button Content="↻" Click="OnRefreshButtonClicked" Background="WhiteSmoke"/>
+                <TextBox x:Name="addressTextBox" DockPanel.Dock="Top" KeyDown="OnAddressTextBoxKeyDown" />
+            </StackPanel>
 			<Decorator x:Name="browserWrapper"/>
 		</DockPanel>
 </UserControl>

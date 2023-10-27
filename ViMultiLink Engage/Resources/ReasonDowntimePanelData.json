@@ -1,0 +1,42 @@
+[
+    {
+        "Name": "S7.ReasonDowntime",
+        "Value": "",
+        "NameDevice": "iPC01",
+        "Status": "BRAK ZASILANIA",
+        "Location": "ODU_5",
+        "Source": "W16_iPC_Test"
+    },
+    {
+        "Name": "S7.ReasonDowntime",
+        "Value": "",
+        "NameDevice": "iPC01",
+        "Status": "BRAK ZASILANIA",
+        "Location": "ODU_5",
+        "Source": "W16_iPC_Test"
+    },
+    {
+        "Name": "S7.ReasonDowntime",
+        "Value": "",
+        "NameDevice": "iPC01",
+        "Status": "BRAK ZASILANIA",
+        "Location": "ODU_5",
+        "Source": "W16_iPC_Test"
+    },
+    {
+        "Name": "S7.ReasonDowntime",
+        "Value": "",
+        "NameDevice": "iPC01",
+        "Status": "BRAK ZASILANIA",
+        "Location": "ODU_5",
+        "Source": "W16_iPC_Test"
+    },
+    {
+        "Name": "S7.ReasonDowntime",
+        "Value": "",
+        "NameDevice": "iPC01",
+        "Status": "BRAK ZASILANIA",
+        "Location": "ODU_5",
+        "Source": "W16_iPC_Test"
+    }
+]

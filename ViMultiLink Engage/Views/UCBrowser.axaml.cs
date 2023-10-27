@@ -18,35 +18,62 @@ public partial class UCBrowser : UserControl
 
     private AvaloniaCefBrowser browser;
     public event Action<string> TitleChanged;
-    public UCBrowser()
+    public UCBrowser(string link)
     {
         InitializeComponent();
-
-
-        StartBrowser();
+        StartBrowser(link);
         ZIndex=1;
     }
 
-
-
-    public void StartBrowser()
+    public void ChangeBrowserAddress(string newUrl)
     {
-        CefRuntimeLoader.Initialize(new CefSettings
-        {
-            WindowlessRenderingEnabled = true
-            // Dodaj inne ustawienia CEF wed³ug potrzeb
-        });
+        browser.Address = newUrl;
+    }
+
+    public void StartBrowser(string link)
+    {
+        //CefRuntimeLoader.Initialize(new CefSettings
+        //{
+        //    WindowlessRenderingEnabled = true
+        //    // Dodaj inne ustawienia CEF wed³ug potrzeb
+        //});
 
         var browserWrapper = this.FindControl<Decorator>("browserWrapper");
 
         browser = new AvaloniaCefBrowser();
 
-        browser.Address = "http://ps093w05.viessmann.net:51300/pod-me/com/sap/me/wpmf/client/template.jsf?WORKSTATION=WORK_CENTER_TOUCH_TEST&SOFT_KEYBOARD=true&ACTIVITY_ID=ZVI_WC_POD_COPPER&sap-lsf-PreferredRendering=standards#";
+        browser.Address = $"{link}";
         browser.RegisterJavascriptObject(new BindingTestClass(), "boundBeforeLoadObject");
         browser.LoadStart += OnBrowserLoadStart;
         browser.TitleChanged += OnBrowserTitleChanged;
         browserWrapper.Child = browser;
     }
+
+    #region Private methods
+
+
+
+    private void OnBackButtonClicked(object sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if (browser.CanGoBack)
+        {
+            browser.GoBack();
+        }
+    }
+
+    private void OnForwardButtonClicked(object sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if (browser.CanGoForward)
+        {
+            browser.GoForward();
+        }
+    }
+
+    private void OnRefreshButtonClicked(object sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        browser.Reload();
+    }
+
 
     private void OnBrowserLoadStart(object sender, Xilium.CefGlue.Common.Events.LoadStartEventArgs e)
     {
@@ -57,9 +84,29 @@ public partial class UCBrowser : UserControl
 
         Dispatcher.UIThread.Post(() =>
         {
-            var addressTextBox = this.FindControl<TextBox>("addressTextBox");
+            if (e.Frame.Browser.IsPopup || !e.Frame.IsMain)
+            {
+                return;
+            }
 
-            addressTextBox.Text = e.Frame.Url;
+            Dispatcher.UIThread.Post(() =>
+            {
+                var addressTextBox = this.FindControl<TextBox>("addressTextBox");
+                var backButton = this.FindControl<Button>("backButton");
+                var forwardButton = this.FindControl<Button>("forwardButton");
+
+                addressTextBox.Text = e.Frame.Url;
+
+                if (backButton != null)
+                {
+                    backButton.IsEnabled = browser.CanGoBack;
+                }
+
+                if (forwardButton != null)
+                {
+                    forwardButton.IsEnabled = browser.CanGoForward;
+                }
+            });
         });
     }
 
@@ -75,4 +122,6 @@ public partial class UCBrowser : UserControl
             browser.Address = ((TextBox)sender).Text;
         }
     }
+
+    #endregion
 }

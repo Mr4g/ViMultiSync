@@ -20,27 +20,115 @@ namespace ViMultiSync.ViewModels
 
         private IStatusInterfaceService mStatusInterfaceService;
 
+
         #endregion
 
         #region Public Properties
 
+        #region Panel is open
+
+        [ObservableProperty]
+        private int _rowForSettingPanel;
+
+        [ObservableProperty]
+        private int _rowForMaintenancePanel;
+
+        [ObservableProperty]
+        private int _rowForLogisticPanel;
+
+        [ObservableProperty]
+        private int _rowForReasonDowntimePanel;
 
         [ObservableProperty]
         private bool _downtimePanelIsOpen = false;
+
+        [ObservableProperty]
+        private bool _settingPanelIsOpen = false;
+
+        [ObservableProperty]
+        private bool _maintenancePanelIsOpen = false;
+
+        [ObservableProperty]
+        private bool _logisticPanelIsOpen = false;
+
+        [ObservableProperty]
+        private bool _reasonDowntimePanelIsOpen = false;
+
+        [ObservableProperty]
+        private bool _splunkPanelIsOpen = false;
+
+        [ObservableProperty]
+        private bool _controlPanelVisible= false;
+
+        #endregion
+
+        #region GroupedCollection
+
 
         [ObservableProperty] 
         private ObservableGroupedCollection<string, DowntimePanelItem> _statusPanel = default!;
 
         [ObservableProperty]
+        private ObservableGroupedCollection<string, SettingPanelItem> _settingStatusPanel = default!;
+
+        [ObservableProperty]
+        private ObservableGroupedCollection<string, MaintenancePanelItem> _maintenanceStatusPanel = default!;
+
+        [ObservableProperty]
+        private ObservableGroupedCollection<string, LogisticPanelItem> _logisticStatusPanel = default!;
+
+        [ObservableProperty]
+        private ObservableGroupedCollection<string, ReasonDowntimePanelItem> _reasonDowntimeStatusPanel = default!;
+
+        [ObservableProperty]
+        private ObservableGroupedCollection<string, SplunkPanelItem> _splunkPanel = default!;
+
+        #endregion
+
+        #region ProportyChangedFor
+
+        [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(DowntimePanelButtonText))]
         private DowntimePanelItem? _selectedDowntimePanelItem;
 
-        public string DowntimePanelButtonText => SelectedDowntimePanelItem?.ShortText ?? "Downtime";
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(SettingPanelButtonText))]
+        private SettingPanelItem? _selectedSettingPanelItem;
+
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(MaintenancePanelButtonText))]
+        private MaintenancePanelItem? _selectedMaintenancePanelItem;
+
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(LogisticPanelButtonText))]
+        private LogisticPanelItem? _selectedLogisticPanelItem;
+
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(ReasonDowntimePanelButtonText))]
+        private ReasonDowntimePanelItem? _selectedReasonDowntimePanelItem;
+
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(SplunkPanelButtonText))]
+        private SplunkPanelItem? _selectedSplunkPanelItem;
+
         #endregion
 
-        private UserControl _activeUserControl;
+        public string DowntimePanelButtonText => SelectedDowntimePanelItem?.LongText ?? "Downtime";
 
-        public UserControl ActivePage
+        public string SettingPanelButtonText => SelectedSettingPanelItem?.Name?? "Setting";
+
+        public string MaintenancePanelButtonText => SelectedMaintenancePanelItem?.Name ?? "Maintenance";
+
+        public string LogisticPanelButtonText => SelectedLogisticPanelItem?.Name ?? "Logistic";
+
+        public string ReasonDowntimePanelButtonText => SelectedReasonDowntimePanelItem?.Name ?? "Reason Downtime";
+
+        public string SplunkPanelButtonText => SelectedSplunkPanelItem?.Name ?? "Splunk";
+        #endregion
+
+        private UCBrowser _activeUserControl;
+
+        public UCBrowser ActivePage
         {
             get => _activeUserControl;
             set => SetProperty(ref _activeUserControl, value);
@@ -48,8 +136,25 @@ namespace ViMultiSync.ViewModels
 
         #region Public Command
 
+        
+
         [RelayCommand]
         public void DowntimePanelButtonPressed() => DowntimePanelIsOpen ^= true;
+
+        [RelayCommand]
+        public void SettingPanelButtonPressed() => SettingPanelIsOpen ^= true;
+
+        [RelayCommand]
+        public void MaintenancePanelButtonPressed() => MaintenancePanelIsOpen ^= true;
+
+        [RelayCommand]
+        public void LogisticPanelButtonPressed() => LogisticPanelIsOpen ^= true;
+
+        [RelayCommand]
+        public void ReasonDowntimePanelButtonPressed() => ReasonDowntimePanelIsOpen ^= true;
+
+        [RelayCommand]
+        public void SplunkPanelButtonPressed() => SplunkPanelIsOpen ^= true;
 
         [RelayCommand]
         private void DowntimePanelItemPressed(DowntimePanelItem item)
@@ -62,41 +167,134 @@ namespace ViMultiSync.ViewModels
         }
 
         [RelayCommand]
+        private void SettingPanelItemPressed(SettingPanelItem item)
+        {
+            // Update the selected item 
+            SelectedSettingPanelItem = item;
+
+            // Close the menu 
+            SettingPanelIsOpen = false;
+        }
+
+        [RelayCommand]
+        private void MaintenancePanelItemPressed(MaintenancePanelItem item)
+        {
+            // Update the selected item 
+            SelectedMaintenancePanelItem = item;
+
+            // Close the menu 
+            MaintenancePanelIsOpen = false;
+        }
+        [RelayCommand]
+        private void LogisticPanelItemPressed(LogisticPanelItem item)
+        {
+            // Update the selected item 
+            SelectedLogisticPanelItem = item;
+
+            // Close the menu 
+            LogisticPanelIsOpen = false;
+        }
+        [RelayCommand]
+        private void ReasonDowntimePanelItemPressed(ReasonDowntimePanelItem item)
+        {
+            // Update the selected item 
+            SelectedReasonDowntimePanelItem = item;
+
+            // Close the menu 
+            ReasonDowntimePanelIsOpen = false;
+        }
+        [RelayCommand]
+        private void SplunkPanelItemPressed(SplunkPanelItem item)
+        {
+            // Update the selected item 
+            SelectedSplunkPanelItem = item;
+
+            // Close the menu 
+            LoadPageSplunk(item.Link);
+            SplunkPanelIsOpen = false;
+            
+        }
+
+        [RelayCommand]
         private async Task LoadSettingsAsync()
         {
             // Get th channel configuration data
             var statusPanel = await mStatusInterfaceService.GetDowntimePanelAsync();
+            var settingStatusPanel = await mStatusInterfaceService.GetSettingPanelAsync();
+            var maintenanceStatusPanel = await mStatusInterfaceService.GetMaintenancePanelAsync();
+            var logisticStatusPanel = await mStatusInterfaceService.GetLogisticPanelAsync();
+            var reasonDowntimeStatusPanel = await mStatusInterfaceService.GetReasonDowntimePanelAsync();
+            var splunkStatusPanel = await mStatusInterfaceService.GetSplunkPanelAsync();
+
 
             // Create a grouping from the flat data
             StatusPanel =
                 new ObservableGroupedCollection<string, DowntimePanelItem>(
                     statusPanel.GroupBy(item => item.Status));
+
+            SettingStatusPanel =
+                new ObservableGroupedCollection<string, SettingPanelItem>(
+                    settingStatusPanel.GroupBy(item => item.Name));
+
+            RowForSettingPanel = LoadSizeOfGrid(settingStatusPanel.Count);
+
+
+            MaintenanceStatusPanel =
+                new ObservableGroupedCollection<string, MaintenancePanelItem>(
+                    maintenanceStatusPanel.GroupBy(item => item.Name));
+
+            RowForMaintenancePanel = LoadSizeOfGrid(maintenanceStatusPanel.Count);
+
+            LogisticStatusPanel =
+                new ObservableGroupedCollection<string, LogisticPanelItem>(
+                    logisticStatusPanel.GroupBy(item => item.Name));
+
+            RowForLogisticPanel = LoadSizeOfGrid(logisticStatusPanel.Count);
+
+            ReasonDowntimeStatusPanel =
+                new ObservableGroupedCollection<string, ReasonDowntimePanelItem>(
+                    reasonDowntimeStatusPanel.GroupBy(item => item.Name));
+
+            RowForReasonDowntimePanel = LoadSizeOfGrid(reasonDowntimeStatusPanel.Count);
+
+            SplunkPanel =
+                new ObservableGroupedCollection<string, SplunkPanelItem>(
+                    splunkStatusPanel.GroupBy(item => item.Group));
+
         }
 
-        public void LoadPageDowntime()
+        private int LoadSizeOfGrid(int numberOfElements)
         {
-            ActivePage = new UCDowntime();
+            int maxColumns = 3; 
+
+            int rows = (int)Math.Ceiling((double)numberOfElements / maxColumns);
+
+            return rows;
         }
 
-        public void LoadPageSetting()
-        {
-            ActivePage = new UCSetting();
-        }
 
-        public void LoadPageMaintenace()
-        {
-            ActivePage = new UCMaintenance();
-        }
-        public void LoadPageLogistic()
-        {
-            ActivePage = new UCLogistic();
-        }
         public void LoadPageSap()
         {
-            ActivePage = new UCBrowser();
+            string sapUrl = "http://ps093w05.viessmann.net:51300/pod-me/com/sap/me/wpmf/client/template.jsf?WORKSTATION=WORK_CENTER_TOUCH_TEST&SOFT_KEYBOARD=true&ACTIVITY_ID=ZVI_WC_POD_COPPER&sap-lsf-PreferredRendering=standards#";
+            if (ActivePage == null)
+            {
+                ActivePage = new UCBrowser(sapUrl);
+            }
+            else
+            {
+                ActivePage.ChangeBrowserAddress($"{sapUrl}");
+            }
         }
-        public void LoadPageSplunk()
+        public void LoadPageSplunk(string link)
         {
+            if (ActivePage == null)
+            {
+                ActivePage = new UCBrowser(link);
+            }
+            else
+            {
+                ActivePage.ChangeBrowserAddress($"{link}");
+            }
         }
 
         internal Task LoadSettingsCommandExecute()

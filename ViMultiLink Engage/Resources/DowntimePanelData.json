@@ -1,0 +1,17 @@
+[
+    {
+        "Status": "Downtime",
+        "LongText": "MECHANICZNA",
+        "ShortText": "MECH"
+    },
+    {
+        "Status": "Downtime",
+        "LongText": "ELEKTRYCZNA",
+        "ShortText": "ELE"
+    },
+    {
+        "Status": "Downtime",
+        "LongText": "USTAWIACZ",
+        "ShortText": "UST"
+    }
+]

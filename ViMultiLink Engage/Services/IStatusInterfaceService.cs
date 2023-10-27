@@ -14,5 +14,11 @@ namespace ViMultiSync.Services
         /// </summary>
         /// <returns></returns>
         Task<List<DowntimePanelItem>> GetDowntimePanelAsync();
+        Task<List<SettingPanelItem>> GetSettingPanelAsync();
+
+        Task<List<MaintenancePanelItem>> GetMaintenancePanelAsync();
+        Task<List<LogisticPanelItem>> GetLogisticPanelAsync();
+        Task<List<ReasonDowntimePanelItem>> GetReasonDowntimePanelAsync();
+        Task<List<SplunkPanelItem>> GetSplunkPanelAsync();
     }
 }

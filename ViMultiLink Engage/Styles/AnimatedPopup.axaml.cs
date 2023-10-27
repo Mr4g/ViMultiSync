@@ -95,6 +95,13 @@ namespace ViMultiSync
             o => o.Open,
             (o, v) => o.Open = v);
 
+        private bool _onOpen;
+
+        public static readonly DirectProperty<AnimatedPopup, bool> OnOpenProperty = AvaloniaProperty.RegisterDirect<AnimatedPopup, bool>(
+            nameof(OnOpen),
+            o => o.OnOpen,
+            (o, v) => o.OnOpen = v);
+
         /// <summary>
         ///  Property to set whether the control should be open or closed 
         /// </summary>
@@ -115,16 +122,20 @@ namespace ViMultiSync
                     // If the parent is a grid...
                     if (Parent is Grid grid)
                     {
-                        // Set grid row/column span
-                        if (grid.RowDefinitions?.Count > 0)
-                            mUnderlayControl.SetValue(Grid.RowSpanProperty, grid.RowDefinitions.Count);
+                        Dispatcher.UIThread.InvokeAsync(() =>
+                        {
+                            // Set grid row/column span
+                            if (grid.RowDefinitions?.Count > 0)
+                                mUnderlayControl.SetValue(Grid.RowSpanProperty, grid.RowDefinitions.Count);
 
-                        if (grid.ColumnDefinitions?.Count > 0)
-                            mUnderlayControl.SetValue(Grid.ColumnSpanProperty, grid.ColumnDefinitions.Count);
+                            if (grid.ColumnDefinitions?.Count > 0)
+                                mUnderlayControl.SetValue(Grid.ColumnSpanProperty, grid.ColumnDefinitions.Count);
 
-                        // Inject the underlay control
-                        if(!grid.Children.Contains(mUnderlayControl))
-                            grid.Children.Insert(0, mUnderlayControl);
+                            // Inject the underlay control
+                            if (!grid.Children.Contains(mUnderlayControl))
+                                grid.Children.Insert(0, mUnderlayControl);
+                        });
+
                     }
                 }
 
@@ -136,7 +147,25 @@ namespace ViMultiSync
                     // Update desired size
                     UpdateDesiredSize();
                 }
-                SetAndRaise(OpenProperty, ref _open, value); 
+
+                // Update animation
+                UpdateAnimation();
+
+                // Raise the property changed event
+                SetAndRaise(OnOpenProperty, ref _open, value); 
+            }
+        }
+
+        public bool OnOpen
+        {
+            get => _onOpen;
+            set
+            {
+                if (_onOpen != value)
+                {
+                    _onOpen = value;
+                }
+                SetAndRaise(OpenProperty, ref _onOpen, value);
             }
         }
 
@@ -205,19 +234,15 @@ namespace ViMultiSync
         [RelayCommand]
         public void BeginOpen()
         {
+            OnOpen = true;
             Open = true;
-
-            // Update animation
-            UpdateAnimation();
         }
 
         [RelayCommand]
         public void BeginClose()
         {
+            OnOpen = false;
             Open = false;
-
-            // Update animation
-            UpdateAnimation();
         }
 
         #endregion
@@ -324,12 +349,16 @@ namespace ViMultiSync
                 // If the parent is a grid...
                 if (Parent is Grid grid)
                 {
-                    // Reset opacity 
-                    mUnderlayControl.Opacity = 0;
+                    Dispatcher.UIThread.InvokeAsync(() =>
+                    {
+                        // Reset opacity 
+                        mUnderlayControl.Opacity = 0;
 
-                    // Remove the underlay 
-                    if (grid.Children.Contains(mUnderlayControl))
-                        grid.Children.Remove(mUnderlayControl);
+                        // Remove the underlay 
+                        if (grid.Children.Contains(mUnderlayControl))
+                            grid.Children.Remove(mUnderlayControl);
+                    });
+
                 }
             }
         }
