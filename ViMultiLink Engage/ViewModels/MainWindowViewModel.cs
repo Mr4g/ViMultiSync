@@ -9,6 +9,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ReactiveUI;
 using ViMultiSync.DataModel;
+using ViMultiSync.Repositories;
 using ViMultiSync.Services;
 using ViMultiSync.Views;
 
@@ -20,6 +21,11 @@ namespace ViMultiSync.ViewModels
 
         private IStatusInterfaceService mStatusInterfaceService;
 
+        #region GenericRepository
+
+        private GenericRepository<MaintenancePanelItem> _maintenanceRepository;
+
+        #endregion
 
         #endregion
 
@@ -214,7 +220,7 @@ namespace ViMultiSync.ViewModels
         }
 
         [RelayCommand]
-        private void MaintenancePanelItemPressed(MaintenancePanelItem item)
+        private async void MaintenancePanelItemPressed(MaintenancePanelItem item)
         {
             const string colorMaintenance = "#81EEEE";
 
@@ -225,6 +231,19 @@ namespace ViMultiSync.ViewModels
             MaintenancePanelIsOpen = false;
 
             ChangePropertyButtonStatus(colorMaintenance, item.Status);
+
+            // Dodaj obiekt 'item' do repozytorium
+            _maintenanceRepository.Add(item);
+
+            // Opcjonalnie, zapisz zmiany w repozytorium
+            _maintenanceRepository.Save();
+
+            var specificMessage = _maintenanceRepository.GetById(0);
+
+            var splunkLogger = new GenericSplunkLogger<MaintenancePanelItem>();
+
+            await splunkLogger.LogAsync(specificMessage);
+
         }
 
         [RelayCommand]
@@ -375,6 +394,7 @@ namespace ViMultiSync.ViewModels
         public MainWindowViewModel(IStatusInterfaceService statusInterfaceService)
         {
             mStatusInterfaceService = statusInterfaceService;
+            _maintenanceRepository = new GenericRepository<MaintenancePanelItem>();
         }
 
         /// <summary>
@@ -383,10 +403,10 @@ namespace ViMultiSync.ViewModels
         public MainWindowViewModel()
         {
             mStatusInterfaceService = new DummyStatusInterfaceService();
+
         }
 
         #endregion
-
 
     }
 }
