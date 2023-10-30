@@ -3,11 +3,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using ViMultiSync.Entitys;
 
 namespace ViMultiSync.DataModel
 {
-    public class LogisticPanelItem
+    public class LogisticPanelItem : IEntity
     {
+        public int Id { get; set; }
         public string Name { get; set; }
 
         public string Value { get; set; }
@@ -18,6 +20,7 @@ namespace ViMultiSync.DataModel
         public string Location { get; set; }
 
         public string Source { get; set; }
+
     }
 
 }

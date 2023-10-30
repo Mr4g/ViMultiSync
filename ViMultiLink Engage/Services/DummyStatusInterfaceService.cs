@@ -16,6 +16,7 @@ namespace ViMultiSync.Services
         private const string pathLogisticPanelData = "ViMultiSync.Resources.LogisticPanelData.json";
         private const string pathReasonDowntimePanelData = "ViMultiSync.Resources.ReasonDowntimePanelData.json";
         private const string pathSplunkPanelData = "ViMultiSync.Resources.SplunkPanelData.json";
+        private const string pathServiceArrivalPanelData = "ViMultiSync.Resources.ServiceArrivalPanelData.json";
 
 
 
@@ -39,9 +40,9 @@ namespace ViMultiSync.Services
                     // Plik z danymi nie istnieje, zwracamy domyślną listę
                     return await Task.FromResult(new List<DowntimePanelItem>(new[]
                     {
-                        new DowntimePanelItem { Status = "Downtime", LongText = "MECHANICZNA", ShortText = "MECH" },
-                        new DowntimePanelItem { Status = "Downtime", LongText = "ELEKTRYCZNA", ShortText = "ELE" },
-                        new DowntimePanelItem { Status = "Downtime", LongText = "USTAWIACZ", ShortText = "UST" },
+                        new DowntimePanelItem { Name = "S1.MachineDowntime", Value = "", NameDevice = "iPC01", Status = "MECHANICZNA", Location = "ODU_5", Source = "W16_iPC_Test" },
+                        new DowntimePanelItem { Name = "S1.MachineDowntime", Value = "", NameDevice = "iPC01", Status = "ELEKTRYCZNA", Location = "ODU_5", Source = "W16_iPC_Test"},
+                        new DowntimePanelItem {Name = "S1.MachineDowntime", Value = "", NameDevice = "iPC01", Status = "USTAWIACZ", Location = "ODU_5", Source = "W16_iPC_Test"},
                     }));
                 }
             }
@@ -181,6 +182,32 @@ namespace ViMultiSync.Services
                     {
                         new SplunkPanelItem { Group = "Splunk", Name = "Produkcyjny", Link = "https://splunk05w05.viessmann.net:8000/en-GB/app/VI_W16/w16_welcome"},
                         new SplunkPanelItem { Group = "Splunk", Name = "Testowy", Link = "https://w6228w05.viessmann.net:8000/en-gb/app/VI_W16/w16_welcome"},
+                    }));
+                }
+            }
+        }
+
+        public async Task<List<ServiceArrivalPanelItem>> GetServiceArrivalPanelAsync()
+        {
+            var assembly = Assembly.GetExecutingAssembly();
+
+            using (Stream stream = assembly.GetManifestResourceStream(pathServiceArrivalPanelData))
+            {
+                if (stream != null)
+                {
+                    using (StreamReader reader = new StreamReader(stream))
+                    {
+                        string jsonData = reader.ReadToEnd();
+                        var serviceArrivalPanelItems = JsonSerializer.Deserialize<List<ServiceArrivalPanelItem>>(jsonData);
+                        return serviceArrivalPanelItems;
+                    }
+                }
+                else
+                {
+                    // Plik z danymi nie istnieje, zwracamy domyślną listę
+                    return await Task.FromResult(new List<ServiceArrivalPanelItem>(new[]
+                    {
+                        new ServiceArrivalPanelItem { Name = "S1.ServiceArrival", Value = "true", NameDevice = "iPC01", Location = "ODU_5", Source = "W16_iPC_Test"}
                     }));
                 }
             }

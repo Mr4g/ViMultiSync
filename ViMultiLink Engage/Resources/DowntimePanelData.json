@@ -1,17 +1,26 @@
 [
     {
-        "Status": "Downtime",
-        "LongText": "MECHANICZNA",
-        "ShortText": "MECH"
+        "Name": "S1.MachineDowntime",
+        "Value": "",
+        "NameDevice": "iPC01",
+        "Status": "MECHNICZNA",
+        "Location": "ODU_5",
+        "Source": "W16_iPC_Test"
     },
     {
-        "Status": "Downtime",
-        "LongText": "ELEKTRYCZNA",
-        "ShortText": "ELE"
+        "Name": "S1.MachineDowntime",
+        "Value": "",
+        "NameDevice": "iPC01",
+        "Status": "ELEKTRYCZNA",
+        "Location": "ODU_5",
+        "Source": "W16_iPC_Test"
     },
     {
-        "Status": "Downtime",
-        "LongText": "USTAWIACZ",
-        "ShortText": "UST"
+        "Name": "S1.MachineDowntime",
+        "Value": "",
+        "NameDevice": "iPC01",
+        "Status": "USTAWIACZ",
+        "Location": "ODU_5",
+        "Source": "W16_iPC_Test"
     }
 ]

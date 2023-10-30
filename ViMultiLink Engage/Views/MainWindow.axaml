@@ -31,7 +31,6 @@
 
 	<Grid Name="MainGrid" RowDefinitions="Auto, *, Auto">
 
-
 		<!-- Downtime Panel Popup Open -->
 
 		<controls:AnimatedPopup
@@ -43,9 +42,8 @@
             UnderlayOpacity="0.2"
             Name="DowntimePanelPopup"
             Background="#232228"
-            OnOpen="{Binding ControlPanelVisible, Mode=TwoWay}"
 			Open ="{Binding DowntimePanelIsOpen, Mode=TwoWay}"
-        >
+            DuringOpening="{Binding ControlPanelVisible, Mode=TwoWay}">
 			<Border Background="#232228" Padding="20" CornerRadius="24" >
 				<ItemsControl ItemsSource="{Binding StatusPanel}">
 					<ItemsControl.ItemTemplate>
@@ -55,7 +53,7 @@
 									<DataTemplate x:DataType="dataModel:DowntimePanelItem">
 										<Button
 											Classes="PopupButton"
-											Content="{Binding LongText}"
+											Content="{Binding Status}"
 											Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).DowntimePanelItemPressedCommand}"
 											CommandParameter="{Binding}"
                                                 ></Button>
@@ -85,7 +83,7 @@
 
         <!-- Setting Panel Popup Open -->
 
-        <controls:AnimatedPopup
+		<controls:AnimatedPopup
             Grid.Row="0"
             Grid.RowSpan="3"
             Grid.ColumnSpan="6"
@@ -94,35 +92,35 @@
             UnderlayOpacity="0.2"
             Name="SettingPanelPopup"
             Background="#232228"
-            OnOpen="{Binding ControlPanelVisible, Mode=TwoWay}"
-            Open="{Binding SettingPanelIsOpen, Mode=TwoWay}">
-            <Border Background="#232228" Padding="20" CornerRadius="24">
-                <ItemsControl ItemsSource="{Binding SettingStatusPanel}">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <ItemsControl ItemsSource="{Binding}">
-                                <ItemsControl.ItemsPanel>
-                                    <ItemsPanelTemplate >
+            Open="{Binding SettingPanelIsOpen, Mode=TwoWay}"
+            DuringOpening="{Binding ControlPanelVisible, Mode=TwoWay}">
+			<Border Background="#232228" Padding="20" CornerRadius="24">
+				<ItemsControl ItemsSource="{Binding SettingStatusPanel}">
+					<ItemsControl.ItemTemplate>
+						<DataTemplate>
+							<ItemsControl ItemsSource="{Binding}">
+								<ItemsControl.ItemsPanel>
+									<ItemsPanelTemplate >
 										<UniformGrid Rows="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).RowForSettingPanel}" Columns="3" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                        </UniformGrid>
-                                    </ItemsPanelTemplate>
-                                </ItemsControl.ItemsPanel>
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate x:DataType="dataModel:SettingPanelItem">
-                                        <Button 
+										</UniformGrid>
+									</ItemsPanelTemplate>
+								</ItemsControl.ItemsPanel>
+								<ItemsControl.ItemTemplate>
+									<DataTemplate x:DataType="dataModel:SettingPanelItem">
+										<Button
                                             Classes="PopupButton"
                                             Content="{Binding Status}"
                                             Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).SettingPanelItemPressedCommand}"
                                             CommandParameter="{Binding}">
-                                        </Button>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </Border>
-        </controls:AnimatedPopup>
+										</Button>
+									</DataTemplate>
+								</ItemsControl.ItemTemplate>
+							</ItemsControl>
+						</DataTemplate>
+					</ItemsControl.ItemTemplate>
+				</ItemsControl>
+			</Border>
+		</controls:AnimatedPopup>
 
         <!-- Maintenance Panel Popup Open-->
 
@@ -135,8 +133,8 @@
 	         UnderlayOpacity="0.2"
 	         Name="MaintenancePanelPopup"
 	         Background="#232228"
-             OnOpen="{Binding ControlPanelVisible, Mode=TwoWay}"
-	         Open="{Binding MaintenancePanelIsOpen, Mode=TwoWay}">
+	         Open="{Binding MaintenancePanelIsOpen, Mode=TwoWay}"
+             DuringOpening="{Binding ControlPanelVisible, Mode=TwoWay}">
 			        <Border Background="#232228" Padding="20" CornerRadius="24">
 				        <ItemsControl ItemsSource="{Binding MaintenanceStatusPanel}">
 					        <ItemsControl.ItemTemplate>
@@ -153,7 +151,7 @@
 										        <Button
                                                     Classes="PopupButton"
                                                     Content="{Binding Status}"
-                                                    Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).MaintenancePanelButtonPressedCommand}"
+                                                    Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).MaintenancePanelItemPressedCommand}"
                                                     CommandParameter="{Binding}">
 										        </Button>
 									        </DataTemplate>
@@ -176,8 +174,8 @@
             UnderlayOpacity="0.2"
             Name="LogisticPanelPopup"
             Background="#232228"
-			OnOpen="{Binding ControlPanelVisible, Mode=TwoWay}"
-            Open="{Binding LogisticPanelIsOpen, Mode=TwoWay}">
+            Open="{Binding LogisticPanelIsOpen, Mode=TwoWay}"
+            DuringOpening="{Binding ControlPanelVisible, Mode=TwoWay}">
             <Border Background="#232228" Padding="20" CornerRadius="24">
                 <ItemsControl ItemsSource="{Binding LogisticStatusPanel}">
                     <ItemsControl.ItemTemplate>
@@ -194,7 +192,7 @@
                                         <Button
                                             Classes="PopupButton"
                                             Content="{Binding Status}"
-                                            Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).LogisticPanelButtonPressedCommand}"
+                                            Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).LogisticPanelItemPressedCommand}"
                                             CommandParameter="{Binding}">
                                         </Button>
                                     </DataTemplate>
@@ -219,15 +217,15 @@
 	        Background="#232228"
 			HorizontalAlignment="Right"
 			VerticalAlignment="Top"
-            OnOpen="{Binding ControlPanelVisible, Mode=TwoWay}"
-	        Open="{Binding SplunkPanelIsOpen, Mode=TwoWay}">
+	        Open="{Binding SplunkPanelIsOpen, Mode=TwoWay}"
+            DuringOpening="{Binding ControlPanelVisible, Mode=TwoWay}">
 			        <Border Background="#232228" Padding="20" CornerRadius="24">
 				        <ItemsControl ItemsSource="{Binding SplunkPanel}">
 					        <ItemsControl.ItemTemplate>
 						        <DataTemplate>
 									<Expander>
 										<Expander.Header>
-                                            <Label x:DataType ="collections:IReadOnlyObservableGroup" Content="{Binding Key}"></Label>
+                                            <Label MinHeight="60" MinWidth="200" x:DataType ="collections:IReadOnlyObservableGroup" Content="{Binding Key}"></Label>
                                         </Expander.Header>
                                         <ItemsControl ItemsSource="{Binding}">
 								        <ItemsControl.ItemTemplate>
@@ -280,7 +278,6 @@
 		<!-- Main area -->
 
 		<Grid  Grid.Row="1" ColumnDefinitions="Auto, *" >
-
             <!-- Navigation bar -->
 
 			<StackPanel Grid.Row="0" Grid.Column="0" Width="250" Margin="10, 60, 20, 10" Orientation="Vertical" VerticalAlignment="Top" HorizontalAlignment="Center">
@@ -310,33 +307,31 @@
 					</StackPanel>
 				</Button>
 				<Grid RowDefinitions="*">
-					<Button
-						Classes="NavigationButton"
-						IsVisible="{Binding DowntimePanelIsOpen}"
-                        Grid.Row="0"
-						CornerRadius="30"
-						Margin="10,40,0,0"
-                        HorizontalAlignment="Center"
-						MinHeight="140"
-                        HorizontalContentAlignment="Center"
-						Background="#232228"
-                        BorderBrush="Black"
-                        BorderThickness="2"
+					<StackPanel Margin="5,20,5,5">
+                    <Button
+						Grid.Row="0"
+						Classes="NavigationInfoButton"
+						IsVisible="{Binding ActualStatusButtonIsVisible}"
+						Background="{Binding ActualStatusColor}"
                         VerticalAlignment="Bottom">
-
 						<StackPanel Orientation="Horizontal" HorizontalAlignment="Center"  Margin="5">
-							<TextBlock Text="{Binding DowntimePanelButtonText}"/>
+							<TextBlock Text="{Binding ActualStatusButtonText}"/>
 						</StackPanel>
 					</Button>
-
+					<Button
+                        Classes="NavigationInfoButton"
+                        IsVisible="{Binding ServiceArrivalVisible}"
+                        Content="OCZEKIWANIE NA SERWIS"
+                        Background="{Binding ServiceArrivalColor}">
+                    </Button>
+                    </StackPanel>
 				</Grid>
 			</StackPanel>
-
 			<!-- ControlPanel -->
 			<Border  Grid.Column="1">
 				<Grid>
-                <Image Source="/Assets/logoW16.png" Stretch="None" />
-				<UserControl
+                    <Image Grid.ColumnSpan="3" Source="/Assets/logoW16.png" Stretch="None"/>
+					<UserControl
                 Grid.Column="1"
 				IsVisible="{Binding !ControlPanelVisible}"
                 CornerRadius="20 "

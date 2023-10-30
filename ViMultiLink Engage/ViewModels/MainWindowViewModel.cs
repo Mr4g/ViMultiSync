@@ -58,7 +58,27 @@ namespace ViMultiSync.ViewModels
         private bool _splunkPanelIsOpen = false;
 
         [ObservableProperty]
-        private bool _controlPanelVisible= false;
+        private bool _controlPanelVisible = false;
+
+        [ObservableProperty]
+        private bool _serviceArrivalVisible = false;
+
+        [ObservableProperty]
+        private bool _actualStatusButtonIsVisible = false;
+
+        [ObservableProperty]
+        private string _actualStatusButtonText = "WYBIERZ STATUS";
+
+        [ObservableProperty]
+        private string _actualStatusColor = "BRAK";
+
+        [ObservableProperty]
+        private string _serviceArrivalButtonText = "BRAK";
+
+        [ObservableProperty]
+        private string _serviceArrivalColor = "#FFA000";
+
+
 
         #endregion
 
@@ -82,6 +102,9 @@ namespace ViMultiSync.ViewModels
 
         [ObservableProperty]
         private ObservableGroupedCollection<string, SplunkPanelItem> _splunkPanel = default!;
+
+        [ObservableProperty]
+        private ObservableGroupedCollection<string, ServiceArrivalPanelItem> _serviceArrivalPanel = default!;
 
         #endregion
 
@@ -111,9 +134,11 @@ namespace ViMultiSync.ViewModels
         [NotifyPropertyChangedFor(nameof(SplunkPanelButtonText))]
         private SplunkPanelItem? _selectedSplunkPanelItem;
 
+
+
         #endregion
 
-        public string DowntimePanelButtonText => SelectedDowntimePanelItem?.LongText ?? "Downtime";
+        public string DowntimePanelButtonText => SelectedDowntimePanelItem?.Name ?? "Downtime";
 
         public string SettingPanelButtonText => SelectedSettingPanelItem?.Name?? "Setting";
 
@@ -156,44 +181,65 @@ namespace ViMultiSync.ViewModels
         [RelayCommand]
         public void SplunkPanelButtonPressed() => SplunkPanelIsOpen ^= true;
 
+
+
         [RelayCommand]
         private void DowntimePanelItemPressed(DowntimePanelItem item)
         {
+            const string colorDowntime = "#DC4E41";
+
             // Update the selected item 
             SelectedDowntimePanelItem = item;
 
+            ServiceArrivalVisible = true;
+
             // Close the menu 
             DowntimePanelIsOpen = false;
+
+            ChangePropertyButtonStatus(colorDowntime, item.Status);
         }
 
         [RelayCommand]
         private void SettingPanelItemPressed(SettingPanelItem item)
         {
+            const string colorSetting = "#EE82EE";
+
             // Update the selected item 
             SelectedSettingPanelItem = item;
 
             // Close the menu 
             SettingPanelIsOpen = false;
+
+            ChangePropertyButtonStatus(colorSetting, item.Status);
         }
 
         [RelayCommand]
         private void MaintenancePanelItemPressed(MaintenancePanelItem item)
         {
+            const string colorMaintenance = "#81EEEE";
+
             // Update the selected item 
             SelectedMaintenancePanelItem = item;
 
             // Close the menu 
             MaintenancePanelIsOpen = false;
+
+            ChangePropertyButtonStatus(colorMaintenance, item.Status);
         }
+
         [RelayCommand]
         private void LogisticPanelItemPressed(LogisticPanelItem item)
         {
+            const string colorLogistic = "#E1D747";
             // Update the selected item 
             SelectedLogisticPanelItem = item;
 
             // Close the menu 
             LogisticPanelIsOpen = false;
+
+            ChangePropertyButtonStatus(colorLogistic, item.Status);
         }
+
         [RelayCommand]
         private void ReasonDowntimePanelItemPressed(ReasonDowntimePanelItem item)
         {
@@ -202,6 +248,7 @@ namespace ViMultiSync.ViewModels
 
             // Close the menu 
             ReasonDowntimePanelIsOpen = false;
+            
         }
         [RelayCommand]
         private void SplunkPanelItemPressed(SplunkPanelItem item)
@@ -212,7 +259,7 @@ namespace ViMultiSync.ViewModels
             // Close the menu 
             LoadPageSplunk(item.Link);
             SplunkPanelIsOpen = false;
-            
+            ControlPanelVisible = false;
         }
 
         [RelayCommand]
@@ -225,6 +272,7 @@ namespace ViMultiSync.ViewModels
             var logisticStatusPanel = await mStatusInterfaceService.GetLogisticPanelAsync();
             var reasonDowntimeStatusPanel = await mStatusInterfaceService.GetReasonDowntimePanelAsync();
             var splunkStatusPanel = await mStatusInterfaceService.GetSplunkPanelAsync();
+            var serviceArrivalPanel = await mStatusInterfaceService.GetServiceArrivalPanelAsync();
 
 
             // Create a grouping from the flat data
@@ -261,6 +309,11 @@ namespace ViMultiSync.ViewModels
                 new ObservableGroupedCollection<string, SplunkPanelItem>(
                     splunkStatusPanel.GroupBy(item => item.Group));
 
+            ServiceArrivalPanel =
+                new ObservableGroupedCollection<string, ServiceArrivalPanelItem>(
+                    serviceArrivalPanel.GroupBy(item => item.Name));
+
+
         }
 
         private int LoadSizeOfGrid(int numberOfElements)
@@ -270,6 +323,14 @@ namespace ViMultiSync.ViewModels
             int rows = (int)Math.Ceiling((double)numberOfElements / maxColumns);
 
             return rows;
+        }
+
+        public void ChangePropertyButtonStatus(string colorButton, string textButton)
+        {
+            ActualStatusButtonIsVisible = true;
+            ActualStatusButtonText = textButton;
+            ActualStatusColor = colorButton;
+            ControlPanelVisible = false;
         }
 
 

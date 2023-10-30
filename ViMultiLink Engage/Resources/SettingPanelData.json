@@ -19,23 +19,7 @@
         "Name": "S1.Setting",
         "Value": "",
         "NameDevice": "iPC01",
-        "Status": "PRZEZBROJENIE",
-        "Location": "ODU_5",
-        "Source": "W16_iPC_Test"
-    },
-    {
-        "Name": "S1.Setting",
-        "Value": "",
-        "NameDevice": "iPC01",
-        "Status": "PRZEZBROJENIE",
-        "Location": "ODU_5",
-        "Source": "W16_iPC_Test"
-    },
-    {
-        "Name": "S1.Setting",
-        "Value": "",
-        "NameDevice": "iPC01",
-        "Status": "PRZEZBROJENIE",
+        "Status": "DUPA2",
         "Location": "ODU_5",
         "Source": "W16_iPC_Test"
     }

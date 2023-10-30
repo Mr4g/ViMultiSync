@@ -95,12 +95,12 @@ namespace ViMultiSync
             o => o.Open,
             (o, v) => o.Open = v);
 
-        private bool _onOpen;
+        private bool _duringOpening;
 
-        public static readonly DirectProperty<AnimatedPopup, bool> OnOpenProperty = AvaloniaProperty.RegisterDirect<AnimatedPopup, bool>(
-            nameof(OnOpen),
-            o => o.OnOpen,
-            (o, v) => o.OnOpen = v);
+        public static readonly DirectProperty<AnimatedPopup, bool> DuringOpeningProperty = AvaloniaProperty.RegisterDirect<AnimatedPopup, bool>(
+            nameof(DuringOpening),
+            o => o.DuringOpening,
+            (o, v) => o.DuringOpening = v);
 
         /// <summary>
         ///  Property to set whether the control should be open or closed 
@@ -152,21 +152,15 @@ namespace ViMultiSync
                 UpdateAnimation();
 
                 // Raise the property changed event
-                SetAndRaise(OnOpenProperty, ref _open, value); 
+                SetAndRaise(OpenProperty, ref _open, value); 
             }
         }
 
-        public bool OnOpen
+        public bool DuringOpening
         {
-            get => _onOpen;
-            set
-            {
-                if (_onOpen != value)
-                {
-                    _onOpen = value;
-                }
-                SetAndRaise(OpenProperty, ref _onOpen, value);
-            }
+            get => _duringOpening;
+            set => SetAndRaise(DuringOpeningProperty, ref _duringOpening, value);
+     
         }
 
         #endregion
@@ -234,15 +228,16 @@ namespace ViMultiSync
         [RelayCommand]
         public void BeginOpen()
         {
-            OnOpen = true;
+            DuringOpening = true;
             Open = true;
+
         }
 
         [RelayCommand]
         public void BeginClose()
         {
-            OnOpen = false;
             Open = false;
+            DuringOpening = false;
         }
 
         #endregion

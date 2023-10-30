@@ -21,11 +21,15 @@
     <None Remove="Resources\LogisticPanelData.json" />
     <None Remove="Resources\MaintenancePanelData.json" />
     <None Remove="Resources\ReasonDowntimePanelData.json" />
+    <None Remove="Resources\ServiceArrivalPanelData.json" />
     <None Remove="Resources\SettingPanelData.json" />
     <None Remove="Resources\SplunkPanelData.json" />
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Resources\ServiceArrivalPanelData.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
     <EmbeddedResource Include="Resources\DowntimePanelData.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </EmbeddedResource>
