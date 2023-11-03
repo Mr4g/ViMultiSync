@@ -10,7 +10,7 @@
     },
     {
         "Name": "S1.Logistic",
-        "Value": "",
+        "Value": "true",
         "NameDevice": "iPC01",
         "Status": "BRAK MATERIAŁU",
         "Location": "ODU_5",
@@ -18,7 +18,7 @@
     },
     {
         "Name": "S1.Logistic",
-        "Value": "",
+        "Value": "true",
         "NameDevice": "iPC01",
         "Status": "BRAK MATERIAŁU",
         "Location": "ODU_5",
@@ -26,7 +26,7 @@
     },
     {
         "Name": "S1.Logistic",
-        "Value": "",
+        "Value": "true",
         "NameDevice": "iPC01",
         "Status": "BRAK MATERIAŁU",
         "Location": "ODU_5",
@@ -34,7 +34,7 @@
     },
     {
         "Name": "S1.Logistic",
-        "Value": "",
+        "Value": "true",
         "NameDevice": "iPC01",
         "Status": "BRAK MATERIAŁU",
         "Location": "ODU_5",
@@ -42,7 +42,7 @@
     },
     {
         "Name": "S1.Logistic",
-        "Value": "",
+        "Value": "true",
         "NameDevice": "iPC01",
         "Status": "BRAK MATERIAŁU",
         "Location": "ODU_5",

@@ -1,55 +1,55 @@
 [
     {
-        "Name": "S1.Maintenance",
-        "Value": "",
+        "Name": "S1.MaintenanceMode",
+        "Value": "true",
         "NameDevice": "iPC01",
         "Status": "SPRZĄTANIE",
         "Location": "ODU_5",
         "Source": "W16_iPC_Test"
     },
     {
-        "Name": "S1.Maintenance",
-        "Value": "",
+        "Name": "S1.MaintenanceMode",
+        "Value": "true",
         "NameDevice": "iPC01",
         "Status": "SPRZĄTANIE",
         "Location": "ODU_5",
         "Source": "W16_iPC_Test"
     },
     {
-        "Name": "S1.Maintenance",
-        "Value": "",
+        "Name": "S1.MaintenanceMode",
+        "Value": "true",
         "NameDevice": "iPC01",
         "Status": "SPRZĄTANIE",
         "Location": "ODU_5",
         "Source": "W16_iPC_Test"
     },
     {
-        "Name": "S1.Maintenance",
-        "Value": "",
+        "Name": "S1.MaintenanceMode",
+        "Value": "true",
         "NameDevice": "iPC01",
         "Status": "SPRZĄTANIE",
         "Location": "ODU_5",
         "Source": "W16_iPC_Test"
     },
     {
-        "Name": "S1.Maintenance",
-        "Value": "",
+        "Name": "S1.MaintenanceMode",
+        "Value": "true",
         "NameDevice": "iPC01",
         "Status": "SPRZĄTANIE",
         "Location": "ODU_5",
         "Source": "W16_iPC_Test"
     },
     {
-        "Name": "S1.Maintenance",
-        "Value": "",
+        "Name": "S1.MaintenanceMode",
+        "Value": "true",
         "NameDevice": "iPC01",
         "Status": "SPRZĄTANIE",
         "Location": "ODU_5",
         "Source": "W16_iPC_Test"
     },
     {
-        "Name": "S1.Maintenance",
-        "Value": "",
+        "Name": "S1.MaintenanceMode",
+        "Value": "true",
         "NameDevice": "iPC01",
         "Status": "SPRZĄTANIE",
         "Location": "ODU_5",

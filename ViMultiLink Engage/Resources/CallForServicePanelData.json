@@ -1,6 +1,6 @@
 [
     {
-        "Name": "S7.ServiceArrival",
+        "Name": "S7.CallForService",
         "Value": "true",
         "Status": "TAK",
         "NameDevice": "iPC01",
@@ -8,7 +8,7 @@
         "Source": "W16_iPC_Test"
     },
     {
-        "Name": "S7.ServiceArrival",
+        "Name": "S7.CallForService",
         "Value": "false",
         "Status": "NIE",
         "NameDevice": "iPC01",

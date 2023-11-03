@@ -22,6 +22,7 @@ namespace ViMultiSync.Repositories
         string splunkIndex = "ipc_test"; // Zaktualizuj na właściwy indeks
         string splunkSource = "W16FunctionTesterODUIV1673000313"; // Zaktualizuj na właściwe źródło
         string eventName = "connection"; // Zaktualizuj na nazwę zdarzenia
+        
 
         public GenericSplunkLogger()
         {
@@ -33,7 +34,9 @@ namespace ViMultiSync.Repositories
             handler.ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true;
 
             using (HttpClient client = new HttpClient(handler))
-            {
+            { 
+                HttpResponseMessage response = null;
+
                 client.DefaultRequestHeaders.Add("Authorization", $"Splunk {hecToken}");
 
                 string currentTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss:fff");
@@ -61,7 +64,16 @@ namespace ViMultiSync.Repositories
 
                 Console.WriteLine($"Wysyłanie");
                 // Wysłanie danych do Splunka za pomocą POST
-                HttpResponseMessage response = await client.PostAsync(splunkUrl, content);
+                try
+                {
+                     response = await client.PostAsync(splunkUrl, content);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                    throw;
+                }
+                
                 string responseContent = await response.Content.ReadAsStringAsync();
                 Console.WriteLine($"Odpowiedź z Splunk: {responseContent}");
 
@@ -80,39 +92,54 @@ namespace ViMultiSync.Repositories
         private string ConvertDataToJson(T data, string unixTimeMilliSeconds)
         {
             var type = typeof(T);
-            var fields = new Dictionary<string, string>();
+            var eventFields = new Dictionary<string, string>();
+            var generalFields = new Dictionary<string, string>();
+            var otherFields = new Dictionary<string, string>();
 
             foreach (var property in type.GetProperties())
             {
-                var propertyName = property.Name;
+                var propertyName = property.Name.ToLower();
                 var propertyValue = property.GetValue(data);
 
-                if (propertyValue != null)
+                if (propertyValue != null && propertyName != "time")
                 {
-                    fields[propertyName] = propertyValue.ToString();
+                    if (propertyName == "name" || propertyName == "value" || propertyName == "status" || propertyName == "time_epoch" || propertyName == "reason")
+                    {
+                        eventFields[propertyName] = propertyValue.ToString();
+                    }
+                    else if (propertyName == "source")
+                    {
+                        generalFields[propertyName] = propertyValue.ToString();
+                    }
+                    else 
+                    {
+                        otherFields[propertyName] = propertyValue.ToString();
+                    }
                 }
             }
 
-            // Dodaj standardowe pola JSON
-            fields.Add("time", unixTimeMilliSeconds);
-            fields.Add("sourcetype", "iPC");
-            fields.Add("index", "machinedata_w16");
-            fields.Add("time_epoch", unixTimeMilliSeconds);
+            // Add general fields
+            generalFields.Add("time", unixTimeMilliSeconds);
+            generalFields.Add("sourcetype", "iPC");
+            generalFields.Add("index", "machinedata_w16");
+            eventFields.Add("time_epoch", unixTimeMilliSeconds);
 
-            // Buduj JSON na podstawie słownika pól
+            // Build json file
             var jsonPayload = JsonConvert.SerializeObject(new
             {
-                time = fields["time"],
-                sourcetype = fields["sourcetype"],
-                index = fields["index"],
-                @event = fields,
-                fields = new { }
-            }, Formatting.None); // Ustawiamy "None", aby usunąć formatowanie
+                time = generalFields["time"],
+                sourcetype = generalFields["sourcetype"],
+                index = generalFields["index"],
+                source = generalFields["source"],
+                @event = eventFields,
+                @fields = otherFields
+            }, Formatting.None); // delete format
 
-            // Usuń białe znaki i znaki nowej linii
+            // Clear line and blank symbols
             var jsonPayloadWithoutWhitespace = Regex.Replace(jsonPayload, @"\s+", "");
 
             return jsonPayloadWithoutWhitespace;
         }
+
     }
 }

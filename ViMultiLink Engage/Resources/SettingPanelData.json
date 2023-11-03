@@ -1,25 +1,25 @@
 [
     {
-        "Name": "S1.Setting",
-        "Value": "",
+        "Name": "S1.SettingMode",
+        "Value": "true",
         "NameDevice": "iPC01",
         "Status": "PRZEZBROJENIE",
         "Location": "ODU_5",
         "Source": "W16_iPC_Test"
     },
     {
-        "Name": "S1.Setting",
-        "Value": "",
+        "Name": "S1.SettingMode",
+        "Value": "true",
         "NameDevice": "iPC01",
         "Status": "PRZEZBROJENIE",
         "Location": "ODU_5",
         "Source": "W16_iPC_Test"
     },
     {
-        "Name": "S1.Setting",
-        "Value": "",
+        "Name": "S1.SettingMode",
+        "Value": "true",
         "NameDevice": "iPC01",
-        "Status": "DUPA2",
+        "Status": "PRZEZBROJENIE",
         "Location": "ODU_5",
         "Source": "W16_iPC_Test"
     }

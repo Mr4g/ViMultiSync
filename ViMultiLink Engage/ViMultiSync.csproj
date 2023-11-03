@@ -17,7 +17,10 @@
 
   <ItemGroup>
     <None Remove="DowntimePanel.json" />
+    <None Remove="Resources\CallForServicePanelData.json" />
     <None Remove="Resources\DowntimePanelData.json" />
+    <None Remove="Resources\DowntimeReasonElectricPanelData.json" />
+    <None Remove="Resources\DowntimeReasonSettingPanelData.json" />
     <None Remove="Resources\LogisticPanelData.json" />
     <None Remove="Resources\MaintenancePanelData.json" />
     <None Remove="Resources\ReasonDowntimePanelData.json" />
@@ -27,13 +30,22 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Resources\DowntimeReasonSettingPanelData.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\DowntimeReasonElectricPanelData.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
     <EmbeddedResource Include="Resources\ServiceArrivalPanelData.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </EmbeddedResource>
-    <EmbeddedResource Include="Resources\DowntimePanelData.json">
+    <EmbeddedResource Include="Resources\ReasonDowntimePanelData.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </EmbeddedResource>
-    <EmbeddedResource Include="Resources\ReasonDowntimePanelData.json">
+    <EmbeddedResource Include="Resources\CallForServicePanelData.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\DowntimePanelData.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </EmbeddedResource>
     <EmbeddedResource Include="Resources\LogisticPanelData.json">

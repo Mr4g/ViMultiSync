@@ -16,8 +16,10 @@ namespace ViMultiSync.Services
         private const string pathLogisticPanelData = "ViMultiSync.Resources.LogisticPanelData.json";
         private const string pathReasonDowntimePanelData = "ViMultiSync.Resources.ReasonDowntimePanelData.json";
         private const string pathSplunkPanelData = "ViMultiSync.Resources.SplunkPanelData.json";
+        private const string pathCallForServicePanelData = "ViMultiSync.Resources.CallForServicePanelData.json";
         private const string pathServiceArrivalPanelData = "ViMultiSync.Resources.ServiceArrivalPanelData.json";
-
+        private const string pathDowntimeReasonElectricPanelData = "ViMultiSync.Resources.DowntimeReasonElectricPanelData.json";
+        private const string pathDowntimeReasonSettingPanelData = "ViMultiSync.Resources.DowntimeReasonSettingPanelData.json";
 
 
         public async Task<List<DowntimePanelItem>> GetDowntimePanelAsync()
@@ -40,9 +42,9 @@ namespace ViMultiSync.Services
                     // Plik z danymi nie istnieje, zwracamy domyślną listę
                     return await Task.FromResult(new List<DowntimePanelItem>(new[]
                     {
-                        new DowntimePanelItem { Name = "S1.MachineDowntime", Value = "", NameDevice = "iPC01", Status = "MECHANICZNA", Location = "ODU_5", Source = "W16_iPC_Test" },
-                        new DowntimePanelItem { Name = "S1.MachineDowntime", Value = "", NameDevice = "iPC01", Status = "ELEKTRYCZNA", Location = "ODU_5", Source = "W16_iPC_Test"},
-                        new DowntimePanelItem {Name = "S1.MachineDowntime", Value = "", NameDevice = "iPC01", Status = "USTAWIACZ", Location = "ODU_5", Source = "W16_iPC_Test"},
+                        new DowntimePanelItem { Name = "S1.MachineDowntime", Value = "true", NameDevice = "iPC01", Status = "MECHANICZNA", Location = "ODU_5", Source = "W16_iPC_Test" },
+                        new DowntimePanelItem { Name = "S1.MachineDowntime", Value = "true", NameDevice = "iPC01", Status = "ELEKTRYCZNA", Location = "ODU_5", Source = "W16_iPC_Test"},
+                        new DowntimePanelItem {Name = "S1.MachineDowntime", Value = "true", NameDevice = "iPC01", Status = "USTAWIACZ", Location = "ODU_5", Source = "W16_iPC_Test"},
                     }));
                 }
             }
@@ -68,9 +70,9 @@ namespace ViMultiSync.Services
                     // Plik z danymi nie istnieje, zwracamy domyślną listę
                     return await Task.FromResult(new List<SettingPanelItem>(new[]
                     {
-                        new SettingPanelItem { Name = "S1.Setting", Value = "", NameDevice = "iPC01", Status = "PRZEZBROJENIE", Location = "ODU_5", Source = "W16_iPC_Test"},
-                        new SettingPanelItem { Name = "S1.Setting", Value = "", NameDevice = "iPC01", Status = "KOREKTY", Location = "ODU_5", Source = "W16_iPC_Test"},
-                        new SettingPanelItem { Name = "S1.Setting", Value = "", NameDevice = "iPC01", Status = "TESTY", Location = "ODU_5", Source = "W16_iPC_Test"},
+                        new SettingPanelItem { Name = "S1.SettingMode", Value = "true", NameDevice = "iPC01", Status = "PRZEZBROJENIE", Location = "ODU_5", Source = "W16_iPC_Test"},
+                        new SettingPanelItem { Name = "S1.SettingMode", Value = "true", NameDevice = "iPC01", Status = "KOREKTY", Location = "ODU_5", Source = "W16_iPC_Test"},
+                        new SettingPanelItem { Name = "S1.SettingMode", Value = "true", NameDevice = "iPC01", Status = "TESTY", Location = "ODU_5", Source = "W16_iPC_Test"},
                     }));
                 }
             }
@@ -96,9 +98,9 @@ namespace ViMultiSync.Services
                     // Plik z danymi nie istnieje, zwracamy domyślną listę
                     return await Task.FromResult(new List<MaintenancePanelItem>(new[]
                     {
-                        new MaintenancePanelItem { Name = "S1.Maintenance", Value = "", NameDevice = "iPC01", Status = "SPRZĄTANIE", Location = "ODU_5", Source = "W16_iPC_Test"},
-                        new MaintenancePanelItem { Name = "S1.Maintenance", Value = "", NameDevice = "iPC01", Status = "PLANOWANA PRZERWA", Location = "ODU_5", Source = "W16_iPC_Test"},
-                        new MaintenancePanelItem { Name = "S1.Maintenance", Value = "", NameDevice = "iPC01", Status = "INNE", Location = "ODU_5", Source = "W16_iPC_Test"},
+                        new MaintenancePanelItem { Name = "S1.MaintenanceMode", Value = "true", NameDevice = "iPC01", Status = "SPRZĄTANIE", Location = "ODU_5", Source = "W16_iPC_Test"},
+                        new MaintenancePanelItem { Name = "S1.MaintenanceMode", Value = "true", NameDevice = "iPC01", Status = "PLANOWANA PRZERWA", Location = "ODU_5", Source = "W16_iPC_Test"},
+                        new MaintenancePanelItem { Name = "S1.MaintenanceMode", Value = "true", NameDevice = "iPC01", Status = "INNE", Location = "ODU_5", Source = "W16_iPC_Test"},
                     }));
                 }
             }
@@ -124,9 +126,9 @@ namespace ViMultiSync.Services
                     // Plik z danymi nie istnieje, zwracamy domyślną listę
                     return await Task.FromResult(new List<LogisticPanelItem>(new[]
                     {
-                        new LogisticPanelItem { Name = "S1.Logistic", Value = "", NameDevice = "iPC01", Status = "BRAK MATERIAŁU", Location = "ODU_5", Source = "W16_iPC_Test"},
-                        new LogisticPanelItem { Name = "S1.Logistic", Value = "", NameDevice = "iPC01", Status = "USZKODZONY MATERIAŁ", Location = "ODU_5", Source = "W16_iPC_Test"},
-                        new LogisticPanelItem { Name = "S1.Logistic", Value = "", NameDevice = "iPC01", Status = "INNE", Location = "ODU_5", Source = "W16_iPC_Test"},
+                        new LogisticPanelItem { Name = "S1.LogisticMode", Value = "true", NameDevice = "iPC01", Status = "BRAK MATERIAŁU", Location = "ODU_5", Source = "W16_iPC_Test"},
+                        new LogisticPanelItem { Name = "S1.LogisticMode", Value = "true", NameDevice = "iPC01", Status = "USZKODZONY MATERIAŁ", Location = "ODU_5", Source = "W16_iPC_Test"},
+                        new LogisticPanelItem { Name = "S1.LogisticMode", Value = "true", NameDevice = "iPC01", Status = "INNE", Location = "ODU_5", Source = "W16_iPC_Test"},
                     }));
                 }
             }
@@ -152,9 +154,9 @@ namespace ViMultiSync.Services
                     // Plik z danymi nie istnieje, zwracamy domyślną listę
                     return await Task.FromResult(new List<ReasonDowntimePanelItem>(new[]
                     {
-                        new ReasonDowntimePanelItem { Name = "S7.ReasonDowntime", Value = "", NameDevice = "iPC01", Status = "BRAK ZASILANIA", Location = "ODU_5", Source = "W16_iPC_Test"},
-                        new ReasonDowntimePanelItem { Name = "S7.ReasonDowntime", Value = "", NameDevice = "iPC01", Status = "USZKODZONY CZUJNIK", Location = "ODU_5", Source = "W16_iPC_Test"},
-                        new ReasonDowntimePanelItem { Name = "S7.ReasonDowntime", Value = "", NameDevice = "iPC01", Status = "INNE", Location = "ODU_5", Source = "W16_iPC_Test"},
+                        new ReasonDowntimePanelItem { Name = "S7.DowntimeReason", Value = "true", NameDevice = "iPC01", Status = "BRAK ZASILANIA", Location = "ODU_5", Source = "W16_iPC_Test"},
+                        new ReasonDowntimePanelItem { Name = "S7.DowntimeReason", Value = "true", NameDevice = "iPC01", Status = "USZKODZONY CZUJNIK", Location = "ODU_5", Source = "W16_iPC_Test"},
+                        new ReasonDowntimePanelItem { Name = "S7.DowntimeReason", Value = "true", NameDevice = "iPC01", Status = "INNE", Location = "ODU_5", Source = "W16_iPC_Test"},
                     }));
                 }
             }
@@ -187,6 +189,33 @@ namespace ViMultiSync.Services
             }
         }
 
+        public async Task<List<CallForServicePanelItem>> GetCallForServicePanelAsync()
+        {
+            var assembly = Assembly.GetExecutingAssembly();
+
+            using (Stream stream = assembly.GetManifestResourceStream(pathCallForServicePanelData))
+            {
+                if (stream != null)
+                {
+                    using (StreamReader reader = new StreamReader(stream))
+                    {
+                        string jsonData = reader.ReadToEnd();
+                        var callForServicePanelItems = JsonSerializer.Deserialize<List<CallForServicePanelItem>>(jsonData);
+                        return callForServicePanelItems;
+                    }
+                }
+                else
+                {
+                    // Plik z danymi nie istnieje, zwracamy domyślną listę
+                    return await Task.FromResult(new List<CallForServicePanelItem>(new[]
+                    {
+                        new CallForServicePanelItem { Name = "S7.CallForService", Value = "true", NameDevice = "iPC01", Location = "ODU_5", Source = "W16_iPC_Test"},
+                        new CallForServicePanelItem { Name = "S7.CallForService", Value = "false", NameDevice = "iPC01", Location = "ODU_5", Source = "W16_iPC_Test"}
+                    }));
+                }
+            }
+        }
+
         public async Task<List<ServiceArrivalPanelItem>> GetServiceArrivalPanelAsync()
         {
             var assembly = Assembly.GetExecutingAssembly();
@@ -208,6 +237,57 @@ namespace ViMultiSync.Services
                     return await Task.FromResult(new List<ServiceArrivalPanelItem>(new[]
                     {
                         new ServiceArrivalPanelItem { Name = "S1.ServiceArrival", Value = "true", NameDevice = "iPC01", Location = "ODU_5", Source = "W16_iPC_Test"}
+                    }));
+                }
+            }
+        }
+
+        public async Task<List<DowntimeReasonElectricPanelItem>> GetDowntimeReasonElectricPanelAsync()
+        {
+            var assembly = Assembly.GetExecutingAssembly();
+
+            using (Stream stream = assembly.GetManifestResourceStream(pathDowntimeReasonElectricPanelData))
+            {
+                if (stream != null)
+                {
+                    using (StreamReader reader = new StreamReader(stream))
+                    {
+                        string jsonData = reader.ReadToEnd();
+                        var downtimeReasonElectricPanelItem = JsonSerializer.Deserialize<List<DowntimeReasonElectricPanelItem>>(jsonData);
+                        return downtimeReasonElectricPanelItem;
+                    }
+                }
+                else
+                {
+                    // Plik z danymi nie istnieje, zwracamy domyślną listę
+                    return await Task.FromResult(new List<DowntimeReasonElectricPanelItem>(new[]
+                    {
+                        new DowntimeReasonElectricPanelItem { Name = "S7.DowntimeReason", Value = "true", NameDevice = "iPC01", Status = "BRAK ZASILANIA", Location = "ODU_5", Source = "W16_iPC_Test"},
+                    }));
+                }
+            }
+        }
+        public async Task<List<DowntimeReasonSettingPanelItem>> GetDowntimeReasonSettingPanelAsync()
+        {
+            var assembly = Assembly.GetExecutingAssembly();
+
+            using (Stream stream = assembly.GetManifestResourceStream(pathDowntimeReasonSettingPanelData))
+            {
+                if (stream != null)
+                {
+                    using (StreamReader reader = new StreamReader(stream))
+                    {
+                        string jsonData = reader.ReadToEnd();
+                        var downtimeReasonSettingPanelItem = JsonSerializer.Deserialize<List<DowntimeReasonSettingPanelItem>>(jsonData);
+                        return downtimeReasonSettingPanelItem;
+                    }
+                }
+                else
+                {
+                    // Plik z danymi nie istnieje, zwracamy domyślną listę
+                    return await Task.FromResult(new List<DowntimeReasonSettingPanelItem>(new[]
+                    {
+                        new DowntimeReasonSettingPanelItem { Name = "S7.DowntimeReason", Value = "true", NameDevice = "iPC01", Status = "BRAK ZASILANIA", Location = "ODU_5", Source = "W16_iPC_Test"},
                     }));
                 }
             }

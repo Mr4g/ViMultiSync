@@ -7,9 +7,10 @@
         xmlns:local="clr-namespace:ViMultiSync"
         xmlns:collections="clr-namespace:CommunityToolkit.Mvvm.Collections;assembly=CommunityToolkit.Mvvm"
         xmlns:dataModel="clr-namespace:ViMultiSync.DataModel"
-        mc:Ignorable="d" d:DesignWidth="1240" d:DesignHeight="860"
+        xmlns:dataAnnotations="clr-namespace:System.ComponentModel.DataAnnotations;assembly=System.ComponentModel.Annotations"
+        mc:Ignorable="d" d:DesignWidth="1400" d:DesignHeight="1000"
         Width="1600"
-        Height="800"
+        Height="900"
         x:Class="ViMultiSync.Views.MainWindow"
         x:DataType="viewModels:MainWindowViewModel"
 		WindowStartupLocation="CenterScreen"
@@ -63,25 +64,318 @@
 						</DataTemplate>
 					</ItemsControl.ItemTemplate>
 				</ItemsControl>
-
-
-
-
-
-				<!--<Expander Background ="#232228" HorizontalAlignment="Center" VerticalAlignment="Center">
-                    <Expander.Header>
-                        <Label  Content="STATUS"></Label>
-                    </Expander.Header>
-                    <StackPanel>
-                        <Button Classes="PopupButton" Content="MECHANICZNA"/>
-                        <Button Classes="PopupButton" Content="ELEKTRYCZNA"/>
-                        <Button Classes="PopupButton" Content= "USTAWIACZ" />
-                    </StackPanel>
-                </Expander>-->
 			</Border>
 		</controls:AnimatedPopup>
 
-        <!-- Setting Panel Popup Open -->
+        <!-- Warrning Notice Panel Open -->
+
+		<controls:AnimatedPopup
+            Grid.Row="0"
+            Grid.RowSpan="3"
+            Grid.ColumnSpan="6"
+            Margin="20"
+            AnimationTime="0.3"
+            UnderlayOpacity="0.2"
+            Name="WarrningNotice"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            Background="#232228"
+            Open ="{Binding WarrningPanelIsOpen, Mode=TwoWay}"
+            DuringOpening="{Binding ControlPanelVisible, Mode=TwoWay}">
+			<Grid
+				RowDefinitions="*, Auto">
+                <TextBlock
+                    Grid.Row="0"
+                    HorizontalAlignment="Center"
+                    FontSize="28"
+                    Foreground="WhiteSmoke"
+                    Margin="20">
+                    <Run>Musisz zakończyć awarię: </Run>
+                    <Run 
+                        Text="{Binding WarrningNoticeText}" >
+                    </Run>
+					</TextBlock>
+                <Border Grid.Row="1" Background="{Binding WarrningNoticeColor}" Padding="80 50" CornerRadius="24">
+					<StackPanel>
+						<Button
+							Classes="PopupButton"
+							Command="{Binding WarrningNoticeStatusPanelPressedCommand}"
+							Content="OK">
+						</Button>
+					</StackPanel>
+				</Border>
+			</Grid>
+		</controls:AnimatedPopup>
+
+		<!-- Reason Downtime Panel Popup Open-->
+
+		<controls:AnimatedPopup
+            Grid.Row="0"
+            Grid.RowSpan="3"
+            Grid.ColumnSpan="6"
+            Margin="20"
+            AnimationTime="0.3"
+			HorizontalAlignment="Center"
+			VerticalAlignment="Center"
+            UnderlayOpacity="0.2"
+            Name="ReasonDowntimePanel"
+            Background="#232228"
+            Open="{Binding ReasonDowntimePanelIsOpen, Mode=TwoWay}"
+            DuringOpening="{Binding ControlPanelVisible, Mode=TwoWay}">
+			<Grid
+                RowDefinitions="*,Auto">
+				<TextBlock
+                    Grid.Row="0"
+                    Text="Podaj powód przestoju"
+                    HorizontalAlignment="Center"
+                    FontSize="28"
+                    Foreground="WhiteSmoke"
+                    Margin="10"/>
+
+				<Border Grid.Row="1" Background="#232228" Padding="20" CornerRadius="24">
+					<ItemsControl ItemsSource="{Binding ReasonDowntimePanel}">
+						<ItemsControl.ItemTemplate>
+							<DataTemplate>
+								<ItemsControl ItemsSource="{Binding}">
+									<ItemsControl.ItemsPanel>
+										<ItemsPanelTemplate >
+											<UniformGrid Rows="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).RowForReasonDowntimePanel}" Columns="3" HorizontalAlignment="Center" VerticalAlignment="Center">
+											</UniformGrid>
+										</ItemsPanelTemplate>
+									</ItemsControl.ItemsPanel>
+									<ItemsControl.ItemTemplate>
+										<DataTemplate x:DataType="dataModel:ReasonDowntimePanelItem">
+											<Button
+												Classes="PopupButton"
+												Content="{Binding Reason}"
+												Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).ReasonDowntimePanelItemPressedCommand}"
+												CommandParameter="{Binding}">
+											</Button>
+										</DataTemplate>
+									</ItemsControl.ItemTemplate>
+								</ItemsControl>
+							</DataTemplate>
+						</ItemsControl.ItemTemplate>
+					</ItemsControl>
+				</Border>
+			</Grid>
+		</controls:AnimatedPopup>
+
+		<!-- Downtime Reason Electric Panel Popup Open-->
+
+		<controls:AnimatedPopup
+            Grid.Row="0"
+            Grid.RowSpan="3"
+            Grid.ColumnSpan="6"
+            Margin="20"
+            AnimationTime="0.3"
+			HorizontalAlignment="Center"
+			VerticalAlignment="Center"
+            UnderlayOpacity="0.2"
+            Name="DowntimeReasonElectricPanel"
+            Background="#232228"
+            Open="{Binding DowntimeReasonElectricPanelIsOpen, Mode=TwoWay}"
+            DuringOpening="{Binding ControlPanelVisible, Mode=TwoWay}">
+			<Grid
+                RowDefinitions="*,Auto">
+				<TextBlock
+                    Grid.Row="0"
+                    Text="Podaj powód przestoju"
+                    HorizontalAlignment="Center"
+                    FontSize="28"
+                    Foreground="WhiteSmoke"
+                    Margin="10"/>
+
+				<Border Grid.Row="1" Background="#232228" Padding="20" CornerRadius="24">
+					<ItemsControl ItemsSource="{Binding DowntimeReasonElectricPanel}">
+						<ItemsControl.ItemTemplate>
+							<DataTemplate>
+								<ItemsControl ItemsSource="{Binding}">
+									<ItemsControl.ItemsPanel>
+										<ItemsPanelTemplate >
+											<UniformGrid Rows="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).RowForDowntimeReasonElectricPanel}" Columns="3" HorizontalAlignment="Center" VerticalAlignment="Center">
+											</UniformGrid>
+										</ItemsPanelTemplate>
+									</ItemsControl.ItemsPanel>
+									<ItemsControl.ItemTemplate>
+										<DataTemplate x:DataType="dataModel:DowntimeReasonElectricPanelItem">
+											<Button
+												Classes="PopupButton"
+												Content="{Binding Reason}"
+												Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).DowntimeReasonElectricPanelItemPressedCommand}"
+												CommandParameter="{Binding}">
+											</Button>
+										</DataTemplate>
+									</ItemsControl.ItemTemplate>
+								</ItemsControl>
+							</DataTemplate>
+						</ItemsControl.ItemTemplate>
+					</ItemsControl>
+				</Border>
+			</Grid>
+		</controls:AnimatedPopup>
+
+		<!-- Downtime Reason Setting Panel Popup Open-->
+
+		<controls:AnimatedPopup
+            Grid.Row="0"
+            Grid.RowSpan="3"
+            Grid.ColumnSpan="6"
+            Margin="20"
+            AnimationTime="0.3"
+			HorizontalAlignment="Center"
+			VerticalAlignment="Center"
+            UnderlayOpacity="0.2"
+            Name="DowntimeReasonSettingPanel"
+            Background="#232228"
+            Open="{Binding DowntimeReasonSettingPanelIsOpen, Mode=TwoWay}"
+            DuringOpening="{Binding ControlPanelVisible, Mode=TwoWay}">
+			<Grid
+                RowDefinitions="*,Auto">
+				<TextBlock
+                    Grid.Row="0"
+                    Text="Podaj powód przestoju"
+                    HorizontalAlignment="Center"
+                    FontSize="28"
+                    Foreground="WhiteSmoke"
+                    Margin="10"/>
+
+				<Border Grid.Row="1" Background="#232228" Padding="20" CornerRadius="24">
+					<ItemsControl ItemsSource="{Binding DowntimeReasonSettingPanel}">
+						<ItemsControl.ItemTemplate>
+							<DataTemplate>
+								<ItemsControl ItemsSource="{Binding}">
+									<ItemsControl.ItemsPanel>
+										<ItemsPanelTemplate >
+											<UniformGrid Rows="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).RowForDowntimeReasonSettingPanel}" Columns="3" HorizontalAlignment="Center" VerticalAlignment="Center">
+											</UniformGrid>
+										</ItemsPanelTemplate>
+									</ItemsControl.ItemsPanel>
+									<ItemsControl.ItemTemplate>
+										<DataTemplate x:DataType="dataModel:DowntimeReasonSettingPanelItem">
+											<Button
+												Classes="PopupButton"
+												Content="{Binding Reason}"
+												Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).DowntimeReasonSettingPanelItemPressedCommand}"
+												CommandParameter="{Binding}">
+											</Button>
+										</DataTemplate>
+									</ItemsControl.ItemTemplate>
+								</ItemsControl>
+							</DataTemplate>
+						</ItemsControl.ItemTemplate>
+					</ItemsControl>
+				</Border>
+			</Grid>
+		</controls:AnimatedPopup>
+
+		<!-- Call For Service Panel Popup Open-->
+
+		<controls:AnimatedPopup
+            Grid.Row="0"
+            Grid.RowSpan="3"
+            Grid.ColumnSpan="6"
+            Margin="20"
+            AnimationTime="0.3"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            UnderlayOpacity="0.2"
+            Name="CallForServicePanel"
+            Background="#232228"
+            Open="{Binding CallForServicePanelIsOpen, Mode=TwoWay}"
+            DuringOpening="{Binding ControlPanelVisible, Mode=TwoWay}">
+			<Grid
+                RowDefinitions="*,Auto">
+				<TextBlock
+                    Grid.Row="0"
+                    Text="Wezwać Utrzymanie Ruchu?"
+                    HorizontalAlignment="Center"
+                    FontSize="28"
+                    Foreground="WhiteSmoke"
+                    Margin="10"/>
+				<Border Grid.Row="1" Background="OrangeRed" Padding="20" CornerRadius="24">
+					<ItemsControl ItemsSource="{Binding CallForServicePanel}">
+						<ItemsControl.ItemTemplate>
+							<DataTemplate>
+								<ItemsControl ItemsSource="{Binding}">
+									<ItemsControl.ItemsPanel>
+										<ItemsPanelTemplate >
+											<UniformGrid Rows="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).RowForCallForServicePanel}" Columns="2" HorizontalAlignment="Center" VerticalAlignment="Center">
+											</UniformGrid>
+										</ItemsPanelTemplate>
+									</ItemsControl.ItemsPanel>
+									<ItemsControl.ItemTemplate>
+										<DataTemplate x:DataType="dataModel:CallForServicePanelItem">
+											<Button
+												Classes="PopupButton"
+												Content="{Binding Status}"
+												Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).CallForServicePanelItemPressedCommand}"
+												CommandParameter="{Binding}">
+											</Button>
+										</DataTemplate>
+									</ItemsControl.ItemTemplate>
+								</ItemsControl>
+							</DataTemplate>
+						</ItemsControl.ItemTemplate>
+					</ItemsControl>
+				</Border>
+			</Grid>
+		</controls:AnimatedPopup>
+
+		<!-- Service Arrival Panel Popup Open-->
+
+		<controls:AnimatedPopup
+            Grid.Row="0"
+            Grid.RowSpan="3"
+            Grid.ColumnSpan="6"
+            Margin="20"
+            AnimationTime="0.3"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            UnderlayOpacity="0.2"
+            Name="ServiceArrivalPanel"
+            Background="#232228"
+            Open="{Binding ServiceArrivalPanelIsOpen, Mode=TwoWay}"
+            DuringOpening="{Binding ControlPanelVisible, Mode=TwoWay}">
+			<Grid
+                RowDefinitions="*,Auto">
+				<TextBlock
+                    Grid.Row="0"
+                    Text="Potwierdź przybycie UR"
+                    HorizontalAlignment="Center"
+                    FontSize="28"
+                    Foreground="WhiteSmoke"
+                    Margin="10"/>
+				<Border Grid.Row="1" Background="OrangeRed" Padding="20" CornerRadius="24">
+					<ItemsControl ItemsSource="{Binding ServiceArrivalPanel}">
+						<ItemsControl.ItemTemplate>
+							<DataTemplate>
+								<ItemsControl ItemsSource="{Binding}">
+									<ItemsControl.ItemsPanel>
+										<ItemsPanelTemplate >
+											<UniformGrid Rows="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).RowForServiceArrivalPanel}" Columns="2" HorizontalAlignment="Center" VerticalAlignment="Center">
+											</UniformGrid>
+										</ItemsPanelTemplate>
+									</ItemsControl.ItemsPanel>
+									<ItemsControl.ItemTemplate>
+										<DataTemplate x:DataType="dataModel:ServiceArrivalPanelItem">
+											<Button
+												Classes="PopupButton"
+												Content="{Binding Status}"
+												Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).ServiceArrivalPanelItemPressedCommand}"
+												CommandParameter="{Binding}">
+											</Button>
+										</DataTemplate>
+									</ItemsControl.ItemTemplate>
+								</ItemsControl>
+							</DataTemplate>
+						</ItemsControl.ItemTemplate>
+					</ItemsControl>
+				</Border>
+			</Grid>
+		</controls:AnimatedPopup>
+
+		<!-- Setting Panel Popup Open -->
 
 		<controls:AnimatedPopup
             Grid.Row="0"
@@ -122,9 +416,9 @@
 			</Border>
 		</controls:AnimatedPopup>
 
-        <!-- Maintenance Panel Popup Open-->
+		<!-- Maintenance Panel Popup Open-->
 
-        <controls:AnimatedPopup
+		<controls:AnimatedPopup
 	         Grid.Row="0"
 	         Grid.RowSpan="3"
 	         Grid.ColumnSpan="6"
@@ -135,37 +429,37 @@
 	         Background="#232228"
 	         Open="{Binding MaintenancePanelIsOpen, Mode=TwoWay}"
              DuringOpening="{Binding ControlPanelVisible, Mode=TwoWay}">
-			        <Border Background="#232228" Padding="20" CornerRadius="24">
-				        <ItemsControl ItemsSource="{Binding MaintenanceStatusPanel}">
-					        <ItemsControl.ItemTemplate>
-						        <DataTemplate>
-							        <ItemsControl ItemsSource="{Binding}">
-								        <ItemsControl.ItemsPanel>
-									        <ItemsPanelTemplate >
-										        <UniformGrid Rows="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).RowForMaintenancePanel}" Columns="3" HorizontalAlignment="Center" VerticalAlignment="Center">
-										        </UniformGrid>
-									        </ItemsPanelTemplate>
-								        </ItemsControl.ItemsPanel>
-								        <ItemsControl.ItemTemplate>
-									        <DataTemplate x:DataType="dataModel:MaintenancePanelItem">
-										        <Button
-                                                    Classes="PopupButton"
-                                                    Content="{Binding Status}"
-                                                    Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).MaintenancePanelItemPressedCommand}"
-                                                    CommandParameter="{Binding}">
-										        </Button>
-									        </DataTemplate>
-								        </ItemsControl.ItemTemplate>
-							        </ItemsControl>
-						        </DataTemplate>
-					        </ItemsControl.ItemTemplate>
-				        </ItemsControl>
-			        </Border>
-		        </controls:AnimatedPopup>
+			<Border Background="#232228" Padding="20" CornerRadius="24">
+				<ItemsControl ItemsSource="{Binding MaintenanceStatusPanel}">
+					<ItemsControl.ItemTemplate>
+						<DataTemplate>
+							<ItemsControl ItemsSource="{Binding}">
+								<ItemsControl.ItemsPanel>
+									<ItemsPanelTemplate >
+										<UniformGrid Rows="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).RowForMaintenancePanel}" Columns="3" HorizontalAlignment="Center" VerticalAlignment="Center">
+										</UniformGrid>
+									</ItemsPanelTemplate>
+								</ItemsControl.ItemsPanel>
+								<ItemsControl.ItemTemplate>
+									<DataTemplate x:DataType="dataModel:MaintenancePanelItem">
+										<Button
+											Classes="PopupButton"
+											Content="{Binding Status}"
+											Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).MaintenancePanelItemPressedCommand}"
+											CommandParameter="{Binding}">
+										</Button>
+									</DataTemplate>
+								</ItemsControl.ItemTemplate>
+							</ItemsControl>
+						</DataTemplate>
+					</ItemsControl.ItemTemplate>
+				</ItemsControl>
+			</Border>
+		</controls:AnimatedPopup>
 
-        <!-- Logistic Panel Popup Open-->
+		<!-- Logistic Panel Popup Open-->
 
-        <controls:AnimatedPopup
+		<controls:AnimatedPopup
             Grid.Row="0"
             Grid.RowSpan="3"
             Grid.ColumnSpan="6"
@@ -176,75 +470,76 @@
             Background="#232228"
             Open="{Binding LogisticPanelIsOpen, Mode=TwoWay}"
             DuringOpening="{Binding ControlPanelVisible, Mode=TwoWay}">
-            <Border Background="#232228" Padding="20" CornerRadius="24">
-                <ItemsControl ItemsSource="{Binding LogisticStatusPanel}">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <ItemsControl ItemsSource="{Binding}">
-                                <ItemsControl.ItemsPanel>
-                                    <ItemsPanelTemplate >
-                                        <UniformGrid Rows="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).RowForLogisticPanel}" Columns="3" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                        </UniformGrid>
-                                    </ItemsPanelTemplate>
-                                </ItemsControl.ItemsPanel>
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate x:DataType="dataModel:LogisticPanelItem">
-                                        <Button
+			<Border Background="#232228" Padding="20" CornerRadius="24">
+				<ItemsControl ItemsSource="{Binding LogisticStatusPanel}">
+					<ItemsControl.ItemTemplate>
+						<DataTemplate>
+							<ItemsControl ItemsSource="{Binding}">
+								<ItemsControl.ItemsPanel>
+									<ItemsPanelTemplate >
+										<UniformGrid Rows="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).RowForLogisticPanel}" Columns="3" HorizontalAlignment="Center" VerticalAlignment="Center">
+										</UniformGrid>
+									</ItemsPanelTemplate>
+								</ItemsControl.ItemsPanel>
+								<ItemsControl.ItemTemplate>
+									<DataTemplate x:DataType="dataModel:LogisticPanelItem">
+										<Button
                                             Classes="PopupButton"
                                             Content="{Binding Status}"
                                             Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).LogisticPanelItemPressedCommand}"
                                             CommandParameter="{Binding}">
-                                        </Button>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </Border>
-        </controls:AnimatedPopup>
+										</Button>
+									</DataTemplate>
+								</ItemsControl.ItemTemplate>
+							</ItemsControl>
+						</DataTemplate>
+					</ItemsControl.ItemTemplate>
+				</ItemsControl>
+			</Border>
+		</controls:AnimatedPopup>
 
-       <!--Splunk Panel Popup Open-->
 
-		        <controls:AnimatedPopup
-	        Grid.Row="0"
-	        Grid.RowSpan="3"
-	        Grid.ColumnSpan="6"
-	        Margin="20"
-	        AnimationTime="0.3"
-	        UnderlayOpacity="0.2"
-	        Name="SplunkPanelPopup"
-	        Background="#232228"
-			HorizontalAlignment="Right"
-			VerticalAlignment="Top"
-	        Open="{Binding SplunkPanelIsOpen, Mode=TwoWay}"
-            DuringOpening="{Binding ControlPanelVisible, Mode=TwoWay}">
-			        <Border Background="#232228" Padding="20" CornerRadius="24">
-				        <ItemsControl ItemsSource="{Binding SplunkPanel}">
-					        <ItemsControl.ItemTemplate>
-						        <DataTemplate>
-									<Expander>
-										<Expander.Header>
-                                            <Label MinHeight="60" MinWidth="200" x:DataType ="collections:IReadOnlyObservableGroup" Content="{Binding Key}"></Label>
-                                        </Expander.Header>
-                                        <ItemsControl ItemsSource="{Binding}">
-								        <ItemsControl.ItemTemplate>
-									        <DataTemplate x:DataType="dataModel:SplunkPanelItem">
-										        <Button
-                                                    Classes="PopupButton"
-                                                    Content="{Binding Name}"
-                                                    Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).SplunkPanelItemPressedCommand}"
-                                                    CommandParameter="{Binding}">
-										        </Button>
-									        </DataTemplate>
-								        </ItemsControl.ItemTemplate>
-							        </ItemsControl>
-                                    </Expander>
-						        </DataTemplate>
-					        </ItemsControl.ItemTemplate>
-				        </ItemsControl>
-			        </Border>
-		        </controls:AnimatedPopup>
+		<!--Splunk Panel Popup Open-->
+
+		<controls:AnimatedPopup
+	Grid.Row="0"
+	Grid.RowSpan="3"
+	Grid.ColumnSpan="6"
+	Margin="20"
+	AnimationTime="0.3"
+	UnderlayOpacity="0.2"
+	Name="SplunkPanelPopup"
+	Background="#232228"
+	HorizontalAlignment="Right"
+	VerticalAlignment="Top"
+	Open="{Binding SplunkPanelIsOpen, Mode=TwoWay}"
+	DuringOpening="{Binding ControlPanelVisible, Mode=TwoWay}">
+			<Border Background="#232228" Padding="20" CornerRadius="24">
+				<ItemsControl ItemsSource="{Binding SplunkPanel}">
+					<ItemsControl.ItemTemplate>
+						<DataTemplate>
+							<Expander>
+								<Expander.Header>
+									<Label MinHeight="60" MinWidth="200" x:DataType ="collections:IReadOnlyObservableGroup" Content="{Binding Key}"></Label>
+								</Expander.Header>
+								<ItemsControl ItemsSource="{Binding}">
+									<ItemsControl.ItemTemplate>
+										<DataTemplate x:DataType="dataModel:SplunkPanelItem">
+											<Button
+												Classes="PopupButton"
+												Content="{Binding Name}"
+												Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).SplunkPanelItemPressedCommand}"
+												CommandParameter="{Binding}">
+											</Button>
+										</DataTemplate>
+									</ItemsControl.ItemTemplate>
+								</ItemsControl>
+							</Expander>
+						</DataTemplate>
+					</ItemsControl.ItemTemplate>
+				</ItemsControl>
+			</Border>
+		</controls:AnimatedPopup>
 
 		<!-- Title bar -->
 
@@ -278,7 +573,7 @@
 		<!-- Main area -->
 
 		<Grid  Grid.Row="1" ColumnDefinitions="Auto, *" >
-            <!-- Navigation bar -->
+			<!-- Navigation bar -->
 
 			<StackPanel Grid.Row="0" Grid.Column="0" Width="250" Margin="10, 60, 20, 10" Orientation="Vertical" VerticalAlignment="Top" HorizontalAlignment="Center">
 
@@ -306,31 +601,42 @@
 						<TextBlock Text="Logistic"/>
 					</StackPanel>
 				</Button>
-				<Grid RowDefinitions="*">
-					<StackPanel Margin="5,20,5,5">
-                    <Button
-						Grid.Row="0"
-						Classes="NavigationInfoButton"
-						IsVisible="{Binding ActualStatusButtonIsVisible}"
-						Background="{Binding ActualStatusColor}"
-                        VerticalAlignment="Bottom">
-						<StackPanel Orientation="Horizontal" HorizontalAlignment="Center"  Margin="5">
-							<TextBlock Text="{Binding ActualStatusButtonText}"/>
-						</StackPanel>
-					</Button>
-					<Button
-                        Classes="NavigationInfoButton"
-                        IsVisible="{Binding ServiceArrivalVisible}"
-                        Content="OCZEKIWANIE NA SERWIS"
-                        Background="{Binding ServiceArrivalColor}">
-                    </Button>
-                    </StackPanel>
-				</Grid>
 			</StackPanel>
+			<StackPanel Grid.Column="0" Grid.Row="1" Margin="5,20,5,5" VerticalAlignment="Bottom">
+				<Button
+					Classes="NavigationInfoButton"
+					Name="ActualStatusButton"
+					IsVisible="{Binding ActualStatusButtonIsVisible}"
+					Command="{Binding ActualStatusButtonPressedCommand}"
+					Background="{Binding ActualStatusColor}"
+					VerticalAlignment="Bottom">
+					<StackPanel Orientation="Horizontal" HorizontalAlignment="Center"  Margin="5">
+						<TextBlock Text="{Binding ActualStatusButtonText}"/>
+					</StackPanel>
+				</Button>
+				<Button
+					Name="CallForServiceButton"
+					Classes="NavigationInfoButton"
+					IsVisible="{Binding CallForServiceButtonIsVisible}"
+					Content="{Binding CallForServiceButtonText}"
+					Command="{Binding CallForServiceFromNavigationMenuCommand}"
+					Background="{Binding CallForServiceColor}">
+				</Button>
+				<Button
+					Name ="ServiceArrivalButton"
+					Classes="NavigationInfoButton"
+					IsVisible="{Binding ServiceArrivalButtonIsVisible}"
+					Content="{Binding ServiceArrivalButtonText}"
+					Command="{Binding ServiceArrivalFromNavigationMenuCommand}"
+					Background="{Binding ServiceArrivalButtonColor}">
+				</Button>
+			</StackPanel>
+
+
 			<!-- ControlPanel -->
 			<Border  Grid.Column="1">
 				<Grid>
-                    <Image Grid.ColumnSpan="3" Source="/Assets/logoW16.png" Stretch="None"/>
+					<Image Grid.ColumnSpan="3" Source="/Assets/logoW16.png" Stretch="None"/>
 					<UserControl
                 Grid.Column="1"
 				IsVisible="{Binding !ControlPanelVisible}"
@@ -340,8 +646,8 @@
                 HorizontalAlignment="Stretch"
 				Margin="10 20, 40, 30"
                 VerticalAlignment="Stretch">
-				</UserControl>
-                </Grid>
+					</UserControl>
+				</Grid>
 			</Border>
 		</Grid>
 

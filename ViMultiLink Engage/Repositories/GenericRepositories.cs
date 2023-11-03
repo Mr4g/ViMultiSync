@@ -8,12 +8,13 @@ using ViMultiSync.Entitys;
 namespace ViMultiSync.Repositories
 {
     public class GenericRepository<T>
-        where T : class, IEntity, new()
+        where T : class, IEntity
     {
         protected readonly List<T> _items = new List<T>();
 
         public void Add(T item)
         {
+            item.Id = _items.Count + 1;
             _items.Add(item);
         }
 
@@ -27,7 +28,8 @@ namespace ViMultiSync.Repositories
 
         public T GetById(int id)
         {
-            return _items.FirstOrDefault(item => item.Id == id);
+            return _items.Single(item => item.Id == id);   
+            //return _items.FirstOrDefault(item => item.Id == id);
         }
 
         public IEnumerable<T> GetAll()
@@ -44,5 +46,4 @@ namespace ViMultiSync.Repositories
             }
         }
     }
-
 }
