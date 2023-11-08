@@ -1,24 +1,25 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net.Http;
-using System.Reflection.Emit;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using System.Xml.Linq;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using ViMultiSync.DataModel;
-using ViMultiSync.Entitys;
+using Avalonia;
+using Avalonia.Controls;
+using MsBox.Avalonia;
+using MsBox.Avalonia.Dto;
+using MsBox.Avalonia.Enums;
+using MsBox.Avalonia.Models;
+
 
 namespace ViMultiSync.Repositories
 {
     public class GenericSplunkLogger<T>
     {
 
-        string splunkUrl = "https://10.13.21.22:8088/services/collector/event"; // Zaktualizuj na właściwy URL Splunka
-        string hecToken = "6112a68b-c8f6-4946-a7dd-7d48a710bc83"; // Zaktualizuj na prawidłowy token HEC
+        string splunkUrl = "https://10.10.212.27:8088/services/collector/event"; // Zaktualizuj na właściwy URL Splunka
+        string hecToken = "a5a26423-9874-4383-8f31-436c3c86a4ee"; // Zaktualizuj na prawidłowy token HEC
         string splunkIndex = "ipc_test"; // Zaktualizuj na właściwy indeks
         string splunkSource = "W16FunctionTesterODUIV1673000313"; // Zaktualizuj na właściwe źródło
         string eventName = "connection"; // Zaktualizuj na nazwę zdarzenia
@@ -30,62 +31,78 @@ namespace ViMultiSync.Repositories
 
         public async Task LogAsync(T data)
         {
-            HttpClientHandler handler = new HttpClientHandler();
-            handler.ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true;
+            try
+            {
+                HttpClientHandler handler = new HttpClientHandler();
+                handler.ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true;
 
-            using (HttpClient client = new HttpClient(handler))
-            { 
-                HttpResponseMessage response = null;
-
-                client.DefaultRequestHeaders.Add("Authorization", $"Splunk {hecToken}");
-
-                string currentTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss:fff");
-
-                // Get the offset from the current time in UTC time
-                DateTimeOffset dto = new DateTimeOffset(DateTime.UtcNow);
-                // Get the unix timestamp in seconds
-                string unixTime = dto.ToUnixTimeSeconds().ToString();
-                // Get the unix timestamp in seconds and add the milliseconds
-                string unixTimeMilliSeconds = dto.ToUnixTimeMilliseconds().ToString();
-
-                string jsonPayload = ConvertDataToJson(data, unixTimeMilliSeconds);
-
-                // Tworzenie treści HTTP
-                StringContent content = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
-
-                // Dodanie nagłówka X-Splunk-Index do określenia indeksu
-                content.Headers.Add("X-Splunk-Index", splunkIndex);
-
-                // Dodanie nagłówka X-Splunk-Source do określenia źródła
-                content.Headers.Add("X-Splunk-Source", splunkSource);
-
-                // Dodanie nagłówka X-Splunk-Event-Name do określenia nazwy zdarzenia
-                content.Headers.Add("X-Splunk-Event-Name", eventName);
-
-                Console.WriteLine($"Wysyłanie");
-                // Wysłanie danych do Splunka za pomocą POST
-                try
+                using (HttpClient client = new HttpClient(handler))
                 {
-                     response = await client.PostAsync(splunkUrl, content);
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine(e);
-                    throw;
-                }
-                
-                string responseContent = await response.Content.ReadAsStringAsync();
-                Console.WriteLine($"Odpowiedź z Splunk: {responseContent}");
+                    HttpResponseMessage response = null;
 
-                // Sprawdzenie odpowiedzi
-                if (response.IsSuccessStatusCode)
-                {
-                    Console.WriteLine("Dane zostały pomyślnie wysłane do indeksu w Splunku.");
+                    client.DefaultRequestHeaders.Add("Authorization", $"Splunk {hecToken}");
+
+                    string currentTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss:fff");
+
+                    DateTimeOffset dto = new DateTimeOffset(DateTime.UtcNow);
+                    string unixTime = dto.ToUnixTimeSeconds().ToString();
+                    string unixTimeMilliSeconds = dto.ToUnixTimeMilliseconds().ToString();
+
+                    string jsonPayload = ConvertDataToJson(data, unixTimeMilliSeconds);
+
+                    StringContent content = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
+
+                    content.Headers.Add("X-Splunk-Index", splunkIndex);
+                    content.Headers.Add("X-Splunk-Source", splunkSource);
+                    content.Headers.Add("X-Splunk-Event-Name", eventName);
+
+                    Console.WriteLine($"Wysyłanie");
+
+                    // Wysłanie danych do Splunka za pomocą POST
+                    response = await client.PostAsync(splunkUrl, content);
+
+                    string responseContent = await response.Content.ReadAsStringAsync();
+                    Console.WriteLine($"Odpowiedź z Splunk: {responseContent}");
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        Console.WriteLine("Dane zostały pomyślnie wysłane do indeksu w Splunku.");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Wystąpił błąd: {response.StatusCode} - {response.ReasonPhrase}");
+                    }
                 }
-                else
-                {
-                    Console.WriteLine($"Wystąpił błąd: {response.StatusCode} - {response.ReasonPhrase}");
-                }
+            }
+            catch (HttpRequestException e)
+            {
+                var box = MessageBoxManager.GetMessageBoxCustom(
+                    new MessageBoxCustomParams
+                    {
+                        ButtonDefinitions = new List<ButtonDefinition>
+                        {
+                            new ButtonDefinition { Name = "OK", },
+                            new ButtonDefinition { Name = "Cancel", }
+                        },
+                        ContentTitle = "BŁĄD WYSYŁANIA DANYCH",
+                        ContentMessage = $"Brak połączenia z siecią OT proszę wezwać Utrzymanie Ruchu przez telefon... ",
+                        Icon = Icon.Error,
+                        WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                        CanResize = false,
+                        MaxWidth = 500,
+                        MaxHeight = 800,
+                        SizeToContent = SizeToContent.WidthAndHeight,
+                        ShowInCenter = true,
+                        Topmost = true, 
+                    });
+
+                var result = await box.ShowAsync();
+                Console.WriteLine($"Wystąpił błąd HTTP: {e.Message}");
+            }
+            catch (Exception e)
+            {
+                // Obsługa innych ogólnych błędów
+                Console.WriteLine($"Wystąpił błąd: {e.Message}");
             }
         }
 

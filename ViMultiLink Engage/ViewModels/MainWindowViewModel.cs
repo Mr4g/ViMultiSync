@@ -1,19 +1,27 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Controls.Shapes;
+using Avalonia.Input;
 using CommunityToolkit.Mvvm.Collections;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using MsBox.Avalonia.Enums;
+using MsBox.Avalonia;
 using ReactiveUI;
 using ViMultiSync.DataModel;
 using ViMultiSync.Entitys;
 using ViMultiSync.Repositories;
 using ViMultiSync.Services;
 using ViMultiSync.Views;
+
 
 namespace ViMultiSync.ViewModels
 {
@@ -23,8 +31,7 @@ namespace ViMultiSync.ViewModels
 
         private IStatusInterfaceService mStatusInterfaceService;
         private Dictionary<Type, object> repositories = new Dictionary<Type, object>();
-
-
+        
         #endregion
 
         private bool sentMessageWithTrue = false;
@@ -33,6 +40,12 @@ namespace ViMultiSync.ViewModels
         #region Public Properties
 
         #region Panel is open
+
+        [ObservableProperty]
+        private bool _isPasswordProtected;
+
+        [ObservableProperty] 
+        private string _enteredPassword;
 
         [ObservableProperty]
         private int _rowForSettingPanel;
@@ -72,7 +85,6 @@ namespace ViMultiSync.ViewModels
 
         [ObservableProperty]
         private bool _reasonDowntimePanelIsOpen = false;
-
 
         [ObservableProperty]
         private bool _downtimeReasonElectricPanelIsOpen = false;
@@ -136,6 +148,7 @@ namespace ViMultiSync.ViewModels
 
         [ObservableProperty]
         private bool _downtimeIsActive = false;
+
 
 
         #endregion
@@ -309,7 +322,7 @@ namespace ViMultiSync.ViewModels
         }
 
         [RelayCommand]
-        private void SettingPanelItemPressed(SettingPanelItem item)
+        private async void SettingPanelItemPressed(SettingPanelItem item)
         {
             const string colorSetting = "#EE82EE";
 
@@ -319,6 +332,7 @@ namespace ViMultiSync.ViewModels
                 SettingPanelIsOpen = false;
                 return;
             }
+
 
             // Update the selected item 
             SelectedSettingPanelItem = item;
@@ -376,6 +390,8 @@ namespace ViMultiSync.ViewModels
         [RelayCommand]
         private void ActualStatusButtonPressed()
         {
+            if (_lastMessage == null) return;
+
             if (DowntimeIsActive && _lastMessage.Status == "MECHANICZNA")
             {
                 ReasonDowntimePanelIsOpen = true;
@@ -393,8 +409,10 @@ namespace ViMultiSync.ViewModels
             }
             else
             {
-                ClearActualButtonStatus();
+                if (_lastMessage == null) return;
+
                 _lastMessage.Value = "false";
+                ClearActualButtonStatus();
                 PassMessageToRepository(_lastMessage);
             }
         }
@@ -513,6 +531,56 @@ namespace ViMultiSync.ViewModels
             SplunkPanelIsOpen = false;
             ControlPanelVisible = false;
         }
+
+        [RelayCommand]
+        private void PasswordTextBoxPointerPressed()
+        {
+            Process.Start(Environment.GetFolderPath(Environment.SpecialFolder.System) + Path.ClipProperty + "osk.exe");
+
+
+        }
+
+        [RelayCommand]
+        private void PasswordTextBoxPressed()
+        {
+            if (EnteredPassword == "PT_9418")
+            {
+                IsPasswordProtected = true;
+                EnteredPassword = "";
+            }
+            else
+            {
+                IsPasswordProtected = false;
+            }
+        }
+
+        [RelayCommand]
+        private void ExitPressed()
+        {
+            System.Diagnostics.Process.GetCurrentProcess().CloseMainWindow();
+            System.Diagnostics.Process.GetCurrentProcess().Kill();
+        }
+
+        [RelayCommand]
+        private void MinimizeApplication()
+        {
+            if (Application.Current.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+            {
+                desktop.MainWindow.WindowState = WindowState.Minimized;
+                EnteredPassword = "";
+                IsPasswordProtected = false;
+            }
+        }
+
+        [RelayCommand]
+        private void OpenFilesButtonPressed()
+        {
+            string resourcePath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "resources");
+            Process.Start("explorer.exe", resourcePath);
+            EnteredPassword = "";
+            IsPasswordProtected = false;
+        }
+
 
         [RelayCommand]
         private async Task LoadSettingsAsync()
@@ -655,30 +723,30 @@ namespace ViMultiSync.ViewModels
 
             var repository = repositories[typeof(T)] as GenericRepository<T>;
 
-            if (sentMessageWithTrue && message != null && message.Value == "false" && message.Name != "S1.MachineDowntime" && message.Name != "S7.CallForService" && message.Name != "S7.ServiceArrival")
+            switch (sentMessageWithTrue)
             {
-                await SendMessageToSplunk(message);
-                //repository.Add(message);
-                sentMessageWithTrue = false;
-                message.Value = "true";
-                _lastMessage = null;
-                return;
+                case true when message != null && message.Value == "false" && message.Name != "S1.MachineDowntime" && message.Name != "S7.CallForService" && message.Name != "S7.ServiceArrival":
+                    await SendMessageToSplunk(message);
+                    //repository.Add(message);
+                    sentMessageWithTrue = false;
+                    message.Value = "true";
+                    _lastMessage = null;
+                    return;
+                case true when _lastMessage != null && message.Name != "S7.CallForService" && message.Name != "S7.ServiceArrival":
+                    _lastMessage.Value = "false";
+                    await SendMessageToSplunk(_lastMessage);
+                    _lastMessage.Value = "true";
+                    //repository.Add(_lastMessage);
+                    sentMessageWithTrue = false;
+                    break;
             }
 
-            if (sentMessageWithTrue && _lastMessage != null && message.Name != "S7.CallForService" && message.Name != "S7.ServiceArrival")
-            {
-                _lastMessage.Value = "false";
-                await SendMessageToSplunk(_lastMessage);
-                _lastMessage.Value = "true";
-                //repository.Add(_lastMessage);
-                sentMessageWithTrue = false;
-            }
-            if (_lastMessage != null && _lastMessage.Name == "S1.MachineDowntime" && (message.Name == "S7.CallForService" || message.Name == "S7.ServiceArrival"))
+            if (_lastMessage?.Name == "S1.MachineDowntime" && message.Name is "S7.CallForService" or "S7.ServiceArrival")
             {
                 message.Status = _lastMessage.Status;
                 await SendMessageToSplunk(message);
                 repository.Add(message);
-                if (message.Name == "S7.CallForService" || message.Name == "S7.ServiceArrival")
+                if (message.Name is "S7.CallForService" or "S7.ServiceArrival")
                 {
                     return;
                 }
@@ -691,7 +759,7 @@ namespace ViMultiSync.ViewModels
                 await SendMessageToSplunk(message);
                 repository.Add(message);
                 sentMessageWithTrue = true;
-                if (message.Name == "S7.DowntimeReason")
+                if (message.Name == "S7.ReasonDowntime")
                 {
                     _lastMessage = null;
                     return;
@@ -710,7 +778,7 @@ namespace ViMultiSync.ViewModels
 
         public void LoadPageSap()
         {
-            string sapUrl = "http://ps093w05.viessmann.net:51300/pod-me/com/sap/me/wpmf/client/template.jsf?WORKSTATION=WORK_CENTER_TOUCH_TEST&SOFT_KEYBOARD=true&ACTIVITY_ID=ZVI_WC_POD_COPPER&sap-lsf-PreferredRendering=standards#";
+            string sapUrl = "http://ps094w05.viessmann.net:51100/pod-me/com/sap/me/wpmf/client/template.jsf?WORKSTATION=ZVI_SFC_TOUCH_LEGNICA_VERTICAL&ACTIVITY_ID=ZVI_WC_POD_SOLE&sap-lsf-PreferredRendering=standards#";
             if (ActivePage == null)
             {
                 ActivePage = new UCBrowser(sapUrl);
@@ -732,10 +800,6 @@ namespace ViMultiSync.ViewModels
             }
         }
 
-        internal Task LoadSettingsCommandExecute()
-        {
-            throw new NotImplementedException();
-        }
 
         #endregion
 
@@ -749,6 +813,7 @@ namespace ViMultiSync.ViewModels
         public MainWindowViewModel(IStatusInterfaceService statusInterfaceService)
         {
             mStatusInterfaceService = statusInterfaceService;
+            LoadPageSap();
         }
 
         /// <summary>

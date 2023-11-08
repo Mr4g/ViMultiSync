@@ -8,13 +8,14 @@
         xmlns:collections="clr-namespace:CommunityToolkit.Mvvm.Collections;assembly=CommunityToolkit.Mvvm"
         xmlns:dataModel="clr-namespace:ViMultiSync.DataModel"
         xmlns:dataAnnotations="clr-namespace:System.ComponentModel.DataAnnotations;assembly=System.ComponentModel.Annotations"
+        xmlns:TermControls="clr-namespace:TermControls;assembly=TermControls"
         mc:Ignorable="d" d:DesignWidth="1400" d:DesignHeight="1000"
         Width="1600"
         Height="900"
         x:Class="ViMultiSync.Views.MainWindow"
         x:DataType="viewModels:MainWindowViewModel"
 		WindowStartupLocation="CenterScreen"
-        Icon="/Assets/avalonia-logo.ico"
+        Icon="/Assets/W16icon2.ico"
         Background="#0B0A0F"
         Title="ViMultiLink_Engage"
         ExtendClientAreaToDecorationsHint="True"
@@ -22,7 +23,7 @@
         FontFamily="Century Gothic"
         SystemDecorations="BorderOnly">
 
-	<Design.DataContext>
+    <Design.DataContext>
 		<!-- This only sets the DataContext for the previewer in an IDE,
              to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
 		<viewModels:MainWindowViewModel/>
@@ -514,7 +515,7 @@
 	VerticalAlignment="Top"
 	Open="{Binding SplunkPanelIsOpen, Mode=TwoWay}"
 	DuringOpening="{Binding ControlPanelVisible, Mode=TwoWay}">
-			<Border Background="#232228" Padding="20" CornerRadius="24">
+			<Border Background="#232228" CornerRadius="24">
 				<ItemsControl ItemsSource="{Binding SplunkPanel}">
 					<ItemsControl.ItemTemplate>
 						<DataTemplate>
@@ -526,7 +527,7 @@
 									<ItemsControl.ItemTemplate>
 										<DataTemplate x:DataType="dataModel:SplunkPanelItem">
 											<Button
-												Classes="PopupButton"
+												Classes="TitleBarFlyoutsButton"
 												Content="{Binding Name}"
 												Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).SplunkPanelItemPressedCommand}"
 												CommandParameter="{Binding}">
@@ -566,6 +567,43 @@
 				</Button>
 				<Button Grid.Column="6">
 					<Image Source="{SvgImage /Assets/icons/gears.svg}"/>
+					<Button.Flyout>
+                        <Flyout>
+							<StackPanel>
+                            <TextBox
+                                Name="PasswordTextBox"
+                                Text="{Binding EnteredPassword}"
+                                Watermark="Wprowadź hasło" PasswordChar="#">
+                                <TextBox.KeyBindings>
+									<KeyBinding
+                                        Gesture="Enter"
+                                        Command="{Binding PasswordTextBoxPressedCommand}"/>
+                                </TextBox.KeyBindings>
+							</TextBox>
+                                <Button
+                                    Classes="TitleBarFlyoutsButton"
+                                    Name ="OpenFilesButton"
+                                    Content="OTWÓRZ PLIKI"
+                                    IsVisible="{Binding IsPasswordProtected}"
+                                    Command="{Binding OpenFilesButtonPressedCommand }">
+                                </Button>
+								<Button
+                                    Classes="TitleBarFlyoutsButton"
+                                    Name ="ExitButton"
+                                    Content="EXIT"
+                                    IsVisible="{Binding IsPasswordProtected}"
+                                    Command="{Binding ExitPressedCommand }">
+                                </Button>
+                                <Button 
+                                    Classes="TitleBarFlyoutsButton"
+                                    Name = "MinimizationButton"
+                                    Content="MINIMALIZAJCA"
+                                    IsVisible="{Binding IsPasswordProtected}"
+                                    Command="{Binding MinimizeApplicationCommand}">
+                                </Button>
+                            </StackPanel>
+						</Flyout>
+                    </Button.Flyout>
 				</Button>
 			</Grid>
 		</Border>
@@ -654,6 +692,9 @@
 
 		<!-- Bottom bar -->
 		<Grid Grid.Row="2">
+			<DockPanel>
+                
+            </DockPanel>
 
 		</Grid>
 	</Grid>

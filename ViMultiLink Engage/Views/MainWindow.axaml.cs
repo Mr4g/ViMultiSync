@@ -1,11 +1,10 @@
 using System;
-using System.Threading;
-using System.Threading.Tasks;
+using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
-using Avalonia.Media;
 using ViMultiSync.ViewModels;
+using Avalonia.Native;
 
 namespace ViMultiSync.Views
 {
@@ -26,10 +25,12 @@ namespace ViMultiSync.Views
         private Control mSplunkPanelPopup;
         private Control mSplunkPanelButton;
 
+
         #endregion
         public MainWindow()
         {
             InitializeComponent();
+            
 
             mDowntimePanelButton = this.FindControl<Control>("DowntimePanelButton") ?? throw new Exception("Cannot find Channel Configuration Button by name ");
             mDowntimePanelPopup = this.FindControl<Control>("DowntimePanelPopup") ?? throw new Exception("Cannot find Channel Configuration Popup by name ");
@@ -49,17 +50,19 @@ namespace ViMultiSync.Views
             mMainGrid = this.FindControl<Control>("MainGrid") ?? throw new Exception("Cannot find Channel Configuration MainGrid by name ");
             this.Opened += OnOpened;
             this.Resized += MainWindow_Resized;
-
         }
 
 
         private async void OnOpened(object sender, EventArgs e)
         {
+            this.WindowState = WindowState.Maximized;
+            //this.Topmost = true;
             await ((MainWindowViewModel)DataContext).LoadSettingsCommand.ExecuteAsync(null);
         }
 
         private void MainWindow_Resized(object sender, EventArgs e)
         {
+    
             var position = mDowntimePanelButton.TranslatePoint(new Point(), MainGrid) ?? throw new Exception("Cannot get TranslatePoint from Configuration");
 
             mDowntimePanelPopup.Margin = new Thickness(
@@ -112,7 +115,6 @@ namespace ViMultiSync.Views
 
         private void InputElement_OnPointerPressed(object? sender, PointerPressedEventArgs e) =>
             ((MainWindowViewModel)DataContext).DowntimePanelButtonPressedCommand.Execute(null);
-
 
     }
 }

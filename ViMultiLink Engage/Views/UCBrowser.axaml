@@ -9,7 +9,7 @@
                 <Button Content="◄" Click="OnBackButtonClicked" Background="WhiteSmoke" />
                 <Button Content="►" Click="OnForwardButtonClicked" Background="WhiteSmoke"/>
                 <Button Content="↻" Click="OnRefreshButtonClicked" Background="WhiteSmoke"/>
-                <TextBox x:Name="addressTextBox" DockPanel.Dock="Top" KeyDown="OnAddressTextBoxKeyDown" />
+                <TextBox x:Name="addressTextBox" DockPanel.Dock="Top" KeyDown="OnAddressTextBoxKeyDown" IsVisible="False" />
             </StackPanel>
 			<Decorator x:Name="browserWrapper"/>
 		</DockPanel>
