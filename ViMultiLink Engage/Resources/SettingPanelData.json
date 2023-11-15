@@ -30,5 +30,13 @@
         "Status": "SmbL",
         "Location": "ODU_5",
         "Source": "W16_iPC_Test"
+    },
+    {
+        "Name": "S1.SettingMode",
+        "Value": "true",
+        "NameDevice": "iPC01",
+        "Status": "SmbL",
+        "Location": "ODU_5",
+        "Source": "W16_iPC_Test"
     }
 ]

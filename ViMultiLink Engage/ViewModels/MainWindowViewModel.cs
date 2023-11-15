@@ -1,8 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
+using System.Drawing.Imaging;
 using System.Linq;
+using System.Net.Mime;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using Avalonia;
@@ -10,17 +13,26 @@ using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Controls.Shapes;
 using Avalonia.Input;
+using Avalonia.Platform;
 using CommunityToolkit.Mvvm.Collections;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using MsBox.Avalonia.Enums;
-using MsBox.Avalonia;
-using ReactiveUI;
+using System.Drawing.Imaging;
+using System.Drawing;
+using System.IO;
+using Avalonia.Media.Imaging;
 using ViMultiSync.DataModel;
 using ViMultiSync.Entitys;
 using ViMultiSync.Repositories;
 using ViMultiSync.Services;
 using ViMultiSync.Views;
+using System.Drawing;
+using System.Net.Http;
+using Newtonsoft.Json;
+using RestSharp;
+using ScreenCapturerNS;
+using SharpDX.Text;
+using Bitmap = System.Drawing.Bitmap;
 
 
 namespace ViMultiSync.ViewModels
@@ -31,9 +43,13 @@ namespace ViMultiSync.ViewModels
 
         private IStatusInterfaceService mStatusInterfaceService;
         private Dictionary<Type, object> repositories = new Dictionary<Type, object>();
-        
-        #endregion
 
+        string screenshotPath = "C:/zrzut_ekranu.png"; // Ścieżka, gdzie zostanie zapisany zrzut ekranu
+        string imgurClientId = "0fe6e59673311dc"; // Zastąp wartością swojego Client ID zarejestrowanego na Imgur
+        string chatWebhookUrl = "https://chat.googleapis.com/v1/spaces/AAAAMkbYIJs/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=oL5i2lEPdFE1vtyc5IzljUNg8Y7GeSG3nHeiQ9khuFU"; // Zastąp wartością swojego URL webhooka do Chat Google
+        string imagePath = @"\screen\SAP_ERROR.png"; // Zastąp ścieżką do swojego pliku z obrazem
+
+        #endregion
         private bool sentMessageWithTrue = false;
         IEntity _lastMessage;
 
@@ -76,6 +92,9 @@ namespace ViMultiSync.ViewModels
 
         [ObservableProperty]
         private bool _settingPanelIsOpen = false;
+
+        [ObservableProperty]
+        private bool _optionsPanelIsOpen = false;
 
         [ObservableProperty]
         private bool _maintenancePanelIsOpen = false;
@@ -533,12 +552,11 @@ namespace ViMultiSync.ViewModels
         }
 
         [RelayCommand]
-        private void PasswordTextBoxPointerPressed()
+        private void OptionsButtonPressed()
         {
-            Process.Start(Environment.GetFolderPath(Environment.SpecialFolder.System) + Path.ClipProperty + "osk.exe");
-
-
+            OptionsPanelIsOpen = true;
         }
+
 
         [RelayCommand]
         private void PasswordTextBoxPressed()
@@ -546,7 +564,7 @@ namespace ViMultiSync.ViewModels
             if (EnteredPassword == "PT_9418")
             {
                 IsPasswordProtected = true;
-                EnteredPassword = "";
+                EnteredPassword = "PT_9418";
             }
             else
             {
@@ -581,6 +599,25 @@ namespace ViMultiSync.ViewModels
             IsPasswordProtected = false;
         }
 
+        [RelayCommand]
+        private void ScreenShotButtonPressed()
+        {
+            ScreenCapturer.StartCapture((Bitmap bitmap) => {
+
+                string filePath = @"\screen\SAP_ERROR.png";
+
+                bitmap.Save(filePath, ImageFormat.Png);
+
+                ScreenCapturer.StopCapture();
+                SendImageToDiscordWebhook(filePath);
+            });
+
+        }
+
+        private async void SendImageToDiscordWebhook(string filePath)
+        {
+            // * funkcja do wysłania wiadomośći do Splunka
+        }
 
         [RelayCommand]
         private async Task LoadSettingsAsync()

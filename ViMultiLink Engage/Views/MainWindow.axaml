@@ -8,7 +8,6 @@
         xmlns:collections="clr-namespace:CommunityToolkit.Mvvm.Collections;assembly=CommunityToolkit.Mvvm"
         xmlns:dataModel="clr-namespace:ViMultiSync.DataModel"
         xmlns:dataAnnotations="clr-namespace:System.ComponentModel.DataAnnotations;assembly=System.ComponentModel.Annotations"
-        xmlns:TermControls="clr-namespace:TermControls;assembly=TermControls"
         mc:Ignorable="d" d:DesignWidth="1400" d:DesignHeight="1000"
         Width="1600"
         Height="900"
@@ -542,6 +541,69 @@
 			</Border>
 		</controls:AnimatedPopup>
 
+
+        <!--Options Panel Popup Open-->
+
+        <controls:AnimatedPopup
+            Grid.Row="0"
+            Grid.RowSpan="3"
+            Grid.ColumnSpan="6"
+            Margin="20"
+            AnimationTime="0.3"
+            UnderlayOpacity="0.2"
+            Name="OptionsPanelPopup"
+            Background="#232228"
+            HorizontalAlignment="Right"
+            VerticalAlignment="Top"
+            Open="{Binding OptionsPanelIsOpen, Mode=TwoWay}"
+            DuringOpening="{Binding ControlPanelVisible, Mode=TwoWay}">
+            <Border Background="#232228" CornerRadius="24">
+				<Expander>
+                <StackPanel>
+								<TextBox
+									Name="PasswordTextBox"
+                                    TextInputOptions.ContentType="Digits"
+									Text="{Binding EnteredPassword}"
+									Watermark="Wprowadź hasło" PasswordChar="*">
+									<TextBox.KeyBindings>
+										<KeyBinding
+											Gesture="Enter"
+											Command="{Binding PasswordTextBoxPressedCommand}"/>
+									</TextBox.KeyBindings>
+								</TextBox>
+                                <Button
+                                    Classes="TitleBarFlyoutsButton"
+                                    Name ="OpenFilesButton"
+                                    Content="OTWÓRZ PLIKI"
+                                    IsVisible="{Binding IsPasswordProtected}"
+                                    Command="{Binding OpenFilesButtonPressedCommand }">
+                                </Button>
+								<Button
+                                    Classes="TitleBarFlyoutsButton"
+                                    Name ="ExitButton"
+                                    Content="EXIT"
+                                    IsVisible="{Binding IsPasswordProtected}"
+                                    Command="{Binding ExitPressedCommand }">
+                                </Button>
+                                <Button 
+                                    Classes="TitleBarFlyoutsButton"
+                                    Name = "MinimizationButton"
+                                    Content="MINIMALIZAJCA"
+                                    IsVisible="{Binding IsPasswordProtected}"
+                                    Command="{Binding MinimizeApplicationCommand}">
+                                </Button>
+                                <Button
+                                    Classes="TitleBarFlyoutsButton"
+                                    Name = "ScreenShotButton"
+                                    Content="ZRZUT EKRANU"
+                                    IsVisible="{Binding IsPasswordProtected}"
+                                    Command="{Binding ScreenShotButtonPressedCommand}">
+                                </Button>
+                            </StackPanel>
+                </Expander>
+            </Border>
+        </controls:AnimatedPopup>
+
 		<!-- Title bar -->
 
 		<Border Background="#0B0A0F" Margin="0" Grid.Row="0" Height="100" CornerRadius="0,0,0,0">
@@ -565,45 +627,8 @@
 				<Button Grid.Column="5" Name="SplunkPanelButton" Command="{Binding #SplunkPanelPopup.BeginOpen}">
 					<Image Source="{SvgImage /Assets/icons/splunk.svg}"/>
 				</Button>
-				<Button Grid.Column="6">
+				<Button Grid.Column="6" Command="{Binding OptionsButtonPressedCommand}" >
 					<Image Source="{SvgImage /Assets/icons/gears.svg}"/>
-					<Button.Flyout>
-                        <Flyout>
-							<StackPanel>
-                            <TextBox
-                                Name="PasswordTextBox"
-                                Text="{Binding EnteredPassword}"
-                                Watermark="Wprowadź hasło" PasswordChar="#">
-                                <TextBox.KeyBindings>
-									<KeyBinding
-                                        Gesture="Enter"
-                                        Command="{Binding PasswordTextBoxPressedCommand}"/>
-                                </TextBox.KeyBindings>
-							</TextBox>
-                                <Button
-                                    Classes="TitleBarFlyoutsButton"
-                                    Name ="OpenFilesButton"
-                                    Content="OTWÓRZ PLIKI"
-                                    IsVisible="{Binding IsPasswordProtected}"
-                                    Command="{Binding OpenFilesButtonPressedCommand }">
-                                </Button>
-								<Button
-                                    Classes="TitleBarFlyoutsButton"
-                                    Name ="ExitButton"
-                                    Content="EXIT"
-                                    IsVisible="{Binding IsPasswordProtected}"
-                                    Command="{Binding ExitPressedCommand }">
-                                </Button>
-                                <Button 
-                                    Classes="TitleBarFlyoutsButton"
-                                    Name = "MinimizationButton"
-                                    Content="MINIMALIZAJCA"
-                                    IsVisible="{Binding IsPasswordProtected}"
-                                    Command="{Binding MinimizeApplicationCommand}">
-                                </Button>
-                            </StackPanel>
-						</Flyout>
-                    </Button.Flyout>
 				</Button>
 			</Grid>
 		</Border>
@@ -614,7 +639,6 @@
 			<!-- Navigation bar -->
 
 			<StackPanel Grid.Row="0" Grid.Column="0" Width="250" Margin="10, 60, 20, 10" Orientation="Vertical" VerticalAlignment="Top" HorizontalAlignment="Center">
-
 				<Button Classes="NavigationButton" Name="DowntimePanelButton" Command="{Binding #DowntimePanelPopup.BeginOpen}">
 					<StackPanel Orientation="Horizontal" Margin="5">
 						<Image HorizontalAlignment="Left" Source="{SvgImage /Assets/icons/emergencyColor.svg}"/>
@@ -633,6 +657,10 @@
 						<TextBlock  Text="Maintenance" />
 					</StackPanel>
 				</Button>
+				<TextBox Grid.Column="3">
+
+
+				</TextBox>
 				<Button Classes="NavigationButton" Name="LogisticPanelButton" Command="{Binding #LogisticPanelPopup.BeginOpen}">
 					<StackPanel Orientation="Horizontal" HorizontalAlignment="Left"  Margin="5">
 						<Image HorizontalAlignment="Left" Source="{SvgImage /Assets/icons/logistic.svg}"/>

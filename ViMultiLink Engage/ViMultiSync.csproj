@@ -78,12 +78,16 @@
     <PackageReference Include="CefGlue.Avalonia" Version="106.5249.19-avalonia11" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.2" />
     <PackageReference Include="Dialogs.Avalonia" Version="0.1.29" />
+    <PackageReference Include="Material.Icons" Version="2.0.12" />
+    <PackageReference Include="Material.Icons.Avalonia" Version="2.0.1" />
     <PackageReference Include="MessageBox.Avalonia" Version="3.1.5.1" />
     <PackageReference Include="NetLoggings" Version="1.0.0" />
+    <PackageReference Include="RestSharp" Version="110.2.0" />
+    <PackageReference Include="ScreenCapture.NET.X11" Version="2.0.2" />
+    <PackageReference Include="ScreenCapturer" Version="3.0.1" />
     <PackageReference Include="Splunk.Logging.Common" Version="1.7.2" />
     <PackageReference Include="Splunk.Logging.Common.Core" Version="1.0.0" />
     <PackageReference Include="Splunk.Logging.TraceListener" Version="1.7.2" />
     <PackageReference Include="Splunk.Logging.TraceListener.Core" Version="1.0.0" />
-    <PackageReference Include="WPFTouchKeyboard" Version="1.0.1" />
   </ItemGroup>
 </Project>

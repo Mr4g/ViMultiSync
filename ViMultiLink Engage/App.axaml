@@ -5,7 +5,12 @@
              xmlns:viMultiSync="clr-namespace:ViMultiSync"
              xmlns:views="clr-namespace:ViMultiSync.Views"
              xmlns:viewModels="clr-namespace:ViMultiSync.ViewModels"
+             xmlns:material="using:Material.Icons.Avalonia"
              RequestedThemeVariant="Default">
+
+
+
+
 
     <Application.DataTemplates>
         <viMultiSync:ViewLocator/>
@@ -13,7 +18,8 @@
   
     <Application.Styles>
         <FluentTheme />
-        <StyleInclude Source="Styles/AnimatedPopup.axaml"></StyleInclude>
+        <StyleInclude Source="Styles/AnimatedPopup.axaml"/>
         <StyleInclude Source="Styles/Button/PopupButton.axaml"/>
-    </Application.Styles>
+        <material:MaterialIconStyles />
+	</Application.Styles>
 </Application>

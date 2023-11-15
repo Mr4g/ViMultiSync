@@ -23,7 +23,8 @@ namespace ViMultiSync.Repositories
         string splunkIndex = "ipc_test"; // Zaktualizuj na właściwy indeks
         string splunkSource = "W16FunctionTesterODUIV1673000313"; // Zaktualizuj na właściwe źródło
         string eventName = "connection"; // Zaktualizuj na nazwę zdarzenia
-        
+
+        public bool DataIsSendingToSplunk { get; private set; }
 
         public GenericSplunkLogger()
         {
@@ -31,6 +32,7 @@ namespace ViMultiSync.Repositories
 
         public async Task LogAsync(T data)
         {
+            DataIsSendingToSplunk = true;
             try
             {
                 HttpClientHandler handler = new HttpClientHandler();
@@ -73,6 +75,8 @@ namespace ViMultiSync.Repositories
                         Console.WriteLine($"Wystąpił błąd: {response.StatusCode} - {response.ReasonPhrase}");
                     }
                 }
+
+                DataIsSendingToSplunk = false;
             }
             catch (HttpRequestException e)
             {

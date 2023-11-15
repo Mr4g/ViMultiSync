@@ -12,6 +12,7 @@ namespace ViMultiSync
         public override void Initialize()
         {
             AvaloniaXamlLoader.Load(this);
+
         }
 
         public override void OnFrameworkInitializationCompleted()
@@ -20,8 +21,6 @@ namespace ViMultiSync
             // Initialize the dependencies
             var statusInterface = new DummyStatusInterfaceService();
             var mainViewModel = new MainWindowViewModel(statusInterface);
-
-
 
             if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
             {

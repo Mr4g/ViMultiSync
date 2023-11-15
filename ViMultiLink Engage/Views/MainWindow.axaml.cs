@@ -1,16 +1,22 @@
 using System;
 using System.Runtime.InteropServices;
+using System.Security.Principal;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using ViMultiSync.ViewModels;
-using Avalonia.Native;
+using Avalonia.Input.TextInput;
+using Avalonia.ReactiveUI;
+using Avalonia.Markup.Xaml;
+using ViMultiSync.Keyboard;
+using ViMultiSync.Keyboard.Layout;
+
 
 namespace ViMultiSync.Views
 {
     public partial class MainWindow : Window
     {
-
+        private VirtualKeyboardTextInputMethod virtualKeyboardTextInput = null;
         #region Private Members
 
         private Control mMainGrid;
@@ -30,7 +36,12 @@ namespace ViMultiSync.Views
         public MainWindow()
         {
             InitializeComponent();
-            
+
+            this.SystemDecorations = SystemDecorations.None;
+            this.WindowStartupLocation = WindowStartupLocation.CenterScreen;
+            virtualKeyboardTextInput = new VirtualKeyboardTextInputMethod((Window)this);
+            this.AddHandler<GotFocusEventArgs>(Control.GotFocusEvent, openVirtualKeyboard);
+
 
             mDowntimePanelButton = this.FindControl<Control>("DowntimePanelButton") ?? throw new Exception("Cannot find Channel Configuration Button by name ");
             mDowntimePanelPopup = this.FindControl<Control>("DowntimePanelPopup") ?? throw new Exception("Cannot find Channel Configuration Popup by name ");
@@ -52,7 +63,6 @@ namespace ViMultiSync.Views
             this.Resized += MainWindow_Resized;
         }
 
-
         private async void OnOpened(object sender, EventArgs e)
         {
             this.WindowState = WindowState.Maximized;
@@ -62,7 +72,6 @@ namespace ViMultiSync.Views
 
         private void MainWindow_Resized(object sender, EventArgs e)
         {
-    
             var position = mDowntimePanelButton.TranslatePoint(new Point(), MainGrid) ?? throw new Exception("Cannot get TranslatePoint from Configuration");
 
             mDowntimePanelPopup.Margin = new Thickness(
@@ -116,5 +125,13 @@ namespace ViMultiSync.Views
         private void InputElement_OnPointerPressed(object? sender, PointerPressedEventArgs e) =>
             ((MainWindowViewModel)DataContext).DowntimePanelButtonPressedCommand.Execute(null);
 
+        private void openVirtualKeyboard(object? sender, GotFocusEventArgs e)
+        {
+            if (e.Source.GetType() == typeof(TextBox))
+            {
+                FocusManager.ClearFocus();
+                virtualKeyboardTextInput.SetActive(e);
+            }
+        }
     }
 }
