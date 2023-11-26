@@ -22,13 +22,13 @@ namespace ViMultiSync.Keyboard
 
         }
 
-        public async Task SetActive(GotFocusEventArgs e)
+        public async Task SetActive(GotFocusEventArgs e, bool isPasswordChar)
         {
             if (!_isOpen)
             {
 
                 _isOpen = true;
-                var oskReturn = await VirtualKeyboard.ShowDialog(_textInputOptions, this.root);
+                var oskReturn = await VirtualKeyboard.ShowDialog(isPasswordChar, _textInputOptions, this.root);
 
                 if (e.Source.GetType() == typeof(TextBox))
                 {

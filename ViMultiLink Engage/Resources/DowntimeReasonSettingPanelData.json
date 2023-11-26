@@ -1,37 +1,23 @@
 [
     {
         "Name": "S7.DowntimeReason",
-        "NameDevice": "iPC01",
-        "Reason": "KOREKTY",
-        "Location": "ODU_5",
-        "Source": "W16_iPC_Test"
+        "Reason": "KOREKTY"
     },
     {
         "Name": "S7.DowntimeReason",
-        "NameDevice": "iPC01",
-        "Reason": "KOREKTY",
-        "Location": "ODU_5",
-        "Source": "W16_iPC_Test"
+        "Reason": "KOREKTY"
     },
     {
         "Name": "S7.DowntimeReason",
-        "NameDevice": "iPC01",
-        "Reason": "KOREKTY",
-        "Location": "ODU_5",
-        "Source": "W16_iPC_Test"
+        "Reason": "KOREKTY"
     },
     {
         "Name": "S7.DowntimeReason",
-        "NameDevice": "iPC01",
-        "Reason": "KOREKTY",
-        "Location": "ODU_5",
-        "Source": "W16_iPC_Test"
+        "Reason": "KOREKTY"
+
     },
     {
         "Name": "S7.DowntimeReason",
-        "NameDevice": "iPC01",
-        "Reason": "KOREKTY",
-        "Location": "ODU_5",
-        "Source": "W16_iPC_Test"
+        "Reason": "KOREKTY"
     }
 ]

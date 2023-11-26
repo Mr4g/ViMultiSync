@@ -2,17 +2,11 @@
     {
         "Name": "S7.CallForService",
         "Value": "true",
-        "Status": "TAK",
-        "NameDevice": "iPC01",
-        "Location": "ODU_5",
-        "Source": "W16_iPC_Test"
+        "Status": "TAK"
     },
     {
         "Name": "S7.CallForService",
         "Value": "false",
-        "Status": "NIE",
-        "NameDevice": "iPC01",
-        "Location": "ODU_5",
-        "Source": "W16_iPC_Test"
+        "Status": "NIE"
     }
 ]

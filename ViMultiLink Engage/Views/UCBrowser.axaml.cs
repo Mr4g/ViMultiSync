@@ -7,22 +7,27 @@ using Xilium.CefGlue.Avalonia;
 using System.Reflection;
 using Avalonia.Input;
 using Avalonia.Media;
+using ViMultiSync.AuxiliaryClasses;
 using Xilium.CefGlue.Common;
 using Xilium.CefGlue;
+using Xilium.CefGlue.Common.Handlers;
+using ViMultiSync.Keyboard;
 
 namespace ViMultiSync.Views;
 
 public partial class UCBrowser : UserControl
 {
-
-
+    private bool _isTextBoxFocused = false;
+    private VirtualKeyboardTextInputMethod virtualKeyboardTextInput = null;
     private AvaloniaCefBrowser browser;
     public event Action<string> TitleChanged;
     public UCBrowser(string link)
     {
         InitializeComponent();
+        virtualKeyboardTextInput = new VirtualKeyboardTextInputMethod();
         StartBrowser(link);
         ZIndex=1;
+
     }
 
     public void ChangeBrowserAddress(string newUrl)
@@ -41,8 +46,13 @@ public partial class UCBrowser : UserControl
         var browserWrapper = this.FindControl<Decorator>("browserWrapper");
 
         browser = new AvaloniaCefBrowser();
-
         browser.Address = $"{link}";
+
+
+        //var myKeyboardHandler = new MyKeyboardHandler();
+        //var keyboardHandlerAdapter = new MyKeyboardHandlerAdapter(myKeyboardHandler);
+        //browser.KeyboardHandler = keyboardHandlerAdapter;
+
         browser.RegisterJavascriptObject(new BindingTestClass(), "boundBeforeLoadObject");
         browser.LoadStart += OnBrowserLoadStart;
         browser.TitleChanged += OnBrowserTitleChanged;
@@ -50,7 +60,6 @@ public partial class UCBrowser : UserControl
     }
 
     #region Private methods
-
 
 
     private void OnBackButtonClicked(object sender, Avalonia.Interactivity.RoutedEventArgs e)
@@ -122,6 +131,5 @@ public partial class UCBrowser : UserControl
             browser.Address = ((TextBox)sender).Text;
         }
     }
-
     #endregion
 }

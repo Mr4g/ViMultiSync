@@ -2,17 +2,11 @@
     {
         "Name": "S7.ServiceArrival",
         "Value": "true",
-        "Status": "TAK",
-        "NameDevice": "iPC01",
-        "Location": "ODU_5",
-        "Source": "W16_iPC_Test"
+        "Status": "YES"
     },
     {
         "Name": "S7.ServiceArrival",
         "Value": "false",
-        "Status": "NIE",
-        "NameDevice": "iPC01",
-        "Location": "ODU_5",
-        "Source": "W16_iPC_Test"
+        "Status": "NO"
     }
 ]

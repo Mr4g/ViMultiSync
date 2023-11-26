@@ -12,7 +12,7 @@ namespace ViMultiSync.DataModel
     /// <summary>
     /// Information about a chanel configuration
     /// </summary>
-    public class CallForServicePanelItem : IEntity
+    public class MessageInformationToSplunk : IEntity
     {
         public int Id { get; set; }
         public string Name { get; set; }
@@ -27,5 +27,6 @@ namespace ViMultiSync.DataModel
         public string Source { get; set; }
         public string Reason { get; set; }
 
+        public string OperatorName { get; set; }
     }
 }

@@ -18,7 +18,14 @@
 
   <ItemGroup>
     <None Remove="Assets\exit.png" />
+    <None Remove="Assets\icons\errorScreen.svg" />
+    <None Remove="Assets\icons\sendingToSplunk.svg" />
+    <None Remove="Assets\icons\splunkSend.svg" />
+    <None Remove="Assets\icons\user.svg" />
+    <None Remove="Assets\icons\userThin.svg" />
     <None Remove="Assets\minimize.png" />
+    <None Remove="Assets\Vi2Little.png" />
+    <None Remove="Assets\Vi2transparent.png" />
     <None Remove="DowntimePanel.json" />
     <None Remove="Resources\CallForServicePanelData.json" />
     <None Remove="Resources\DowntimePanelData.json" />
@@ -33,6 +40,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Resources\ConfigData.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
     <EmbeddedResource Include="Resources\DowntimeReasonSettingPanelData.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </EmbeddedResource>

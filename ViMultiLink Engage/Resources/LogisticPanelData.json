@@ -2,50 +2,33 @@
     {
         "Name": "S1.Logistic",
         "Value": "true",
-        "NameDevice": "iPC01",
-        "Status": "BRAK MATERIAŁU",
-        "Location": "ODU_5",
-        "Source": "W16_iPC_Test",
-        "ServiceArrice":  "true"
+        "Status": "BRAK MATERIAŁU"
+
     },
     {
         "Name": "S1.Logistic",
         "Value": "true",
         "NameDevice": "iPC01",
-        "Status": "BRAK MATERIAŁU",
-        "Location": "ODU_5",
-        "Source": "W16_iPC_Test"
+        "Status": "BRAK MATERIAŁU"
     },
     {
         "Name": "S1.Logistic",
         "Value": "true",
-        "NameDevice": "iPC01",
-        "Status": "BRAK MATERIAŁU",
-        "Location": "ODU_5",
-        "Source": "W16_iPC_Test"
+        "Status": "BRAK MATERIAŁU"
     },
     {
         "Name": "S1.Logistic",
         "Value": "true",
-        "NameDevice": "iPC01",
-        "Status": "BRAK MATERIAŁU",
-        "Location": "ODU_5",
-        "Source": "W16_iPC_Test"
+        "Status": "BRAK MATERIAŁU"
     },
     {
         "Name": "S1.Logistic",
         "Value": "true",
-        "NameDevice": "iPC01",
-        "Status": "BRAK MATERIAŁU",
-        "Location": "ODU_5",
-        "Source": "W16_iPC_Test"
+        "Status": "BRAK MATERIAŁU"
     },
     {
         "Name": "S1.Logistic",
         "Value": "true",
-        "NameDevice": "iPC01",
-        "Status": "BRAK MATERIAŁU",
-        "Location": "ODU_5",
-        "Source": "W16_iPC_Test"
+        "Status": "BRAK MATERIAŁU"
     }
 ]

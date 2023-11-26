@@ -29,13 +29,16 @@ namespace ViMultiSync.Keyboard
         private static List<Type> Layouts { get; } = new List<Type>();
         private static Func<Type> DefaultLayout { get; set; }
 
-        public static void AddLayout<TLayout>() => Layouts.Add(typeof(TLayout));
+        
+        private string actualText = string.Empty;
 
+        public static void AddLayout<TLayout>() => Layouts.Add(typeof(TLayout));
+        public bool IsPasswordChar { get; private set; }
         public static void SetDefaultLayout(Func<Type> getDefaultLayout) => DefaultLayout = getDefaultLayout;
 
-        public static async Task<string?> ShowDialog(TextInputOptions options, Window? owner = null)
+        public static async Task<string?> ShowDialog(bool isPasswordChar, TextInputOptions options, Window? owner = null)
         {
-            var keyboard = new VirtualKeyboard();
+            var keyboard = new VirtualKeyboard(isPasswordChar);
 
             var window = new CoporateWindow();
             window.CoporateContent = keyboard;
@@ -66,9 +69,10 @@ namespace ViMultiSync.Keyboard
 
         private Window _parentWindow;
 
-        public VirtualKeyboard()
+        public VirtualKeyboard(bool isPasswordChar)
         {
             InitializeComponent();
+            IsPasswordChar = isPasswordChar;
             VirtualKeyboard.AddLayout<VirtualKeyboardLayoutUS>();
             VirtualKeyboard.AddLayout<VirtualKeyboardLayoutDE>();
             VirtualKeyboard.SetDefaultLayout(() => typeof(VirtualKeyboardLayoutUS));
@@ -117,7 +121,6 @@ namespace ViMultiSync.Keyboard
                 }
                 else if (args.Key == Key.Enter)
                 {
-                    acceptClicked(sender, args);
                     _parentWindow.Tag = TextBox_.Text;
                     _parentWindow.Close();
                 }
@@ -129,17 +132,39 @@ namespace ViMultiSync.Keyboard
         {
             _parentWindow.Tag = TextBox_.Text;
             _parentWindow.Close();
+            
         }
 
         public void ProcessText(string text)
         {
             TextBox_.Focus();
-            TextBox_.Text += text;
-            //InputManager.Instance.ProcessInput(new RawTextInputEventArgs(KeyboardDevice.Instance, (ulong)DateTime.Now.Ticks, (Window)TextBox.GetVisualRoot(), text));
+
+            if (IsPasswordChar)
+            {
+                // Je¿eli PasswordChar jest ustawiony, zamieñ ka¿dy znak na "*"
+                string maskedText = new string('*', text.Length);
+
+                // Dodaj przekszta³cony tekst do TextBox_.Text
+                TextBox_.Text += maskedText;
+                actualText += text;
+            }
+            else
+            {
+                // Je¿eli PasswordChar nie jest ustawiony, dodaj tekst bez zmian
+                TextBox_.Text += text;
+                actualText += text;
+            }
+            TextBox_.CaretIndex = TextBox_.Text.Length;
+
             if (_keyboardStateStream.Value == VirtualKeyboardState.Shift)
             {
                 _keyboardStateStream.OnNext(VirtualKeyboardState.Default);
             }
+        }
+
+        public string GetActualText()
+        {
+            return actualText;
         }
 
         public void Accept()
@@ -192,8 +217,11 @@ namespace ViMultiSync.Keyboard
                 }
                 else if (key == Key.Enter || key == Key.ImeAccept)
                 {
-                    _parentWindow.Tag = TextBox_.Text;
+                    string actualText = this.GetActualText();
+                    _parentWindow.Tag = actualText;
                     _parentWindow.Close();
+                    //_parentWindow.Tag = TextBox_.Text;
+                    //_parentWindow.Close();
                 }
                 else if (key == Key.Help)
                 {

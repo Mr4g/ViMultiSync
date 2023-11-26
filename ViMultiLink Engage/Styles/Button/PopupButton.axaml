@@ -144,5 +144,23 @@
         <Setter Property="Foreground" Value="#0B0A0F"/>
     </Style>
 
+    <!-- Style for Button of ToggleButton Setting-->
+
+    <Style Selector="ToggleButton.ToggleOptions, Label">
+        <Setter Property="Foreground" Value="#232228"/>
+		<Setter Property="VerticalAlignment" Value="Center"/>
+	</Style>
+
+    <Style Selector="ToggleButton.ToggleOptions">
+            <Setter Property="Content" Value="OFF"/>
+            <Setter Property="Background" Value="#232228"/>
+            <Setter Property="Foreground" Value="WhiteSmoke"/>
+		<Style Selector="^:checked /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Content" Value="ON"/>
+            <Setter Property="Background" Value="OrangeRed"/>
+            <Setter Property="Foreground" Value="WhiteSmoke"/>
+        </Style>
+    </Style>
+
 
 </Styles>
