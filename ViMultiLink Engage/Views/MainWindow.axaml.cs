@@ -5,6 +5,10 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using ViMultiSync.ViewModels;
 using ViMultiSync.Keyboard;
+using Avalonia.Interactivity;
+using SharpDX.Direct3D11;
+using Avalonia.Threading;
+using ReactiveUI;
 
 
 namespace ViMultiSync.Views
@@ -35,11 +39,26 @@ namespace ViMultiSync.Views
         public MainWindow()
         {
             InitializeComponent();
-
             this.SystemDecorations = SystemDecorations.None;
             this.WindowStartupLocation = WindowStartupLocation.CenterScreen;
             virtualKeyboardTextInput = new VirtualKeyboardTextInputMethod((Window)this);
             this.AddHandler<GotFocusEventArgs>(Control.GotFocusEvent, openVirtualKeyboard);
+            this.AddHandler<KeyEventArgs>(Control.KeyDownEvent, (sender, e) =>
+            {
+                if (e.Key == Key.Enter &&
+                    (FocusManager.GetFocusedElement() == null ||
+                     !(FocusManager.GetFocusedElement() is TextBox)))
+                {
+                    if (!VacuumPanelPopup.Open)
+                    {
+                        VacuumPanelPopup.BeginOpen();
+                    }
+                    else
+                    {
+                        VacuumPanelPopup.BeginClose();
+                    }
+                }
+            });
 
 
             mDowntimePanelButton = this.FindControl<Control>("DowntimePanelButton") ??
@@ -80,10 +99,9 @@ namespace ViMultiSync.Views
 
         private async void OnOpened(object sender, EventArgs e)
         {
-            await Task.Delay(2000);
             this.WindowState = WindowState.Maximized;
-            await Task.Delay(1000);
-            this.Topmost = true;
+            //await Task.Delay(1000);
+            //this.Topmost = true;
             this.CanResize = false;
             await ((MainWindowViewModel)DataContext).LoadSettingsCommand.ExecuteAsync(null);
         }
@@ -162,6 +180,12 @@ namespace ViMultiSync.Views
 
             if (e.Source is TextBox textBox)
             {
+
+                if (textBox.Name == "NumberStationTextBox" || textBox.Name == "VinHeatPumpTextBox")
+                {
+                    // Je¿eli nazwa TextBox jest taka, jakiej nie chcesz obs³ugiwaæ, opuœæ metodê
+                    return;
+                }
                 bool isPasswordChar = false;
                 if (textBox.PasswordChar == '*')
                     isPasswordChar = true;
@@ -171,6 +195,42 @@ namespace ViMultiSync.Views
                 FocusManager.ClearFocus();
                 virtualKeyboardTextInput.SetActive(e, isPasswordChar);
                 isPasswordChar = false;
+            }
+        }
+
+        private void VacuumPanelPopup_OnOpened(object? sender, EventArgs e)
+        {
+            Dispatcher.UIThread.Post(() =>
+            {
+                this.FindControl<TextBox>("NumberStationTextBox")?.Focus();
+                VacuumButton.IsVisible = false;
+            }, DispatcherPriority.Background);
+        }
+
+        private void VacuumPanelPopup_OnClosed(object? sender, EventArgs e)
+        {
+            Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                VacuumButton.IsVisible = true;
+            });
+        }
+
+
+        private void NumberStationTextBox_OnKeyDown(object? sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                this.FindControl<TextBox>("VinHeatPumpTextBox")?.Focus();
+            }
+        }
+
+        private void VinHeatPumpTextBox_OnKeyDown(object? sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                MainWindowViewModel viewModel = (MainWindowViewModel)DataContext;
+                viewModel.SendMessageToPlc();
+                this.FocusManager.ClearFocus();
             }
         }
     }

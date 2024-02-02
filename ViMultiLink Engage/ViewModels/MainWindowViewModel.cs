@@ -26,11 +26,19 @@ using Icon = MsBox.Avalonia.Enums.Icon;
 using Path = System.IO.Path;
 using System.Timers;
 using Timer = System.Threading.Timer;
+using ViMultiSync.AuxiliaryClasses;
+using System.ComponentModel;
+using Avalonia.Input;
+using CommunityToolkit.Mvvm.Messaging;
+using ReactiveUI;
+using ViMultiSync.Stores;
+using Newtonsoft.Json.Linq;
+using System.Xml.Linq;
 
 
 namespace ViMultiSync.ViewModels
 {
-    public partial class MainWindowViewModel : ObservableObject
+    public partial class MainWindowViewModel : ObservableObject, IRecipient<TimerValueChangedMessage>
     {
         #region Private Memebers
 
@@ -43,6 +51,8 @@ namespace ViMultiSync.ViewModels
         private DispatcherTimer _timerScheduleForLogging;
         private TaskCompletionSource<bool> _dataIsSendingToSplunkCompletionSource = new TaskCompletionSource<bool>();
 
+       
+        private TimerManager timerManager;
 
         string screenshotPath = "C:/zrzut_ekranu.png"; // Ścieżka, gdzie zostanie zapisany zrzut ekranu
         string imgurClientId = "0fe6e59673311dc"; // Zastąp wartością swojego Client ID zarejestrowanego na Imgur
@@ -68,6 +78,12 @@ namespace ViMultiSync.ViewModels
 
         [ObservableProperty]
         private string _loginLabel;
+
+        [ObservableProperty]
+        private string _numberStation;
+
+        [ObservableProperty]
+        private string _vinHeatPump;
 
         [ObservableProperty]
         private int _rowForSettingPanel;
@@ -133,7 +149,13 @@ namespace ViMultiSync.ViewModels
         private bool _loginPanelIsOpen = false;
 
         [ObservableProperty]
+        private bool _vacuumPanelIsOpen = false;
+
+        [ObservableProperty]
         private bool _controlPanelVisible = false;
+
+        [ObservableProperty]
+        private bool _vacuumButtonIsVisible = true;
 
         [ObservableProperty]
         private bool _serviceCalled = false;
@@ -185,7 +207,13 @@ namespace ViMultiSync.ViewModels
 
         [ObservableProperty] private bool isTimeStampFromiPC = true;
 
-        [ObservableProperty] private bool isLoginToApp = false;
+        [ObservableProperty] private bool isLoginToApp = true;
+
+        [ObservableProperty] private string _timerkeeperStatus = "00:00:00";
+
+        [ObservableProperty] private string _timerkeeperService = "00:00:00";
+
+
 
         #endregion
 
@@ -352,6 +380,8 @@ namespace ViMultiSync.ViewModels
             DowntimePanelIsOpen = false;
             CallForServicePanelIsOpen = true;
 
+            timerManager.StartTimer($"{item.Status}");
+
             ChangePropertyButtonStatus(colorDowntime, item.Status);
             PassMessageToRepository(item);
             ControlPanelVisible = true;
@@ -376,6 +406,8 @@ namespace ViMultiSync.ViewModels
             // Close the menu 
             SettingPanelIsOpen = false;
 
+            timerManager.StartTimer($"{item.Status}");
+
             ChangePropertyButtonStatus(colorSetting, item.Status);
             PassMessageToRepository(item);
         }
@@ -398,6 +430,8 @@ namespace ViMultiSync.ViewModels
             // Close the menu 
             MaintenancePanelIsOpen = false;
 
+            timerManager.StartTimer($"{item.Status}");
+
             ChangePropertyButtonStatus(colorMaintenance, item.Status);
             PassMessageToRepository(item);
         }
@@ -418,6 +452,8 @@ namespace ViMultiSync.ViewModels
 
             // Close the menu 
             LogisticPanelIsOpen = false;
+
+            timerManager.StartTimer($"{item.Status}");
 
             ChangePropertyButtonStatus(colorLogistic, item.Status);
             PassMessageToRepository(item);
@@ -443,6 +479,11 @@ namespace ViMultiSync.ViewModels
                 ControlPanelVisible = true;
             }
             else if (DowntimeIsActive && _lastMessage.Status == "USTAWIACZ")
+            {
+                DowntimeReasonSettingPanelIsOpen = true;
+                ControlPanelVisible = true;
+            }
+            else if (DowntimeIsActive && _lastMessage.Status == "LIDER")
             {
                 DowntimeReasonSettingPanelIsOpen = true;
                 ControlPanelVisible = true;
@@ -562,6 +603,7 @@ namespace ViMultiSync.ViewModels
             {
                 ServiceArrivalStatus();
                 ServiceArrival = true;
+                timerManager.StartTimer($"{item.Name}");
             }
 
             PassMessageToRepository(item);
@@ -598,8 +640,8 @@ namespace ViMultiSync.ViewModels
         private void OptionsButtonPressed()
         {
             OptionsPanelIsOpen = true;
+            VacuumPanelIsOpen = true;
         }
-
 
         [RelayCommand]
         private void LoginButtonPressed()
@@ -613,6 +655,13 @@ namespace ViMultiSync.ViewModels
             {
                 IsPasswordProtected = false;
             }
+        }
+
+        [RelayCommand]
+        private async Task GetLookupButtonPressed()
+        {
+            var getLookup = new GetLookup(this);
+            await getLookup.GetLookupDefinitionsAsync();
         }
 
         [RelayCommand]
@@ -703,7 +752,7 @@ namespace ViMultiSync.ViewModels
         {
             if (IsValidLogin(EnteredLogin))
             {
-                LoginLabel = EnteredLogin;
+                LoginLabel = EnteredLogin.ToUpper();
                 EnteredLogin = "";
                 LoginPanelIsOpen = false;
                 ControlPanelVisible = false;
@@ -948,73 +997,74 @@ namespace ViMultiSync.ViewModels
 
 
 
-        /// <summary>
-        /// After the refactoring
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="message"></param>
-        //public async void PassMessageToRepository<T>(T message)
-        //    where T : class, IEntity
-        //{
-        //    if (!repositories.ContainsKey(typeof(T)))
-        //    {
-        //        repositories[typeof(T)] = new GenericRepository<T>();
-        //    }
 
-        //    var repository = repositories[typeof(T)] as GenericRepository<T>;
+    /// <summary>
+    /// After the refactoring
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="message"></param>
+    //public async void PassMessageToRepository<T>(T message)
+    //    where T : class, IEntity
+    //{
+    //    if (!repositories.ContainsKey(typeof(T)))
+    //    {
+    //        repositories[typeof(T)] = new GenericRepository<T>();
+    //    }
 
-        //    switch (sentMessageWithTrue)
-        //    {
-        //        case true when message != null && message.Value == "false" && message.Name != "S1.MachineDowntime" && message.Name != "S7.CallForService" && message.Name != "S7.ServiceArrival":
-        //            await SendMessageToSplunk(message);
-        //            //repository.Add(message);
-        //            sentMessageWithTrue = false;
-        //            message.Value = "true";
-        //            _lastMessage = null;
-        //            return;
-        //        case true when _lastMessage != null && message.Name != "S7.CallForService" && message.Name != "S7.ServiceArrival":
-        //            _lastMessage.Value = "false";
-        //            await SendMessageToSplunk(_lastMessage);
-        //            _lastMessage.Value = "true";
-        //            //repository.Add(_lastMessage);
-        //            sentMessageWithTrue = false;
-        //            break;
-        //    }
+    //    var repository = repositories[typeof(T)] as GenericRepository<T>;
 
-        //    if (_lastMessage?.Name == "S1.MachineDowntime" && message.Name is "S7.CallForService" or "S7.ServiceArrival")
-        //    {
-        //        message.Status = _lastMessage.Status;
-        //        await SendMessageToSplunk(message);
-        //        repository.Add(message);
-        //        if (message.Name is "S7.CallForService" or "S7.ServiceArrival")
-        //        {
-        //            return;
-        //        }
-        //        sentMessageWithTrue = false;
-        //        message.Value = "true";
-        //    }
-        //    else
-        //    {
-        //        message.Value = "true";
-        //        await SendMessageToSplunk(message);
-        //        repository.Add(message);
-        //        sentMessageWithTrue = true;
-        //        if (message.Name == "S7.ReasonDowntime")
-        //        {
-        //            _lastMessage = null;
-        //            return;
-        //        }
-        //        _lastMessage = message;
-        //    }
-        //}
+    //    switch (sentMessageWithTrue)
+    //    {
+    //        case true when message != null && message.Value == "false" && message.Name != "S1.MachineDowntime" && message.Name != "S7.CallForService" && message.Name != "S7.ServiceArrival":
+    //            await SendMessageToSplunk(message);
+    //            //repository.Add(message);
+    //            sentMessageWithTrue = false;
+    //            message.Value = "true";
+    //            _lastMessage = null;
+    //            return;
+    //        case true when _lastMessage != null && message.Name != "S7.CallForService" && message.Name != "S7.ServiceArrival":
+    //            _lastMessage.Value = "false";
+    //            await SendMessageToSplunk(_lastMessage);
+    //            _lastMessage.Value = "true";
+    //            //repository.Add(_lastMessage);
+    //            sentMessageWithTrue = false;
+    //            break;
+    //    }
+
+    //    if (_lastMessage?.Name == "S1.MachineDowntime" && message.Name is "S7.CallForService" or "S7.ServiceArrival")
+    //    {
+    //        message.Status = _lastMessage.Status;
+    //        await SendMessageToSplunk(message);
+    //        repository.Add(message);
+    //        if (message.Name is "S7.CallForService" or "S7.ServiceArrival")
+    //        {
+    //            return;
+    //        }
+    //        sentMessageWithTrue = false;
+    //        message.Value = "true";
+    //    }
+    //    else
+    //    {
+    //        message.Value = "true";
+    //        await SendMessageToSplunk(message);
+    //        repository.Add(message);
+    //        sentMessageWithTrue = true;
+    //        if (message.Name == "S7.ReasonDowntime")
+    //        {
+    //            _lastMessage = null;
+    //            return;
+    //        }
+    //        _lastMessage = message;
+    //    }
+    //}
 
 
-        /// <summary>
-        /// Before the refactoring
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="message"></param>
-        public async void PassMessageToRepository<T>(T message)
+    /// <summary>
+    /// Before the refactoring
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="message"></param>
+    public async void PassMessageToRepository<T>(T message)
           where T : class, IEntity
         {
             if (!repositories.ContainsKey(typeof(T)))
@@ -1023,6 +1073,10 @@ namespace ViMultiSync.ViewModels
             }
 
             var repository = repositories[typeof(T)] as GenericRepository<T>;
+
+            if (sentMessageWithTrue && message != null && message.Value == "false" && message.Status != null)
+                message.TimeOfAllStatus = TimerkeeperStatus;
+
 
             if (sentMessageWithTrue && message != null && message.Value == "false" && message.Name != "S1.MachineDowntime" && message.Name != "S7.CallForService" && message.Name != "S7.ServiceArrival")
             {
@@ -1037,8 +1091,18 @@ namespace ViMultiSync.ViewModels
             if (sentMessageWithTrue && _lastMessage != null && message.Name != "S7.CallForService" && message.Name != "S7.ServiceArrival")
             {
                 _lastMessage.Value = "false";
+                if (_lastMessage.Value != null && _lastMessage.Value == "false")
+                {
+                    if (_lastMessage.Name == "S1.MachineDowntime")
+                    {
+                        _lastMessage.TimeOfAllRepairs = TimerkeeperService;
+                        _lastMessage.TimeOfAllStatus = TimerkeeperStatus;
+                    }
+                }
                 await SendMessageToSplunk(_lastMessage);
                 _lastMessage.Value = "true";
+                _lastMessage.TimeOfAllRepairs = "";
+                _lastMessage.TimeOfAllStatus = "";
                 //repository.Add(_lastMessage);
                 sentMessageWithTrue = false;
             }
@@ -1071,9 +1135,63 @@ namespace ViMultiSync.ViewModels
 
         public async Task SendMessageToSplunk<T>(T message)
         {
+            var valueProperty = typeof(T).GetProperty("Value");
+            var statusProperty = typeof(T).GetProperty("Status");
+            var nameProperty = typeof(T).GetProperty("Name");
+            var value = (string)valueProperty.GetValue(message);
+            var status = (string)statusProperty.GetValue(message);
+            var name = (string)nameProperty.GetValue(message);
+            
+
+            if (status != null && value == "false")
+            {
+                timerManager.ResetTimer($"{status}");
+                TimerkeeperStatus = "00:00:00";
+                if (name == "S1.MachineDowntime")
+                {
+                    timerManager.ResetTimer($"S7.ServiceArrival");
+                    TimerkeeperService = "00:00:00";
+                }
+            }
             var splunkLogger = new GenericSplunkLogger<T>(this);
             await splunkLogger.LogAsync(message);
         }
+
+        [RelayCommand]
+        public async Task SendMessageToPlc()
+        { 
+            DateTime currentTime = DateTime.Now;
+
+            List<object> dataFirstSend = new List<object>
+            {
+                currentTime.ToString("yyyy-MM-dd HH:mm:ss"), 
+                NumberStation,
+                VinHeatPump
+            };
+
+            GenericMessageToPlc messageToPlc = new GenericMessageToPlc();
+            await messageToPlc.WriteDataToPlc(dataFirstSend);
+
+            await Task.Delay(5000);
+
+            NumberStation = "";
+            VinHeatPump = "";
+
+            currentTime = DateTime.Now;
+
+            List<object> dataSecondSend = new List<object>
+            {
+                currentTime.ToString("yyyy-MM-dd HH:mm:ss"), // Formatuj czas
+                NumberStation,
+                VinHeatPump
+            };
+
+            await messageToPlc.WriteDataToPlc(dataSecondSend);
+
+            NumberStation = "";
+            VinHeatPump = "";
+        }
+
 
         public void LoadPageSap()
         {
@@ -1113,7 +1231,29 @@ namespace ViMultiSync.ViewModels
             SendMessageToSplunk(message);
         }
 
+        public void Receive(TimerValueChangedMessage message)
+        {
+            Dictionary<string, double> timersData = message.Value;
+
+            foreach (var kvp in timersData)
+            {
+                string timerName = kvp.Key;
+                double timerValue = kvp.Value;
+                TimeSpan timeSpan = TimeSpan.FromSeconds(timerValue);
+
+                if (timerName == "S7.ServiceArrival")
+                {
+                    TimerkeeperService = timeSpan.ToString(@"hh\:mm\:ss");
+                }
+                else
+                {
+                    TimerkeeperStatus = timeSpan.ToString(@"hh\:mm\:ss");
+                }
+            }
+        }
+
         #endregion
+
 
         #region Constructor
 
@@ -1124,8 +1264,11 @@ namespace ViMultiSync.ViewModels
 
         public MainWindowViewModel(IStatusInterfaceService statusInterfaceService)
         {
+
             mStatusInterfaceService = statusInterfaceService;
             _sharedDataService = new SharedDataService();
+            timerManager = new TimerManager();
+            StrongReferenceMessenger.Default.Register<TimerValueChangedMessage>(this);
             appConfig = _sharedDataService.AppConfig;
             BarOnTopApp = $"{appConfig.Line}  /  {appConfig.WorkplaceName}";
             sapUrl = appConfig.UrlSap;
@@ -1138,6 +1281,9 @@ namespace ViMultiSync.ViewModels
             {
                 _timer = new Timer(KeepAlive, null, TimeSpan.Zero, TimeSpan.FromMinutes(1));
             }
+
+            if (isLoginToApp)
+                CreateScheduleForLogging();
         }
 
         /// <summary>

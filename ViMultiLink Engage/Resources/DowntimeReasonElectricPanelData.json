@@ -5,19 +5,6 @@
     },
     {
         "Name": "S7.DowntimeReason",
-        "Reason": "BRAK ZASILANIA"
-
-    },
-    {
-        "Name": "S7.DowntimeReason",
-        "Reason": "BRAK ZASILANIA"
-    },
-    {
-        "Name": "S7.DowntimeReason",
-        "Reason": "BRAK ZASILANIA"
-    },
-    {
-        "Name": "S7.DowntimeReason",
-        "Reason": "BRAK ZASILANIA"
+        "Reason": "INNE"
     }
 ]

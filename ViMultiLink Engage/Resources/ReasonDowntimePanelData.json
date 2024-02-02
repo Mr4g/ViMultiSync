@@ -1,22 +1,26 @@
 [
     {
         "Name": "S7.DowntimeReason",
-        "Reason": "WYCIEK"
+        "Reason": "USZKODZONY ZAWÓR"
     },
     {
         "Name": "S7.DowntimeReason",
-        "Reason": "WYCIEK"
+        "Reason": "NIESZCZELNOŚĆ"
     },
     {
         "Name": "S7.DowntimeReason",
-        "Reason": "WYCIEK"
+        "Reason": "CIŚNIENIE HELU"
     },
     {
         "Name": "S7.DowntimeReason",
-        "Reason": "WYCIEK"
+        "Reason": "CIŚNIENIE AZOTU"
     },
     {
         "Name": "S7.DowntimeReason",
-        "Reason": "WYCIEK"
+        "Reason": "BRAK OLEJU W POMPIE"
+    },
+    {
+        "Name": "S7.DowntimeReason",
+        "Reason": "INNE"
     }
 ]

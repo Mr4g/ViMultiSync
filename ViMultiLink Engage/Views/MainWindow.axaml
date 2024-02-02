@@ -22,6 +22,11 @@
         FontFamily="Century Gothic"
         SystemDecorations="BorderOnly">
 
+
+	<!--<Window.KeyBindings>
+		<KeyBinding Command="{Binding VacuumButtonPressedCommand}" Gesture="Enter"></KeyBinding>
+	</Window.KeyBindings>-->
+
     <Design.DataContext>
 		<!-- This only sets the DataContext for the previewer in an IDE,
              to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
@@ -577,6 +582,13 @@
 								    Content="Login"
 								    Command="{Binding LoginButtonPressedCommand}">
 								</Button>
+								<Button
+								    Classes="TitleBarFlyoutsButton"
+									IsVisible="False"
+								    Name ="GetLookup"
+								    Content="GetLookup"
+								    Command="{Binding GetLookupButtonPressedCommand}">
+								</Button>
                                 <Button
                                     Classes="TitleBarFlyoutsButton"
                                     Name ="OpenFilesButton"
@@ -639,7 +651,7 @@
             VerticalAlignment="Center"
             Open="{Binding LoginPanelIsOpen,  Mode=TwoWay}"
             DuringOpening="{Binding ControlPanelVisible, Mode=TwoWay}">
-			<Border Background="Black" Padding="20" CornerRadius="24" MinHeight="400" MinWidth="350">
+			<Border Background="#3B3B39" Padding="20" CornerRadius="30" MinHeight="450" MinWidth="325">
 				<Grid RowDefinitions="Auto, Auto, *, Auto, Auto">
                     <Image Grid.Row="0" Margin="10"
 						   VerticalAlignment="Top"
@@ -647,15 +659,17 @@
                            MaxWidth="250"
                            Source="/Assets/Vi2Little.png">
                     </Image>
-					<StackPanel Grid.Row="1" Margin="20">
+					<StackPanel Grid.Row="1" Margin="30" VerticalAlignment="Center">
 						<Image
 							   VerticalAlignment="Top"
-							   MaxHeight="50"
-							   MaxWidth="50"
+							   MaxHeight="70"
+							   MaxWidth="70"
 							   Source="{SvgImage /Assets/icons/userThin.svg}">
 						</Image>
 						<Label
 							Foreground="WhiteSmoke"
+							Margin="10"
+							FontSize="24"
 							FontWeight="Bold"
                             HorizontalContentAlignment="Center"
 							Content="{Binding LoginLabel}">
@@ -664,8 +678,9 @@
 					<StackPanel Grid.Row="3">
                         <TextBox
 						VerticalAlignment="Bottom"
-						Margin="15,10,15,15"
+						Margin="15,10,15,18"
 						Name="LoginNameTextBox"
+						FontSize="22"
 						TextInputOptions.ContentType="Digits"
 						Text="{Binding EnteredLogin}"
 						Watermark="Skrót osobowy">
@@ -693,6 +708,120 @@
                     </Button>
                     </StackPanel>
                 </Grid>
+			</Border>
+		</controls:AnimatedPopup>
+
+		<!--Vacuum Panel Popup Open-->
+		
+		<controls:AnimatedPopup
+            Grid.Row="0"
+            Grid.RowSpan="3"
+            Grid.ColumnSpan="6"
+            Margin="20,20,0,20"
+            AnimationTime="0.3"
+            UnderlayOpacity="0.2"
+            Name="VacuumPanelPopup"
+            Opacity="0.9"
+			Opened="VacuumPanelPopup_OnOpened"
+			Closed="VacuumPanelPopup_OnClosed"
+			MinimizedWidth="0"
+			MinimizedHeight="500"
+            Background="Transparent"
+            HorizontalAlignment="Right"
+            VerticalAlignment="Center"
+			IsMinimized="true"
+            Open="{Binding VacuumPanelIsOpen,  Mode=TwoWay}"
+            DuringOpening="{Binding ControlPanelVisible, Mode=TwoWay}">
+			<Border Background="#3B3B39" Padding="20" CornerRadius="30, 0 , 0, 30" MinHeight="450" MinWidth="350">
+				<Grid RowDefinitions="Auto, Auto, Auto, *, Auto, Auto" ColumnDefinitions="Auto, *, Auto">
+					<StackPanel Grid.Column="0" Grid.RowSpan="6" HorizontalAlignment="Center">
+                        <Button
+                            MaxWidth="35"
+                            Height="500"
+                            Background="#3B3B39"
+                            Command="{Binding #VacuumPanelPopup.BeginClose}"
+                            HorizontalContentAlignment="Center"
+                            VerticalContentAlignment="Center">
+                            <Image MaxHeight="35" MaxWidth="35" Source="{SvgImage /Assets/icons/arrowsWhite.svg}" />
+                        </Button>
+                    </StackPanel>
+					<StackPanel Grid.Column="1" Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Center">
+						<Image Margin="10,0,0,0"
+                               VerticalAlignment="Top"
+                               MaxHeight="30"
+                               MaxWidth="30"
+                               Source="{SvgImage /Assets/icons/barcode_scanner.svg}">
+						</Image>
+                        <Label Margin="0,0,0,0"
+                               FontWeight="Bold"
+                               Foreground="Azure"
+                               FontSize="26"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Top"
+                               MaxHeight="250"
+                               MaxWidth="250"
+                               Content="Próżniowanie">
+					</Label>
+                    </StackPanel>
+					<StackPanel Grid.Column="1" Grid.Row="1" Margin="0, 20,0, 20" VerticalAlignment="Top" HorizontalAlignment="Center" Orientation="Horizontal">
+						<Image
+							   VerticalAlignment="Top"
+							   Margin="20,0"
+							   MaxHeight="70"
+							   MaxWidth="70"
+							   Source="{SvgImage /Assets/icons/barcodeWhite.svg}">
+						</Image>
+                        <Image
+                            VerticalAlignment="Top"
+                            Margin="20,0"
+                            MaxHeight="70"
+                            MaxWidth="70"
+                            Source="{SvgImage /Assets/icons/vacuumPumpWhite2.svg}">
+                        </Image>
+					</StackPanel>
+					<StackPanel Grid.Column="1" Grid.Row="2">
+						<TextBox
+						VerticalAlignment="Bottom"
+						Margin="15,10,15,18"
+						Name="NumberStationTextBox"
+						FontSize="22"
+						KeyDown="NumberStationTextBox_OnKeyDown"
+						TextInputOptions.ContentType="Digits"
+						Text="{Binding NumberStation}"
+						Watermark="Numer stacji">
+						</TextBox>
+					</StackPanel>
+
+
+					<StackPanel Grid.Column="1" Grid.Row="4" Margin="0,120,0,20" VerticalAlignment="Bottom" HorizontalAlignment="Center" Orientation="Horizontal">
+                        <Image
+                            VerticalAlignment="Top"
+                            Margin="20,0"
+                            MaxHeight="70"
+                            MaxWidth="70"
+                            Source="{SvgImage /Assets/icons/barcodeWhite.svg}">
+                        </Image>
+                        <Image
+                            VerticalAlignment="Top"
+                            Margin="20,0"
+                            MaxHeight="70"
+                            MaxWidth="70"
+                            Source="{SvgImage /Assets/icons/heatpumpWhite.svg}">
+                        </Image>
+					</StackPanel>
+                    <StackPanel Grid.Column="1" Grid.Row="5">
+                        <TextBox
+                            VerticalAlignment="Bottom"
+                            Margin="15,10,15,18"
+                            Name="VinHeatPumpTextBox"
+                            FontSize="22"
+							KeyDown="VinHeatPumpTextBox_OnKeyDown"
+                            TextInputOptions.ContentType="Digits"
+                            Text="{Binding VinHeatPump}"
+                            Watermark="Vin pompy">
+                        </TextBox>
+                    </StackPanel>
+				</Grid>
 			</Border>
 		</controls:AnimatedPopup>
 
@@ -756,9 +885,10 @@
 			</Grid>
 		</Border>
 
+
 		<!-- Main area -->
 
-		<Grid  Grid.Row="1" ColumnDefinitions="Auto, *" >
+		<Grid  Grid.Row="1" ColumnDefinitions="Auto, *, Auto" >
 			<!-- Navigation bar -->
 
 			<StackPanel Grid.Row="0" Grid.Column="0" Width="250" Margin="10, 60, 20, 10" Orientation="Vertical" VerticalAlignment="Top" HorizontalAlignment="Center">
@@ -795,8 +925,17 @@
 					Command="{Binding ActualStatusButtonPressedCommand}"
 					Background="{Binding ActualStatusColor}"
 					VerticalAlignment="Bottom">
-					<StackPanel Orientation="Horizontal" HorizontalAlignment="Center"  Margin="5">
-						<TextBlock Text="{Binding ActualStatusButtonText}"/>
+					<StackPanel Orientation="Vertical" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="5">
+						<TextBlock FontSize="20"
+                                   FontWeight="Bold" 
+								   HorizontalAlignment="Center"
+								   VerticalAlignment="Center"
+                                   Text="{Binding ActualStatusButtonText}"/>
+                        <TextBlock FontSize="20"
+                                   FontWeight="Bold"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   Text="{Binding TimerkeeperStatus}"/>
 					</StackPanel>
 				</Button>
 				<Button
@@ -811,9 +950,21 @@
 					Name ="ServiceArrivalButton"
 					Classes="NavigationInfoButton"
 					IsVisible="{Binding ServiceArrivalButtonIsVisible}"
-					Content="{Binding ServiceArrivalButtonText}"
 					Command="{Binding ServiceArrivalFromNavigationMenuCommand}"
-					Background="{Binding ServiceArrivalButtonColor}">
+					Background="{Binding ServiceArrivalButtonColor}"
+                    VerticalAlignment="Bottom">
+                    <StackPanel Orientation="Vertical" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="5">
+                        <TextBlock FontSize="20"
+                                   FontWeight="Bold" 
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   Text="{Binding ServiceArrivalButtonText}"/>
+                        <TextBlock FontSize="20"
+                                   FontWeight="Bold"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   Text="{Binding TimerkeeperService}"/>
+                    </StackPanel>
 				</Button>
 			</StackPanel>
 
@@ -823,17 +974,30 @@
 				<Grid>
 					<Image Grid.ColumnSpan="3" Source="/Assets/logoW16.png" Stretch="None"/>
 					<UserControl
-                Grid.Column="1"
 				IsVisible="{Binding !ControlPanelVisible}"
                 CornerRadius="20 "
                 Background="#232228"
                 Content="{Binding ActivePage}"
                 HorizontalAlignment="Stretch"
-				Margin="10 20, 40, 30"
+				Margin="10 20, 5, 30"
                 VerticalAlignment="Stretch">
 					</UserControl>
 				</Grid>
 			</Border>
+ 
+				<Button
+					Grid.RowSpan="3"
+                    Grid.Column="2"
+					IsVisible="{Binding VacuumButtonIsVisible}"
+                    MaxWidth="35"
+                    Height="600"
+                    Name="VacuumButton"
+					Background="#232228"
+                    Command="{Binding #VacuumPanelPopup.BeginOpen}"
+                    HorizontalContentAlignment="Center" 
+                    VerticalContentAlignment="Center"> 
+                    <Image MaxHeight="35" MaxWidth="35" Source="{SvgImage /Assets/icons/arrowsWhite.svg}" />
+                </Button>
 		</Grid>
 
 

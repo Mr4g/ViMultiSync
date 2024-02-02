@@ -2,11 +2,11 @@
     {
         "Name": "S7.ServiceArrival",
         "Value": "true",
-        "Status": "YES"
+        "Status": "TAK"
     },
     {
         "Name": "S7.ServiceArrival",
         "Value": "false",
-        "Status": "NO"
+        "Status": "NIE"
     }
 ]

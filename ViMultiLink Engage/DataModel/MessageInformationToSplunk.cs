@@ -26,6 +26,8 @@ namespace ViMultiSync.DataModel
 
         public string Source { get; set; }
         public string Reason { get; set; }
+        public string TimeOfAllStatus { get; set; }
+        public string TimeOfAllRepairs { get; set; }
 
         public string OperatorName { get; set; }
     }

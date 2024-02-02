@@ -21,5 +21,9 @@ namespace ViMultiSync.Entitys
 
         public string Source { get; set; }
         string Reason { get; set; }
+
+        public string TimeOfAllStatus { get; set; }
+
+        public string TimeOfAllRepairs { get; set; }
     }
 }

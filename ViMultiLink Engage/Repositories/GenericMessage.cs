@@ -21,6 +21,8 @@ namespace ViMultiSync.Repositories
         public string Status { get; set; }
 
         public string Reason { get; set; }
+        public string TimeOfAllStatus { get; set; }
+        public string TimeOfAllRepairs { get; set; }
 
         public string Location { get; set; }
 

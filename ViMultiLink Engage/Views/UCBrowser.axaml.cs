@@ -12,6 +12,10 @@ using Xilium.CefGlue.Common;
 using Xilium.CefGlue;
 using Xilium.CefGlue.Common.Handlers;
 using ViMultiSync.Keyboard;
+using Xilium.CefGlue;
+using Xilium.CefGlue.Avalonia;
+using Xilium.CefGlue.Common;
+using Xilium.CefGlue.Common.Events;
 
 namespace ViMultiSync.Views;
 
@@ -27,7 +31,6 @@ public partial class UCBrowser : UserControl
         virtualKeyboardTextInput = new VirtualKeyboardTextInputMethod();
         StartBrowser(link);
         ZIndex=1;
-
     }
 
     public void ChangeBrowserAddress(string newUrl)
@@ -56,11 +59,24 @@ public partial class UCBrowser : UserControl
         browser.RegisterJavascriptObject(new BindingTestClass(), "boundBeforeLoadObject");
         browser.LoadStart += OnBrowserLoadStart;
         browser.TitleChanged += OnBrowserTitleChanged;
+        //browser.LoadEnd += OnFrameLoadEnd;
         browserWrapper.Child = browser;
     }
 
     #region Private methods
 
+    //private void OnFrameLoadEnd(object sender, LoadEndEventArgs e)
+    //{
+    //    // Wstrzykujemy JavaScript po zakoñczeniu ³adowania strony
+    //    browser.ExecuteJavaScript(@"
+    //            jQuery.ajax({
+    //                url: 'https://jira.viessmann.com/plugins/servlet/issueCollectorBootstrap.js?collectorId=55135dc2&locale=en_US',
+    //                type: 'get',
+    //                cache: true,
+    //                dataType: 'script'
+    //            });
+    //        ");
+    //}
 
     private void OnBackButtonClicked(object sender, Avalonia.Interactivity.RoutedEventArgs e)
     {

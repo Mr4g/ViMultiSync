@@ -16,6 +16,8 @@ namespace ViMultiSync
 {
     public partial class AnimatedPopup : ContentControl
     {
+        public event EventHandler Opened;
+        public event EventHandler Closed;
 
         #region Private Members
 
@@ -27,7 +29,7 @@ namespace ViMultiSync
         /// <summary>
         /// Indicates if we have captured the opacity value yet
         /// </summary>
-        private bool mOpacityCaptured = false;    
+        private bool mOpacityCaptured = false;
 
         /// <summary>
         /// Indicates if this is the first time we are animating 
@@ -80,6 +82,57 @@ namespace ViMultiSync
         #endregion
 
         #region Public Propertis
+
+        private bool _isMinimized;
+
+        public static readonly DirectProperty<AnimatedPopup, bool> IsMinimizedProperty =
+            AvaloniaProperty.RegisterDirect<AnimatedPopup, bool>(
+                nameof(IsMinimized),
+                o => o.IsMinimized,
+                (o, v) => o.IsMinimized = v);
+
+        public bool IsMinimized
+        {
+            get => _isMinimized;
+            set => SetAndRaise(IsMinimizedProperty, ref _isMinimized, value);
+        }
+
+        #region Minimized Width
+
+        private double _minimizedWidth = 100; // Domyœlna wartoœæ, mo¿esz dostosowaæ do w³asnych potrzeb
+
+        public static readonly DirectProperty<AnimatedPopup, double> MinimizedWidthProperty =
+            AvaloniaProperty.RegisterDirect<AnimatedPopup, double>(
+                nameof(MinimizedWidth),
+                o => o.MinimizedWidth,
+                (o, v) => o.MinimizedWidth = v);
+
+        public double MinimizedWidth
+        {
+            get => _minimizedWidth;
+            set => SetAndRaise(MinimizedWidthProperty, ref _minimizedWidth, value);
+        }
+
+        #endregion
+
+        #region Minimized Height
+
+        private double _minimizedHeight = 50; // Domyœlna wartoœæ, mo¿esz dostosowaæ do w³asnych potrzeb
+
+        public static readonly DirectProperty<AnimatedPopup, double> MinimizedHeightProperty =
+            AvaloniaProperty.RegisterDirect<AnimatedPopup, double>(
+                nameof(MinimizedHeight),
+                o => o.MinimizedHeight,
+                (o, v) => o.MinimizedHeight = v);
+
+        public double MinimizedHeight
+        {
+            get => _minimizedHeight;
+            set => SetAndRaise(MinimizedHeightProperty, ref _minimizedHeight, value);
+        }
+
+        #endregion
+
 
         /// <summary>
         /// Indicates if the control is currently opened
@@ -144,15 +197,15 @@ namespace ViMultiSync
                 {
                     // If the control is currently fully open...
                     if (IsOpened)
-                    // Update desired size
-                    UpdateDesiredSize();
+                        // Update desired size
+                        UpdateDesiredSize();
                 }
 
                 // Update animation
                 UpdateAnimation();
 
                 // Raise the property changed event
-                SetAndRaise(OpenProperty, ref _open, value); 
+                SetAndRaise(OpenProperty, ref _open, value);
             }
         }
 
@@ -160,7 +213,7 @@ namespace ViMultiSync
         {
             get => _duringOpening;
             set => SetAndRaise(DuringOpeningProperty, ref _duringOpening, value);
-     
+
         }
 
         #endregion
@@ -176,7 +229,7 @@ namespace ViMultiSync
         /// <summary>
         /// Property to set whether the control should be open or closed
         /// </summary>
-         
+
         public TimeSpan AnimationTime
         {
             get => _animationTime;
@@ -271,7 +324,7 @@ namespace ViMultiSync
                 Interval = mFrameRate
             };
 
-            mSizingTimer = new Timer(t  =>
+            mSizingTimer = new Timer(t =>
             {
                 // If we have already calculated the size...
                 if (mSizeFound)
@@ -292,12 +345,22 @@ namespace ViMultiSync
             });
 
             // Callback on every tick
-            mAnimationTimer.Tick += (s,e) => AnimationTick();
+            mAnimationTimer.Tick += (s, e) => AnimationTick();
         }
 
         #endregion
 
         #region Private Methods
+
+        private void OnOpened()
+        {
+            Opened?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void OnClosed()
+        {
+            Closed?.Invoke(this, EventArgs.Empty);
+        }
 
         /// <summary>
         /// Calculate and start any new required animations
@@ -306,7 +369,11 @@ namespace ViMultiSync
         /// <summary>
         /// Updates the animation desired size based on the current visuals desired size
         /// </summary>
-        private void UpdateDesiredSize() => mDesiredSize = DesiredSize - Margin;
+        private void UpdateDesiredSize()
+        {
+            // Przypisz wartoœæ do mDesiredSize
+            mDesiredSize = DesiredSize - Margin;
+        }
 
         private void UpdateAnimation()
         {
@@ -337,9 +404,20 @@ namespace ViMultiSync
             // If close
             else
             {
-                // Set size to 0...
-                Width = 0;
-                Height = 0; 
+                if (IsMinimized)
+                {
+                    Dispatcher.UIThread.InvokeAsync(() =>
+                    {
+                        Width = MinimizedWidth;
+                        Height = MinimizedHeight;
+                    });
+                }
+                else
+                {
+                    // Set size to 0...
+                    Width = 0;
+                    Height = 0;
+                }
 
                 // If the parent is a grid...
                 if (Parent is Grid grid)
@@ -356,6 +434,16 @@ namespace ViMultiSync
 
                 }
             }
+
+            if (Open)
+            {
+                OnOpened();
+            }
+            else
+            {
+                OnClosed();
+            }
+
         }
 
         /// <summary>
@@ -368,6 +456,7 @@ namespace ViMultiSync
             {
                 Width = _open ? mDesiredSize.Width : 0;
                 Height = _open ? mDesiredSize.Height : 0;
+
                 // Clear the flag 
                 mFirstAnimation = false;
 
@@ -385,7 +474,7 @@ namespace ViMultiSync
             }
 
             // If we have reached the end of our animation...
-            if ((_open && mAnimationCurrentTick >= mTotalTicks) || (!_open && mAnimationCurrentTick == 00 ))
+            if ((_open && mAnimationCurrentTick >= mTotalTicks) || (!_open && mAnimationCurrentTick == 00))
             {
                 // Stop this animation timer
                 mAnimationTimer.Stop();
@@ -416,7 +505,8 @@ namespace ViMultiSync
             // Calculate final width and height
 
             var finalWidth = mDesiredSize.Width * easing.Ease(percentageAnimated);
-            var finalHeight = mDesiredSize.Height * easing.Ease(percentageAnimated);
+            var finalHeight = !IsMinimized ? mDesiredSize.Height * easing.Ease(percentageAnimated) : MinimizedHeight;
+
 
             // Do animation
 
@@ -424,7 +514,7 @@ namespace ViMultiSync
             Height = finalHeight;
 
             // Animate opacity
-            if(AnimateOpacity)
+            if (!IsMinimized && AnimateOpacity)
                 Opacity = mOrginalOpacity * easing.Ease(percentageAnimated);
 
             // Animate underlay

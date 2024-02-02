@@ -7,31 +7,15 @@
     {
         "Name": "S1.MaintenanceMode",
         "Value": "true",
-        "Status": "SPRZĄTANIE"
+        "Status": "PRZEGLĄD"
+    },
+    {
+        "Name": "S7.TestingPassed",
+        "Value": "true"
     },
     {
         "Name": "S1.MaintenanceMode",
         "Value": "true",
-        "Status": "SPRZĄTANIE"
-    },
-    {
-        "Name": "S1.MaintenanceMode",
-        "Value": "true",
-        "Status": "SPRZĄTANIE"
-    },
-    {
-        "Name": "S1.MaintenanceMode",
-        "Value": "true",
-        "Status": "SPRZĄTANIE"
-    },
-    {
-        "Name": "S1.MaintenanceMode",
-        "Value": "true",
-        "Status": "SPRZĄTANIE"
-    },
-    {
-        "Name": "S1.MaintenanceMode",
-        "Value": "true",
-        "Status": "SPRZĄTANIE"
+        "Status": "INNE"
     }
 ]

@@ -12,6 +12,11 @@
     {
         "Name": "S1.MachineDowntime",
         "Value": "true",
-        "Status": "USTAWIACZ"
+        "Status": "KPTJ"
+    },
+    {
+        "Name": "S1.MachineDowntime",
+        "Value": "true",
+        "Status": "LIDER"
     }
 ]

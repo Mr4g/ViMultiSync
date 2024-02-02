@@ -7,16 +7,16 @@
     {
         "Name": "S1.SettingMode",
         "Value": "true",
-        "Status": "PRZEZBROJENIE"
+        "Status": "REGULACJA"
     },
     {
         "Name": "S1.SettingMode",
         "Value": "true",
-        "Status": "PRZEZBROJENIE"
+        "Status": "KONFIGURACJA"
     },
     {
         "Name": "S1.SettingMode",
         "Value": "true",
-        "Status": "PRZEZBROJENIE"
+        "Status": "INNE"
     }
 ]

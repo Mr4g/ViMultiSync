@@ -192,7 +192,7 @@ namespace ViMultiSync.Repositories
 
             foreach (var property in type.GetProperties())
             {
-                var propertyName = property.Name.ToLower();
+                var propertyName = char.ToLowerInvariant(property.Name[0]) + property.Name.Substring(1);
                 var propertyValue = property.GetValue(data);
 
                 if (propertyValue != null && propertyName != "time")

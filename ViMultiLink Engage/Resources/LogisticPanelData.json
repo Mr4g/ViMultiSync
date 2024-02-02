@@ -3,32 +3,15 @@
         "Name": "S1.Logistic",
         "Value": "true",
         "Status": "BRAK MATERIAŁU"
-
     },
     {
         "Name": "S1.Logistic",
         "Value": "true",
-        "NameDevice": "iPC01",
-        "Status": "BRAK MATERIAŁU"
+        "Status": "WADLIWY MATERIAŁ"
     },
     {
         "Name": "S1.Logistic",
         "Value": "true",
-        "Status": "BRAK MATERIAŁU"
-    },
-    {
-        "Name": "S1.Logistic",
-        "Value": "true",
-        "Status": "BRAK MATERIAŁU"
-    },
-    {
-        "Name": "S1.Logistic",
-        "Value": "true",
-        "Status": "BRAK MATERIAŁU"
-    },
-    {
-        "Name": "S1.Logistic",
-        "Value": "true",
-        "Status": "BRAK MATERIAŁU"
+        "Status": "INNE"
     }
 ]
