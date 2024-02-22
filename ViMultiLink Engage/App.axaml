@@ -9,7 +9,10 @@
              RequestedThemeVariant="Default">
 
 
-
+    <Application.Resources>
+        <SolidColorBrush x:Key="OrangeRedBrush" Color="OrangeRed" />
+        <SolidColorBrush x:Key="GrayBrush" Color="Gray" />
+    </Application.Resources>
 
 
     <Application.DataTemplates>
@@ -18,6 +21,7 @@
   
     <Application.Styles>
         <FluentTheme />
+		<StyleInclude Source="Styles/GlassCardStyles.axaml" />
         <StyleInclude Source="Styles/AnimatedPopup.axaml"/>
         <StyleInclude Source="Styles/Button/PopupButton.axaml"/>
         <material:MaterialIconStyles />

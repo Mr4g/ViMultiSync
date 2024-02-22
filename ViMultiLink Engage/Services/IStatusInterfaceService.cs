@@ -24,6 +24,7 @@ namespace ViMultiSync.Services
         Task<List<ServiceArrivalPanelItem>> GetServiceArrivalPanelAsync();
         Task<List<DowntimeReasonElectricPanelItem>> GetDowntimeReasonElectricPanelAsync();
         Task<List<DowntimeReasonSettingPanelItem>> GetDowntimeReasonSettingPanelAsync();
+        Task<List<DowntimeReasonKptjPanelItem>> GetDowntimeReasonKptjPanelAsync();
 
     }
 }

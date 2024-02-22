@@ -1,0 +1,30 @@
+[
+    {
+        "Name": "S7.DowntimeReason",
+        "Reason": "KOREKTY"
+    },
+    {
+        "Name": "S7.DowntimeReason",
+        "Reason": "WADLIWY MATERIAŁ"
+    },
+    {
+        "Name": "S7.DowntimeReason",
+        "Reason": "USZKODZONE NARZĘDZIE"
+    },
+    {
+        "Name": "S7.DowntimeReason",
+        "Reason": "KALIBRACJA NARZĘDZIA"
+    },
+    {
+        "Name": "S7.DowntimeReason",
+        "Reason": "PROBLEMY PRODUKTU"
+    },
+    {
+        "Name": "S7.DowntimeReason",
+        "Reason": "PONOWNY TEST"
+    },
+    {
+        "Name": "S7.DowntimeReason",
+        "Reason": "INNE"
+    }
+]

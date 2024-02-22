@@ -6,9 +6,9 @@ using Avalonia.Input;
 using ViMultiSync.ViewModels;
 using ViMultiSync.Keyboard;
 using Avalonia.Interactivity;
-using SharpDX.Direct3D11;
 using Avalonia.Threading;
-using ReactiveUI;
+using Point = Avalonia.Point;
+
 
 
 namespace ViMultiSync.Views
@@ -16,6 +16,9 @@ namespace ViMultiSync.Views
     public partial class MainWindow : Window
     {
         private VirtualKeyboardTextInputMethod virtualKeyboardTextInput = null;
+        MainWindowViewModel viewModel;
+
+        private int delayInSeconds = 5;
 
         #region Private Members
 
@@ -43,7 +46,7 @@ namespace ViMultiSync.Views
             this.WindowStartupLocation = WindowStartupLocation.CenterScreen;
             virtualKeyboardTextInput = new VirtualKeyboardTextInputMethod((Window)this);
             this.AddHandler<GotFocusEventArgs>(Control.GotFocusEvent, openVirtualKeyboard);
-            this.AddHandler<KeyEventArgs>(Control.KeyDownEvent, (sender, e) =>
+            this.AddHandler<KeyEventArgs>(Control.KeyDownEvent, async (sender, e) =>
             {
                 if (e.Key == Key.Enter &&
                     (FocusManager.GetFocusedElement() == null ||
@@ -55,6 +58,8 @@ namespace ViMultiSync.Views
                     }
                     else
                     {
+                        await Task.Delay(TimeSpan.FromSeconds(delayInSeconds));
+                        viewModel.VacuumProgressBarIsVisible = true;
                         VacuumPanelPopup.BeginClose();
                     }
                 }
@@ -104,6 +109,8 @@ namespace ViMultiSync.Views
             //this.Topmost = true;
             this.CanResize = false;
             await ((MainWindowViewModel)DataContext).LoadSettingsCommand.ExecuteAsync(null);
+            viewModel = (MainWindowViewModel)DataContext;
+            viewModel.FocusRequested += HandleFocusRequest;
         }
 
         private void MainWindow_Resized(object sender, EventArgs e)
@@ -211,10 +218,13 @@ namespace ViMultiSync.Views
         {
             Dispatcher.UIThread.InvokeAsync(() =>
             {
-                VacuumButton.IsVisible = true;
-            });
-        }
+                if(viewModel.VacuumPanelAvailable)
+                    VacuumButton.IsVisible = true;
 
+                this.FocusManager.ClearFocus();
+            });
+            
+        }
 
         private void NumberStationTextBox_OnKeyDown(object? sender, KeyEventArgs e)
         {
@@ -226,11 +236,31 @@ namespace ViMultiSync.Views
 
         private void VinHeatPumpTextBox_OnKeyDown(object? sender, KeyEventArgs e)
         {
-            if (e.Key == Key.Enter)
+            if (e.Key == Key.Enter && viewModel.CanSendDataToPlc)
+            
             {
-                MainWindowViewModel viewModel = (MainWindowViewModel)DataContext;
                 viewModel.SendMessageToPlc();
                 this.FocusManager.ClearFocus();
+            }
+        }
+
+        public void HandleFocusRequest(object sender, string controlName)
+        {
+            if (sender is MainWindowViewModel viewModel)
+            {
+                var control = this.FindControl<TextBox>(controlName);
+                control?.Focus();
+            }
+        }
+
+        private void MenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is MenuItem menuItem && menuItem.Tag is string tag)
+            {
+                if (int.TryParse(tag, out int seconds))
+                {
+                    delayInSeconds = seconds;
+                }
             }
         }
     }

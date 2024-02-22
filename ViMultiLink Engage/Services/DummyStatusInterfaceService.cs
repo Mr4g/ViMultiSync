@@ -86,5 +86,10 @@ namespace ViMultiSync.Services
         {
             return await ReadPanelDataAsync<DowntimeReasonSettingPanelItem>("DowntimeReasonSettingPanelData.json");
         }
+
+        public async Task<List<DowntimeReasonKptjPanelItem>> GetDowntimeReasonKptjPanelAsync()
+        {
+            return await ReadPanelDataAsync<DowntimeReasonKptjPanelItem>("DowntimeReasonKptjPanelData.json");
+        }
     }
 }

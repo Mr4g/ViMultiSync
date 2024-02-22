@@ -5,6 +5,10 @@
     },
     {
         "Name": "S7.DowntimeReason",
+        "Reason": "WEZWANIE UR"
+    },
+    {
+        "Name": "S7.DowntimeReason",
         "Reason": "INNE"
     }
 ]

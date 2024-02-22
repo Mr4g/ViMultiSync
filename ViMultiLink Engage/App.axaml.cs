@@ -1,6 +1,11 @@
+using System;
+using System.Linq;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Data.Core.Plugins;
 using Avalonia.Markup.Xaml;
+using Avalonia.Styling;
+using SukiUI;
 using ViMultiSync.Services;
 using ViMultiSync.ViewModels;
 using ViMultiSync.Views;
@@ -17,6 +22,15 @@ namespace ViMultiSync
 
         public override void OnFrameworkInitializationCompleted()
         {
+            // Get an array of plugins to remove
+            var dataValidationPluginsToRemove =
+                BindingPlugins.DataValidators.OfType<DataAnnotationsValidationPlugin>().ToArray();
+
+            // remove each entry found
+            foreach (var plugin in dataValidationPluginsToRemove)
+            {
+                BindingPlugins.DataValidators.Remove(plugin);
+            }
 
             // Initialize the dependencies
             var statusInterface = new DummyStatusInterfaceService();
@@ -29,7 +43,6 @@ namespace ViMultiSync
                     DataContext = mainViewModel
                 };
             }
-
             base.OnFrameworkInitializationCompleted();
         }
     }

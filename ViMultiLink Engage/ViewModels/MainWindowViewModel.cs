@@ -28,17 +28,19 @@ using System.Timers;
 using Timer = System.Threading.Timer;
 using ViMultiSync.AuxiliaryClasses;
 using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 using Avalonia.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using ReactiveUI;
 using ViMultiSync.Stores;
 using Newtonsoft.Json.Linq;
 using System.Xml.Linq;
+using System.Reactive.Subjects;
 
 
 namespace ViMultiSync.ViewModels
 {
-    public partial class MainWindowViewModel : ObservableObject, IRecipient<TimerValueChangedMessage>
+    public partial class MainWindowViewModel : ObservableValidator, IRecipient<TimerValueChangedMessage>
     {
         #region Private Memebers
 
@@ -47,6 +49,8 @@ namespace ViMultiSync.ViewModels
         private readonly SharedDataService _sharedDataService;
         private readonly AppConfigData appConfig;
         private Timer _timer;
+        private DispatcherTimer _timerForVacuum;
+
 
         private DispatcherTimer _timerScheduleForLogging;
         private TaskCompletionSource<bool> _dataIsSendingToSplunkCompletionSource = new TaskCompletionSource<bool>();
@@ -63,7 +67,21 @@ namespace ViMultiSync.ViewModels
         private bool sentMessageWithTrue = false;
         IEntity _lastMessage;
 
+        #region Event 
+
+        public event EventHandler<string>? FocusRequested;
+
+
+        #endregion
+
         #region Public Properties
+
+        #region Setting Properties
+
+        [ObservableProperty]
+        public bool _vacuumPanelAvailable;
+
+        #endregion
 
         #region Panel is open
 
@@ -72,6 +90,7 @@ namespace ViMultiSync.ViewModels
 
         [ObservableProperty] 
         private string _enteredPassword;
+        
 
         [ObservableProperty]
         private string _enteredLogin;
@@ -80,9 +99,17 @@ namespace ViMultiSync.ViewModels
         private string _loginLabel;
 
         [ObservableProperty]
+        [NotifyDataErrorInfo]
+        [RegularExpression(@"^(Line[1-6]Pump[1-4])$", ErrorMessage = "Niepoprawny numer stacji")]
+        [NotifyCanExecuteChangedFor(nameof(ClearButtonPressedCommand), nameof(SendMessageToPlcCommand))]
+        [NotifyPropertyChangedFor(nameof(CanSendDataToPlc))]
         private string _numberStation;
 
         [ObservableProperty]
+        [NotifyDataErrorInfo]
+        [NotifyCanExecuteChangedFor(nameof(ClearButtonPressedCommand), nameof(SendMessageToPlcCommand))]
+        [NotifyPropertyChangedFor(nameof(CanSendDataToPlc))]
+        [RegularExpression(@"^\d{16}$", ErrorMessage = "Niepoprawny GNV.")]
         private string _vinHeatPump;
 
         [ObservableProperty]
@@ -102,6 +129,9 @@ namespace ViMultiSync.ViewModels
 
         [ObservableProperty]
         private int _rowForDowntimeReasonSettingPanel;
+
+        [ObservableProperty]
+        private int _rowForDowntimeReasonKptjPanel;
 
         [ObservableProperty]
         private int _rowForCallForServicePanel;
@@ -134,6 +164,9 @@ namespace ViMultiSync.ViewModels
         private bool _downtimeReasonSettingPanelIsOpen = false;
 
         [ObservableProperty]
+        private bool _downtimeReasonKptjPanelIsOpen = false;
+
+        [ObservableProperty]
         private bool _callForServicePanelIsOpen = false;
 
         [ObservableProperty]
@@ -155,7 +188,7 @@ namespace ViMultiSync.ViewModels
         private bool _controlPanelVisible = false;
 
         [ObservableProperty]
-        private bool _vacuumButtonIsVisible = true;
+        private bool _vacuumButtonIsVisible;
 
         [ObservableProperty]
         private bool _serviceCalled = false;
@@ -171,6 +204,9 @@ namespace ViMultiSync.ViewModels
 
         [ObservableProperty]
         private bool _serviceArrivalButtonIsVisible = false;
+
+        [ObservableProperty]
+        private bool _vacuumProgressBarIsVisible;
 
         [ObservableProperty]
         private string _actualStatusButtonText = "WYBIERZ STATUS";
@@ -213,6 +249,11 @@ namespace ViMultiSync.ViewModels
 
         [ObservableProperty] private string _timerkeeperService = "00:00:00";
 
+        [ObservableProperty] private double _progressBarValue = 100;
+
+        [ObservableProperty] private TimeSpan _remainingVacuumTime;
+
+        [ObservableProperty] private TimeSpan _currentTime;
 
 
         #endregion
@@ -240,6 +281,9 @@ namespace ViMultiSync.ViewModels
 
         [ObservableProperty]
         private ObservableGroupedCollection<string, DowntimeReasonSettingPanelItem> _downtimeReasonSettingPanel = default!;
+
+        [ObservableProperty]
+        private ObservableGroupedCollection<string, DowntimeReasonKptjPanelItem> _downtimeReasonKptjPanel = default!;
 
         [ObservableProperty]
         private ObservableGroupedCollection<string, SplunkPanelItem> _splunkPanel = default!;
@@ -283,6 +327,10 @@ namespace ViMultiSync.ViewModels
         private DowntimeReasonSettingPanelItem? _selectedDowntimeReasonSettingPanelItem;
 
         [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(DowntimeReasonKptjPanelButtonText))]
+        private DowntimeReasonKptjPanelItem? _selectedDowntimeReasonKptjPanelItem;
+
+        [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(CallForServicePanelButtonText))]
         private CallForServicePanelItem? _selectedCallForServicePanelItem;
 
@@ -312,10 +360,26 @@ namespace ViMultiSync.ViewModels
 
         public string DowntimeReasonSettingPanelButtonText => SelectedDowntimeReasonSettingPanelItem?.Name ?? "Downtime Reason Setting";
 
+        public string DowntimeReasonKptjPanelButtonText => SelectedDowntimeReasonKptjPanelItem?.Name ?? "Downtime Reason Kptj";
         public string CallForServicePanelButtonText => SelectedCallForServicePanelItem?.Name ?? "Call For Service";
         public string ServiceArrivalPanelButtonText => SelectedServiceArrivalPanelItem?.Name ?? "Service Arrival";
 
         public string SplunkPanelButtonText => SelectedSplunkPanelItem?.Name ?? "Splunk";
+
+        public bool CanDeleteTheNumberStationAndGnv =>
+            HasNumberStation ||
+            HasNumberGnv ||
+            ProgressBarValue<100;
+
+
+        public bool CanSendDataToPlc =>
+            HasNumberStation &&
+            HasNumberGnv &&
+            !HasErrors;
+
+        private bool HasNumberStation => !string.IsNullOrEmpty(NumberStation);
+        private bool HasNumberGnv => !string.IsNullOrEmpty(VinHeatPump);
+
         #endregion
 
         private UCBrowser _activeUserControl;
@@ -352,6 +416,9 @@ namespace ViMultiSync.ViewModels
         public void DowntimeReasonSettingPanelButtonPressed() => DowntimeReasonSettingPanelIsOpen ^= true;
 
         [RelayCommand]
+        public void DowntimeReasonKptjPanelButtonPressed() => DowntimeReasonKptjPanelIsOpen ^= true;
+
+        [RelayCommand]
         public void CallForServicePanelButtonPressed() => CallForServicePanelIsOpen ^= true;
 
         [RelayCommand]
@@ -373,12 +440,15 @@ namespace ViMultiSync.ViewModels
             // Update the selected item 
             SelectedDowntimePanelItem = item;
 
-            CallForServiceButtonIsVisible = true;
             DowntimeIsActive = true;
 
             // Close the menu 
             DowntimePanelIsOpen = false;
-            CallForServicePanelIsOpen = true;
+            if (item.Status != "KPTJ" && item.Status != "LIDER")
+            {
+                CallForServiceButtonIsVisible = true;
+                CallForServicePanelIsOpen = true;
+            }
 
             timerManager.StartTimer($"{item.Status}");
 
@@ -488,6 +558,11 @@ namespace ViMultiSync.ViewModels
                 DowntimeReasonSettingPanelIsOpen = true;
                 ControlPanelVisible = true;
             }
+            else if (DowntimeIsActive && _lastMessage.Status == "KPTJ")
+            {
+                DowntimeReasonKptjPanelIsOpen = true;
+                ControlPanelVisible = true;
+            }
             else
             {
                 _lastMessage.Value = "false";
@@ -558,6 +633,21 @@ namespace ViMultiSync.ViewModels
 
             // Close the menu 
             DowntimeReasonSettingPanelIsOpen = false;
+            ControlPanelVisible = false;
+            ServiceCalled = false;
+            ServiceArrival = false;
+            PassMessageToRepository(item);
+            ClearActualButtonStatus();
+        }
+
+        [RelayCommand]
+        private void DowntimeReasonKptjPanelItemPressed(DowntimeReasonKptjPanelItem item)
+        {
+            // Update the selected item 
+            SelectedDowntimeReasonKptjPanelItem = item;
+
+            // Close the menu 
+            DowntimeReasonKptjPanelIsOpen = false;
             ControlPanelVisible = false;
             ServiceCalled = false;
             ServiceArrival = false;
@@ -656,6 +746,19 @@ namespace ViMultiSync.ViewModels
                 IsPasswordProtected = false;
             }
         }
+        [RelayCommand(CanExecute = nameof(CanDeleteTheNumberStationAndGnv))]
+        private void ClearButtonPressed()
+        {
+            NumberStation = "";
+            VinHeatPump = "";
+            _timerForVacuum.Stop();
+            RemainingVacuumTime = TimeSpan.FromMinutes(5);
+            VacuumProgressBarIsVisible = false;
+            ProgressBarValue = 100;
+            if (!HasErrors)
+              ClearErrors();
+            FocusRequested?.Invoke(this, "NumberStationTextBox");
+        }
 
         [RelayCommand]
         private async Task GetLookupButtonPressed()
@@ -713,12 +816,28 @@ namespace ViMultiSync.ViewModels
             OptionsPanelIsOpen = false;
         }
 
+        private void TimerTick(object sender, EventArgs e)
+        {
+            RemainingVacuumTime = RemainingVacuumTime.Subtract(TimeSpan.FromSeconds(1));
+           
+            ProgressBarValue = (RemainingVacuumTime.TotalSeconds / (appConfig.RemainingVacuumTimeDefault * 60)) * 100;
+
+            if (RemainingVacuumTime <= TimeSpan.Zero)
+            {
+                _timerForVacuum.Stop();
+                ProgressBarValue = 100;
+                RemainingVacuumTime = TimeSpan.FromMinutes(appConfig.RemainingVacuumTimeDefault); 
+                VacuumPanelIsOpen = false; 
+                VacuumProgressBarIsVisible = false;
+            }
+        }
+
         private void TimerScheduleLoggin_Tick(object? sender, EventArgs e)
         {
             int[] targetTimesInMinutes = { 5 * 60 + 30, 13 * 60 + 30, 21 * 60 + 30 }; // 5:30, 13:30, 21:30
 
             TimeSpan currentTimeOfDay = DateTime.Now.TimeOfDay;
-
+            CurrentTime = currentTimeOfDay;
 
             if (Array.Exists(targetTimesInMinutes,
                     targetTime => currentTimeOfDay.TotalMinutes >= targetTime &&
@@ -878,6 +997,7 @@ namespace ViMultiSync.ViewModels
             var serviceArrivalPanel = await mStatusInterfaceService.GetServiceArrivalPanelAsync();
             var downtimeReasonElectricPanel = await mStatusInterfaceService.GetDowntimeReasonElectricPanelAsync();
             var downtimeReasonSettingPanel = await mStatusInterfaceService.GetDowntimeReasonSettingPanelAsync();
+            var downtimeReasonKptjPanel = await mStatusInterfaceService.GetDowntimeReasonKptjPanelAsync();
 
 
             // Create a grouping from the flat data
@@ -921,6 +1041,12 @@ namespace ViMultiSync.ViewModels
                     downtimeReasonSettingPanel.GroupBy(item => item.Name));
 
             RowForDowntimeReasonSettingPanel = LoadSizeOfGrid(downtimeReasonSettingPanel.Count);
+
+            DowntimeReasonKptjPanel =
+                new ObservableGroupedCollection<string, DowntimeReasonKptjPanelItem>(
+                    downtimeReasonKptjPanel.GroupBy(item => item.Name));
+
+            RowForDowntimeReasonKptjPanel = LoadSizeOfGrid(downtimeReasonKptjPanel.Count);
 
             SplunkPanel =
                 new ObservableGroupedCollection<string, SplunkPanelItem>(
@@ -1143,7 +1269,7 @@ namespace ViMultiSync.ViewModels
             var name = (string)nameProperty.GetValue(message);
             
 
-            if (status != null && value == "false")
+            if (status != null && value == "false" && name != "S7.CallForService")
             {
                 timerManager.ResetTimer($"{status}");
                 TimerkeeperStatus = "00:00:00";
@@ -1157,9 +1283,16 @@ namespace ViMultiSync.ViewModels
             await splunkLogger.LogAsync(message);
         }
 
-        [RelayCommand]
+        [RelayCommand(CanExecute = nameof(CanSendDataToPlc))]
         public async Task SendMessageToPlc()
-        { 
+        {
+
+            //ValidateAllProperties();
+            //if (HasErrors)
+            //{
+            //    ClearButtonPressed();
+            //    return;
+            //}
             DateTime currentTime = DateTime.Now;
 
             List<object> dataFirstSend = new List<object>
@@ -1170,7 +1303,9 @@ namespace ViMultiSync.ViewModels
             };
 
             GenericMessageToPlc messageToPlc = new GenericMessageToPlc();
+            _timerForVacuum.Start();
             await messageToPlc.WriteDataToPlc(dataFirstSend);
+           
 
             await Task.Delay(5000);
 
@@ -1191,7 +1326,6 @@ namespace ViMultiSync.ViewModels
             NumberStation = "";
             VinHeatPump = "";
         }
-
 
         public void LoadPageSap()
         {
@@ -1252,6 +1386,16 @@ namespace ViMultiSync.ViewModels
             }
         }
 
+        private void ValidateNumberStation()
+        {
+            // Tutaj przeprowadź walidację _numberStation
+            // Możesz użyć NotifyDataErrorInfo do sprawdzenia błędów walidacji
+
+            // Jeśli walidacja jest poprawna, ustaw IsFormValid na true
+            // W przeciwnym razie ustaw na false
+    
+        }
+
         #endregion
 
 
@@ -1267,11 +1411,18 @@ namespace ViMultiSync.ViewModels
 
             mStatusInterfaceService = statusInterfaceService;
             _sharedDataService = new SharedDataService();
+            CurrentTime = DateTime.Now.TimeOfDay;
             timerManager = new TimerManager();
+            _timerForVacuum = new DispatcherTimer();
+            _timerForVacuum.Interval = TimeSpan.FromSeconds(1);
+            _timerForVacuum.Tick += TimerTick;
             StrongReferenceMessenger.Default.Register<TimerValueChangedMessage>(this);
             appConfig = _sharedDataService.AppConfig;
             BarOnTopApp = $"{appConfig.Line}  /  {appConfig.WorkplaceName}";
+            _remainingVacuumTime = TimeSpan.FromMinutes(appConfig.RemainingVacuumTimeDefault);
             sapUrl = appConfig.UrlSap;
+            VacuumButtonIsVisible = appConfig.VacuumPanelAvailable;
+            VacuumPanelAvailable = appConfig.VacuumPanelAvailable;
             LoadPageSap();
             if (double.TryParse(appConfig.SpanForKeepAlive, out double keepAliveMinutes))
             {

@@ -11,9 +11,18 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="TemporaryFixes\" />
-    <Folder Include="Models\" />
     <AvaloniaResource Include="Assets\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AvaloniaXaml Remove="Models\**" />
+    <Compile Remove="Models\**" />
+    <EmbeddedResource Remove="Models\**" />
+    <None Remove="Models\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Remove="C:\Users\smbl\.nuget\packages\sukiui\6.0.0-beta2\contentFiles\any\netstandard2.0\suki_photo.ico" />
   </ItemGroup>
 
   <ItemGroup>
@@ -43,6 +52,7 @@
     <None Remove="Resources\CallForServicePanelData.json" />
     <None Remove="Resources\DowntimePanelData.json" />
     <None Remove="Resources\DowntimeReasonElectricPanelData.json" />
+    <None Remove="Resources\DowntimeReasonKptjPanelData.json" />
     <None Remove="Resources\DowntimeReasonSettingPanelData.json" />
     <None Remove="Resources\LogisticPanelData.json" />
     <None Remove="Resources\MaintenancePanelData.json" />
@@ -54,6 +64,9 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Resources\ConfigData.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\DowntimeReasonKptjPanelData.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </EmbeddedResource>
     <EmbeddedResource Include="Resources\DowntimeReasonSettingPanelData.json">
@@ -90,28 +103,29 @@
 
 
   <ItemGroup>
-    <PackageReference Include="Avalonia" Version="11.0.5" />
-    <PackageReference Include="Avalonia.Desktop" Version="11.0.5" />
-    <PackageReference Include="Avalonia.Svg.Skia" Version="11.0.0.3" />
-    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.0.5" />
-    <PackageReference Include="Avalonia.Fonts.Inter" Version="11.0.5" />
+    <PackageReference Include="Avalonia" Version="11.0.9" />
+    <PackageReference Include="Avalonia.Desktop" Version="11.0.9" />
+    <PackageReference Include="Avalonia.Svg.Skia" Version="11.0.0.13" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.0.9" />
+    <PackageReference Include="Avalonia.Fonts.Inter" Version="11.0.9" />
     <!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
-    <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="11.0.5" />
-    <PackageReference Include="Avalonia.ReactiveUI" Version="11.0.5" />
+    <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="11.0.9" />
+    <PackageReference Include="Avalonia.ReactiveUI" Version="11.0.9" />
     <PackageReference Include="CefGlue.Avalonia" Version="106.5249.19-avalonia11" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.2" />
     <PackageReference Include="Dialogs.Avalonia" Version="0.1.29" />
-    <PackageReference Include="Material.Icons" Version="2.0.12" />
-    <PackageReference Include="Material.Icons.Avalonia" Version="2.0.1" />
+    <PackageReference Include="Material.Icons" Version="2.1.6" />
+    <PackageReference Include="Material.Icons.Avalonia" Version="2.1.0" />
     <PackageReference Include="MessageBox.Avalonia" Version="3.1.5.1" />
     <PackageReference Include="NetLoggings" Version="1.0.0" />
     <PackageReference Include="RestSharp" Version="110.2.0" />
     <PackageReference Include="S7netplus" Version="0.20.0" />
-    <PackageReference Include="ScreenCapture.NET.X11" Version="2.0.2" />
+    <PackageReference Include="ScreenCapture.NET.X11" Version="2.0.3" />
     <PackageReference Include="ScreenCapturer" Version="3.0.1" />
     <PackageReference Include="Splunk.Logging.Common" Version="1.7.2" />
     <PackageReference Include="Splunk.Logging.Common.Core" Version="1.0.0" />
     <PackageReference Include="Splunk.Logging.TraceListener" Version="1.7.2" />
     <PackageReference Include="Splunk.Logging.TraceListener.Core" Version="1.0.0" />
+    <PackageReference Include="SukiUI" Version="6.0.0-beta2" />
   </ItemGroup>
 </Project>

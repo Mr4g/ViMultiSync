@@ -8,6 +8,8 @@
         "Hostname": "test",
         "Workplace": "test",
         "IsMachine": "false",
+        "VacuumPanelAvailable": true,
+        "RemainingVacuumTimeDefault": 5,
         "Line": "test",
         "WorkplaceName": "test",
         "SpanForKeepAlive": "5"

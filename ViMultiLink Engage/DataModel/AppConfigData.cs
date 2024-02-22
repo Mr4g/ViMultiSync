@@ -16,9 +16,10 @@ namespace ViMultiSync.DataModel
         public string Hostname { get; set; }
         public string Workplace { get; set; }
         public string IsMachine { get; set; }
+        public bool VacuumPanelAvailable { get; set; }
+        public int RemainingVacuumTimeDefault { get; set; } 
         public string Line { get; set; }
         public string WorkplaceName { get; set; }
-
         public string SpanForKeepAlive { get; set; }
 
     }
