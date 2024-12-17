@@ -1,0 +1,29 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="ViSyncMaster.App"
+             xmlns:local="using:ViSyncMaster"
+             xmlns:ViSyncMaster="clr-namespace:ViSyncMaster"
+             xmlns:views="clr-namespace:ViSyncMaster.Views"
+             xmlns:viewModels="clr-namespace:ViSyncMaster.ViewModels"
+             xmlns:material="using:Material.Icons.Avalonia"
+             RequestedThemeVariant="Default">
+
+
+    <Application.Resources>
+        <SolidColorBrush x:Key="OrangeRedBrush" Color="OrangeRed" />
+        <SolidColorBrush x:Key="GrayBrush" Color="Gray" />
+    </Application.Resources>
+
+
+    <Application.DataTemplates>
+        <ViSyncMaster:ViewLocator/>
+    </Application.DataTemplates>
+  
+    <Application.Styles>
+        <FluentTheme />
+		<StyleInclude Source="Styles/GlassCardStyles.axaml" />
+        <StyleInclude Source="Styles/AnimatedPopup.axaml"/>
+        <StyleInclude Source="Styles/Button/PopupButton.axaml"/>
+        <material:MaterialIconStyles />
+	</Application.Styles>
+</Application>

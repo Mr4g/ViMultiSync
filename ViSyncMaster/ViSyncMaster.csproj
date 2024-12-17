@@ -1,0 +1,103 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <PlatformTarget>x64</PlatformTarget>
+    <ApplicationIcon>W16icon.ico</ApplicationIcon>
+    <AssemblyName>ViSyncMaster</AssemblyName>
+    <RootNamespace>ViSyncMaster</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <AvaloniaResource Include="Assets\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AvaloniaXaml Remove="Models\**" />
+    <Compile Remove="Models\**" />
+    <EmbeddedResource Remove="Models\**" />
+    <None Remove="Models\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Remove="C:\Users\smbl\.nuget\packages\sukiui\6.0.0-beta2\contentFiles\any\netstandard2.0\suki_photo.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="Assets\exit.png" />
+    <None Remove="Assets\icons\adaptronic2.svg" />
+    <None Remove="Assets\icons\arrowsRightWhite.svg" />
+    <None Remove="Assets\icons\arrowsRightWhite2.svg" />
+    <None Remove="Assets\icons\arrowsWhite.svg" />
+    <None Remove="Assets\icons\barcodeWhite.svg" />
+    <None Remove="Assets\icons\barcodeWhiteOk.svg" />
+    <None Remove="Assets\icons\barcode_scanner.svg" />
+    <None Remove="Assets\icons\errorScreen.svg" />
+    <None Remove="Assets\icons\googleDrive.svg" />
+    <None Remove="Assets\icons\heatpumpWhite.svg" />
+    <None Remove="Assets\icons\info.svg" />
+    <None Remove="Assets\icons\info2.svg" />
+    <None Remove="Assets\icons\scanerWhite.svg" />
+    <None Remove="Assets\icons\scanerWhite2.svg" />
+    <None Remove="Assets\icons\scannerWhite.svg" />
+    <None Remove="Assets\icons\sendingToSplunk.svg" />
+    <None Remove="Assets\icons\serialPort.svg" />
+    <None Remove="Assets\icons\speedometerWhite.svg" />
+    <None Remove="Assets\icons\splunkSend.svg" />
+    <None Remove="Assets\icons\targetPlan.svg" />
+    <None Remove="Assets\icons\user.svg" />
+    <None Remove="Assets\icons\userThin.svg" />
+    <None Remove="Assets\icons\vacuumPumpWhite.svg" />
+    <None Remove="Assets\icons\vacuumPumpWhite2.svg" />
+    <None Remove="Assets\minimize.png" />
+    <None Remove="Assets\Vi2Little.png" />
+    <None Remove="Assets\Vi2transparent.png" />
+    <None Remove="DowntimePanel.json" />
+    <None Remove="Resources\ConfigHardware.json" />
+  </ItemGroup>
+
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="11.2.1" />
+    <PackageReference Include="Avalonia.Desktop" Version="11.2.1" />
+    <PackageReference Include="Avalonia.Svg.Skia" Version="11.2.0" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.2.1" />
+    <PackageReference Include="Avalonia.Fonts.Inter" Version="11.2.1" />
+    <!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
+    <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="11.2.1" />
+    <PackageReference Include="Avalonia.ReactiveUI" Version="11.2.1" />
+    <PackageReference Include="CefGlue.Avalonia" Version="106.5249.19-avalonia11" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.2" />
+    <PackageReference Include="Dialogs.Avalonia" Version="0.1.29" />
+    <PackageReference Include="Material.Icons" Version="2.1.6" />
+    <PackageReference Include="Material.Icons.Avalonia" Version="2.1.0" />
+    <PackageReference Include="MessageBox.Avalonia" Version="3.2.0" />
+    <PackageReference Include="NetLoggings" Version="1.0.0" />
+    <PackageReference Include="RestSharp" Version="110.2.0" />
+    <PackageReference Include="S7netplus" Version="0.20.0" />
+    <PackageReference Include="ScreenCapture.NET.X11" Version="2.0.3" />
+    <PackageReference Include="ScreenCapturer" Version="3.0.1" />
+    <PackageReference Include="Splunk.Logging.Common" Version="1.7.2" />
+    <PackageReference Include="Splunk.Logging.Common.Core" Version="1.0.0" />
+    <PackageReference Include="Splunk.Logging.TraceListener" Version="1.7.2" />
+    <PackageReference Include="Splunk.Logging.TraceListener.Core" Version="1.0.0" />
+    <PackageReference Include="SukiUI" Version="6.0.0-beta2" />
+    <PackageReference Include="System.IO.Ports" Version="9.0.0-rc.2.24473.5" />
+  </ItemGroup>
+
+
+  <ItemGroup>
+    <UpToDateCheckInput Remove="Assets\icons\info2.svg" />
+  </ItemGroup>
+
+
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\ConfigHardware.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+  </ItemGroup>
+</Project>

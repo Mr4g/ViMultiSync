@@ -1,0 +1,23 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="using:ViSyncMaster">
+	<Design.PreviewWith>
+		<controls:AnimatedPopup>
+            <Button Content="MY Button"></Button>
+		</controls:AnimatedPopup>
+	</Design.PreviewWith>
+
+	<Style Selector="controls|AnimatedPopup">
+		<!-- Set Defaults -->
+		<Setter Property="ZIndex" Value="12"></Setter>
+		<Setter Property="HorizontalAlignment" Value="Left"></Setter>
+		<Setter Property="VerticalAlignment" Value="Top"></Setter>
+		<Setter Property="Template">
+			<ControlTemplate>
+				<ContentControl>
+						<ContentPresenter Content="{TemplateBinding Content}"></ContentPresenter>
+				</ContentControl>
+			</ControlTemplate>
+		</Setter>
+	</Style>
+</Styles>
