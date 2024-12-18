@@ -130,7 +130,7 @@
 										<Button
 											Classes="PopupButton"
 											Content="{Binding Status}"
-											Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).DowntimePanelItemPressedCommand}"
+											Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).ReportMachineStatusCommand}"
 											CommandParameter="{Binding}"
                                                 ></Button>
 									</DataTemplate>
@@ -165,7 +165,7 @@
                     FontSize="28"
                     Foreground="WhiteSmoke"
                     Margin="20">
-					<Run>Musisz zakończyć awarię: </Run>
+					<Run>Status już istnieje: </Run>
 					<Run
                         Text="{Binding WarrningNoticeText}" >
 					</Run>
@@ -223,7 +223,7 @@
 											<Button
 												Classes="PopupButton"
 												Content="{Binding Reason}"
-												Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).ReasonDowntimeMechanicalPanelItemPressedCommand}"
+												Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).ReportMachineStatusCommand}"
 												CommandParameter="{Binding}">
 											</Button>
 										</DataTemplate>
@@ -277,7 +277,7 @@
 											<Button
 												Classes="PopupButton"
 												Content="{Binding Reason}"
-												Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).DowntimeReasonElectricPanelItemPressedCommand}"
+												Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).ReportMachineStatusCommand}"
 												CommandParameter="{Binding}">
 											</Button>
 										</DataTemplate>
@@ -331,7 +331,7 @@
 											<Button
 												Classes="PopupButton"
 												Content="{Binding Reason}"
-												Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).DowntimeReasonLiderPanelItemPressedCommand}"
+												Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).ReportMachineStatusCommand}"
 												CommandParameter="{Binding}">
 											</Button>
 										</DataTemplate>
@@ -385,7 +385,7 @@
 											<Button
 												Classes="PopupButton"
 												Content="{Binding Reason}"
-												Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).DowntimeReasonKptjPanelItemPressedCommand}"
+												Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).ReportMachineStatusCommand}"
 												CommandParameter="{Binding}">
 											</Button>
 										</DataTemplate>
@@ -439,7 +439,7 @@
 											<Button
 												Classes="PopupButton"
 												Content="{Binding Reason}"
-												Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).DowntimeReasonPlatePanelItemPressedCommand}"
+												Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).ReportMachineStatusCommand}"
 												CommandParameter="{Binding}">
 											</Button>
 										</DataTemplate>
@@ -587,7 +587,7 @@
 										<Button
                                             Classes="PopupButton"
                                             Content="{Binding Status}"
-                                            Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).SettingPanelItemPressedCommand}"
+                                            Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).ReportMachineStatusCommand}"
                                             CommandParameter="{Binding}">
 										</Button>
 									</DataTemplate>
@@ -628,7 +628,7 @@
 										<Button
 											Classes="PopupButton"
 											Content="{Binding Status}"
-											Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).MaintenancePanelItemPressedCommand}"
+											Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).ReportMachineStatusCommand}"
 											CommandParameter="{Binding}">
 										</Button>
 									</DataTemplate>
@@ -669,7 +669,7 @@
 										<Button
                                             Classes="PopupButton"
                                             Content="{Binding Status}"
-                                            Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).LogisticPanelItemPressedCommand}"
+                                            Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).ReportMachineStatusCommand}"
                                             CommandParameter="{Binding}">
 										</Button>
 									</DataTemplate>
@@ -1183,56 +1183,23 @@
 				</Button>
 			</StackPanel>
 			<StackPanel Grid.Column="0" Grid.Row="1" Margin="5,20,5,5" VerticalAlignment="Bottom">
-				<Button
-					Classes="NavigationInfoButton"
-					Name="ActualStatusButton"
-					IsVisible="{Binding ActualStatusButtonIsVisible}"
-					Command="{Binding ActualStatusButtonPressedCommand}"
-					Background="{Binding ActualStatusColor}"
-					VerticalAlignment="Bottom">
-					<StackPanel Orientation="Vertical" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="5">
-						<TextBlock FontSize="20"
-                                   FontWeight="Bold"
-								   HorizontalAlignment="Center"
-								   VerticalAlignment="Center"
-                                   Text="{Binding ActualStatusButtonText}"/>
-						<TextBlock FontSize="20"
-                                   FontWeight="Bold"
-                                   HorizontalAlignment="Center"
-                                   VerticalAlignment="Center"
-                                   Text="{Binding TimerkeeperStatus}"/>
-					</StackPanel>
-				</Button>
-				<Button
-					Name="CallForServiceButton"
-					Classes="NavigationInfoButton"
-					IsVisible="{Binding CallForServiceButtonIsVisible}"
-					Content="{Binding CallForServiceButtonText}"
-					Command="{Binding CallForServiceFromNavigationMenuCommand}"
-					Background="{Binding CallForServiceColor}">
-				</Button>
-				<Button
-					Name ="ServiceArrivalButton"
-					Classes="NavigationInfoButton"
-					IsVisible="{Binding ServiceArrivalButtonIsVisible}"
-					Command="{Binding ServiceArrivalFromNavigationMenuCommand}"
-					Background="{Binding ServiceArrivalButtonColor}"
-                    VerticalAlignment="Bottom">
-					<StackPanel Orientation="Vertical" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="5">
-						<TextBlock FontSize="20"
-                                   FontWeight="Bold"
-                                   HorizontalAlignment="Center"
-                                   VerticalAlignment="Center"
-                                   Text="{Binding ServiceArrivalButtonText}"/>
-						<TextBlock FontSize="20"
-                                   FontWeight="Bold"
-                                   HorizontalAlignment="Center"
-                                   VerticalAlignment="Center"
-                                   Text="{Binding TimerkeeperService}"/>
-					</StackPanel>
-				</Button>
+				<ItemsControl ItemsSource="{Binding MachineStatuses}">
+					<ItemsControl.ItemTemplate>
+						<DataTemplate x:DataType="dataModel:MachineStatus">
+							<Button Classes="NavigationInfoButton"
+									Command="{Binding $parent[ItemsControl].((viewModels:MainWindowViewModel)DataContext).ActualStatusButtonPressedCommand}"
+									CommandParameter="{Binding}"
+									Background="{Binding Color}"
+									Margin="5">
+								<StackPanel Orientation="Vertical" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="5">
+									<TextBlock Text="{Binding Status}" />
+									<TextBlock Text="{Binding Duration, StringFormat=' {0:hh\\:mm\\:ss}' }" />
+								</StackPanel>
+							</Button>
+						</DataTemplate>
+					</ItemsControl.ItemTemplate>
+				</ItemsControl>
 			</StackPanel>
-
 
 			<!-- ControlPanel -->
 			<Border  Grid.Column="1">

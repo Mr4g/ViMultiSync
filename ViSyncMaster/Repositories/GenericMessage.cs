@@ -10,7 +10,7 @@ namespace ViSyncMaster.Repositories
 {
     public class GenericMessage<T> : IEntity
     {
-        public int Id { get; set; }
+        public long Id { get; set; }
         public T MessageData { get; set; }
 
         public string Value {get; set; }

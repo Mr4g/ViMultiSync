@@ -44,6 +44,7 @@ namespace ViSyncMaster.Views
         public MainWindow()
         {
             InitializeComponent();
+            this.DataContext = new MainWindowViewModel();
             this.SystemDecorations = SystemDecorations.None;
             this.WindowStartupLocation = WindowStartupLocation.CenterScreen;
             virtualKeyboardTextInput = new VirtualKeyboardTextInputMethod((Window)this);
