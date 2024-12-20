@@ -1,9 +1,8 @@
-﻿using SharpDX.Direct3D11;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Data.SQLite;
-using System.Text.Json;
-using ViSyncMaster.DataModel;
+using System.Linq;
+using System.Reflection;
 
 namespace ViSyncMaster.Services
 {
@@ -14,28 +13,27 @@ namespace ViSyncMaster.Services
         public SQLiteDatabase(string dbPath)
         {
             _connectionString = $"Data Source={dbPath};Version=3;";
-            CreateTableIfNotExists();
         }
 
-        // Tworzenie tabeli MessageQueue, jeśli nie istnieje
-        private void CreateTableIfNotExists()
+        // Tworzenie tabeli dla dowolnego typu encji, jeśli nie istnieje
+        public void CreateTableIfNotExists<T>(string tableName = null)
         {
             using (var connection = new SQLiteConnection(_connectionString))
             {
                 connection.Open();
-                string createTableQuery = @"
-                CREATE TABLE IF NOT EXISTS MachineStatusQueue (
-                    Id TEXT PRIMARY KEY,
-                    Name TEXT,
-                    Status TEXT,
-                    Reason TEXT,
-                    StartTime DATETIME,
-                    EndTime DATETIME,
-                    IsActive BOOLEAN,
-                    Duration TEXT,
-                    Color TEXT,
-                    IsSent TEXT
-                )";
+
+                // Ustal nazwę tabeli
+                var finalTableName = tableName ?? typeof(T).Name;
+
+                // Generuj kolumny
+                var columns = string.Join(", ", GetColumnsForType<T>());
+
+                // Zapytanie SQL
+                var createTableQuery = $@"
+                CREATE TABLE IF NOT EXISTS {finalTableName} (
+                {columns}
+                  )";
+
                 using (var command = new SQLiteCommand(createTableQuery, connection))
                 {
                     command.ExecuteNonQuery();
@@ -43,109 +41,89 @@ namespace ViSyncMaster.Services
             }
         }
 
-        public void AddMessageToQueue(MachineStatus machineStatus)
+        // Pobranie kolumn z typu encji
+        private IEnumerable<string> GetColumnsForType<T>()
+        {
+            return typeof(T).GetProperties().Select(p =>
+            {
+                var columnType = GetSQLiteColumnType(p.PropertyType);
+                var isPrimaryKey = p.Name == "Id" ? " PRIMARY KEY" : ""; // Jeśli nazwa to Id, dodaj PRIMARY KEY
+                return $"{p.Name} {columnType}{isPrimaryKey}";
+            });
+        }
+        // Mapowanie typów C# na odpowiednie typy SQLite
+        private string GetSQLiteColumnType(Type propertyType)
+        {
+            if (propertyType == typeof(int) || propertyType == typeof(long)) return "INTEGER";
+            if (propertyType == typeof(string)) return "TEXT";
+            if (propertyType == typeof(bool)) return "BOOLEAN";
+            if (propertyType == typeof(DateTime)) return "DATETIME";
+            return "TEXT"; // Default type
+        }
+
+        // Przykładowe wykonanie zapytania SQL
+        public void ExecuteNonQuery(string query, object parameters)
         {
             using (var connection = new SQLiteConnection(_connectionString))
             {
                 connection.Open();
-                string upsertQuery = @"
-                 INSERT INTO MachineStatusQueue 
-                 (Id, Name, Status, Reason, StartTime, EndTime, IsActive, Duration, Color, IsSent) 
-                 VALUES 
-                 (@Id, @Name, @Status, @Reason, @StartTime, @EndTime, @IsActive, @Duration, @Color, 'Pending')
-                 ON CONFLICT(Id) DO UPDATE SET
-                     Name = excluded.Name,
-                     Status = excluded.Status,
-                     Reason = excluded.Reason,
-                     StartTime = excluded.StartTime,
-                     EndTime = excluded.EndTime,
-                     IsActive = excluded.IsActive,
-                     Duration = excluded.Duration,
-                     Color = excluded.Color";
-
-                using (var command = new SQLiteCommand(upsertQuery, connection))
+                using (var command = new SQLiteCommand(query, connection))
                 {
-                    command.Parameters.AddWithValue("@Id", machineStatus.Id);
-                    command.Parameters.AddWithValue("@Name", machineStatus.Name);
-                    command.Parameters.AddWithValue("@Status", machineStatus.Status);
-                    command.Parameters.AddWithValue("@Reason", machineStatus.Reason);
-                    command.Parameters.AddWithValue("@StartTime", machineStatus.StartTime);
-                    command.Parameters.AddWithValue("@EndTime", machineStatus.EndTime.HasValue ? (object)machineStatus.EndTime.Value : DBNull.Value);
-                    command.Parameters.AddWithValue("@IsActive", machineStatus.IsActive);
-                    command.Parameters.AddWithValue("@Duration", machineStatus.Duration.HasValue ? machineStatus.Duration.Value.ToString() : DBNull.Value);
-                    command.Parameters.AddWithValue("@Color", machineStatus.Color);
+                    AddParameters(command, parameters);
                     command.ExecuteNonQuery();
                 }
             }
         }
 
-        // Pobieranie wiadomości do przetworzenia (status "Pending")
-        public List<MachineStatus> GetPendingMessages()
+        // Pomocnicza metoda dodająca parametry do zapytania
+        private void AddParameters(SQLiteCommand command, object parameters)
         {
-            List<MachineStatus> messages = new List<MachineStatus>();
+            foreach (var property in parameters.GetType().GetProperties())
+            {
+                var value = property.GetValue(parameters);
+                command.Parameters.AddWithValue($"@{property.Name}", value ?? DBNull.Value);
+            }
+        }
 
+        // Wykonywanie zapytania SQL i mapowanie wyników na generyczny typ
+        public List<T> ExecuteReader<T>(string query)
+        {
             using (var connection = new SQLiteConnection(_connectionString))
             {
                 connection.Open();
-                // Zmienione zapytanie - teraz odczytujemy dane z odpowiednich kolumn
-                string selectQuery = "SELECT Id, Name, Status, Reason, StartTime, EndTime, Color, IsSent " +
-                                           "FROM MachineStatusQueue ORDER BY StartTime ASC"; // Sortowanie od najstarszego
-
-                using (var command = new SQLiteCommand(selectQuery, connection))
+                using (var command = new SQLiteCommand(query, connection))
                 {
-                    using (var reader = command.ExecuteReader())
+                    var reader = command.ExecuteReader();
+                    var result = new List<T>();
+                    while (reader.Read())
                     {
-                        while (reader.Read())
-                        {
-                            // Mapowanie danych z bazy danych na obiekt MachineStatus
-                            var machineStatus = new MachineStatus
-                            {
-                                Id = Convert.ToInt64(reader["Id"]),
-                                Name = reader["Name"].ToString(),
-                                Status = reader["Status"].ToString(),
-                                Reason = reader["Reason"].ToString(),
-                                StartTime = DateTime.Parse(reader["StartTime"].ToString()), // Upewnij się, że StartTime jest poprawnym typem
-                                EndTime = reader["EndTime"] != DBNull.Value ? (DateTime?)DateTime.Parse(reader["EndTime"].ToString()) : null,
-                                Color = reader["Color"].ToString(),
-                            };
-
-                            messages.Add(machineStatus);
-                        }
+                        var item = MapReaderToEntity<T>(reader);
+                        result.Add(item);
                     }
-                }
-            }
-            return messages;
-        }
-
-
-        // Aktualizowanie statusu wiadomości na 'Processed'
-        public void UpdateMessageStatus(long messageId)
-        {
-            using (var connection = new SQLiteConnection(_connectionString))
-            {
-                connection.Open();
-                string updateQuery = "UPDATE MachineStatusQueue SET IsSent = 'Processed' WHERE Id = @Id";
-                using (var command = new SQLiteCommand(updateQuery, connection))
-                {
-                    command.Parameters.AddWithValue("@Id", messageId);
-                    command.ExecuteNonQuery();
+                    return result;
                 }
             }
         }
 
-        // Usuwanie wiadomości po jej pomyślnym przetworzeniu
-        public void DeleteMessage(long messageId)
+        // Mapowanie wyników zapytania na typ encji
+        private T MapReaderToEntity<T>(SQLiteDataReader reader)
         {
-            using (var connection = new SQLiteConnection(_connectionString))
+            var entity = Activator.CreateInstance<T>();
+            var properties = typeof(T).GetProperties();
+
+            foreach (var prop in properties)
             {
-                connection.Open();
-                string deleteQuery = "DELETE FROM MachineStatusQueue WHERE Id = @Id AND IsSent = 'Processed'";
-                using (var command = new SQLiteCommand(deleteQuery, connection))
+                var columnName = prop.Name;
+
+                // Sprawdzamy, czy właściwość ma publiczny setter
+                if (prop.CanWrite && !reader.IsDBNull(reader.GetOrdinal(columnName)))
                 {
-                    command.Parameters.AddWithValue("@Id", messageId);
-                    command.ExecuteNonQuery();
+                    var value = reader[columnName];
+                    prop.SetValue(entity, Convert.ChangeType(value, prop.PropertyType));
                 }
             }
+
+            return entity;
         }
     }
 }

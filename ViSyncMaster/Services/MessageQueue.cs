@@ -3,28 +3,28 @@ using System.Collections.Generic;
 using System.Text.Json;
 using System.Threading.Tasks;
 using ViSyncMaster.DataModel;
+using ViSyncMaster.Repositories;
 using ViSyncMaster.Services;
 
 public class MessageQueue
 {
     private readonly Queue<MachineStatus> _queue = new Queue<MachineStatus>();
-    private readonly SQLiteDatabase _db;
+    private readonly GenericRepository<MachineStatus> _repositoryQueue;
 
-    public MessageQueue(SQLiteDatabase db)
+    public MessageQueue(GenericRepository<MachineStatus> repository)
     {
-        _db = db;
+        _repositoryQueue = repository;
         Initialize();
     }
 
     private void Initialize()
     {
-        LoadMessagesFromDatabase();
+        //LoadMessagesFromDatabase();
     }
 
     public void LoadMessagesFromDatabase()
     {
-        var pendingMessages = _db.GetPendingMessages();
-
+        var pendingMessages = _repositoryQueue.GetAll();
         foreach (var message in pendingMessages)
         {
             _queue.Enqueue(message); // Dodaj do kolejki w pamięci
@@ -34,10 +34,9 @@ public class MessageQueue
     // Dodawanie wiadomości do kolejki i zapisywanie w bazie danych
     public void EnqueueMessage(MachineStatus machineStatus)
     {
-
         _queue.Enqueue(machineStatus); // Dodaj do kolejki
-        _db.AddMessageToQueue(machineStatus); // Dodaj do bazy danych
     }
+
     // Pobieranie wiadomości z kolejki
     public MachineStatus? DequeueMessage()
     {
@@ -70,8 +69,7 @@ public class MessageQueue
                 if (isSent)
                 {
                     // Usuń wiadomość z bazy danych po pomyślnym wysłaniu
-                    _db.UpdateMessageStatus(machineStatus.Id);
-                    _db.DeleteMessage(machineStatus.Id);
+                    _repositoryQueue.Delete(machineStatus.Id);
                 }
                 else
                 {
@@ -87,3 +85,4 @@ public class MessageQueue
         }
     }
 }
+

@@ -39,6 +39,7 @@ using System.Reactive.Subjects;
 using System.Threading;
 using System.Collections.ObjectModel;
 using System.Text.Json;
+using System.Data.Entity;
 
 
 namespace ViSyncMaster.ViewModels
@@ -98,7 +99,8 @@ namespace ViSyncMaster.ViewModels
         /// - <paramref name="_machineStatusService">Serwis statusów maszyn</paramref> zarządza tworzeniem, aktualizowaniem i kończeniem statusów maszyn.
         /// </remarks>
 
-        private readonly MachineStatusRepository _repository;
+        private readonly GenericRepository<MachineStatus> _repositoryMachineStatus;
+        private readonly GenericRepository<MachineStatus> _repositoryMachineStatusQueue;
         private readonly MessageQueue _messageQueue;
         private readonly MessageSender _messageSender;
         private readonly MachineStatusService _machineStatusService;
@@ -1224,74 +1226,6 @@ namespace ViSyncMaster.ViewModels
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="message"></param>
-        public async void PassMessageToRepository<T>(T message)
-              where T : class, IEntity
-        {
-            if (!repositories.ContainsKey(typeof(T)))
-            {
-                repositories[typeof(T)] = new GenericRepository<T>();
-            }
-
-            var repository = repositories[typeof(T)] as GenericRepository<T>;
-
-            if (sentMessageWithTrue && message != null && message.Value == "false" && message.Status != null)
-                //message.TimeOfAllStatus = TimerkeeperStatus;
-
-
-                if (sentMessageWithTrue && message != null && message.Value == "false" && message.Name != "S1.MachineDowntime_IPC" && message.Name != "S7.CallForService" && message.Name != "S7.ServiceArrival")
-                {
-                    await SendMessageToSplunk(message);
-                    //repository.Add(message);
-                    sentMessageWithTrue = false;
-                    //message.Value = "true";
-                    _lastMessage = null;
-                    return;
-                }
-
-            if (sentMessageWithTrue && _lastMessage != null && message.Name != "S7.CallForService" && message.Name != "S7.ServiceArrival")
-            {
-                //_lastMessage.Value = "false";
-                if (_lastMessage.Value != null && _lastMessage.Value == "false")
-                {
-                    if (_lastMessage.Name == "S1.MachineDowntime_IPC")
-                    {
-                        //_lastMessage.TimeOfAllRepairs = TimerkeeperService;
-                        //_lastMessage.TimeOfAllStatus = TimerkeeperStatus;
-                    }
-                }
-                await SendMessageToSplunk(_lastMessage);
-                //_lastMessage.Value = "true";
-                //_lastMessage.TimeOfAllRepairs = "";
-                //_lastMessage.TimeOfAllStatus = "";
-                //repository.Add(_lastMessage);
-                sentMessageWithTrue = false;
-            }
-            if (_lastMessage != null && _lastMessage.Name == "S1.MachineDowntime_IPC" && (message.Name == "S7.CallForService" || message.Name == "S7.ServiceArrival"))
-            {
-                message.Status = _lastMessage.Status;
-                await SendMessageToSplunk(message);
-                repository.Add(message);
-                if (message.Name == "S7.CallForService" || message.Name == "S7.ServiceArrival")
-                {
-                    return;
-                }
-                sentMessageWithTrue = false;
-                //message.Value = "true";
-            }
-            else
-            {
-                //message.Value = "true";
-                await SendMessageToSplunk(message);
-                repository.Add(message);
-                sentMessageWithTrue = true;
-                if (message.Name == "S7.DowntimeReason")
-                {
-                    _lastMessage = null;
-                    return;
-                }
-                _lastMessage = message;
-            }
-        }
 
         public async Task SendMessageToSplunk<T>(T message)
         {
@@ -1474,12 +1408,12 @@ namespace ViSyncMaster.ViewModels
         private async Task ReSendMessageToSplunk(object state)
         {
             // Sprawdzamy, czy _lastMessage jest niepuste, ma wartość "true" i zawiera "_IPC"
-            if (!string.IsNullOrWhiteSpace(_lastMessage?.Value)
-                && _lastMessage.Value == "true"
-                && _lastMessage.Name.Contains("_IPC"))
-            {
-                SendMessageToSplunk(_lastMessage);
-            }
+            //if (!string.IsNullOrWhiteSpace(_lastMessage?.Value)
+            //    && _lastMessage.Value == "true"
+            //    && _lastMessage.Name.Contains("_IPC"))
+            //{
+            //    SendMessageToSplunk(_lastMessage);
+            //}
 
             //if (_lastMessage == null)
             //{
@@ -1665,7 +1599,7 @@ namespace ViSyncMaster.ViewModels
 
         private void LoadStatuses(object state)
         {
-            var loadedStatuses = _repository.LoadStatuses(true);
+            var loadedStatuses = _repositoryMachineStatus.GetActive();
 
             // Synchronizacja kolekcji
 
@@ -1805,13 +1739,16 @@ namespace ViSyncMaster.ViewModels
             _sharedDataService = new SharedDataService();
             appConfig = _sharedDataService.AppConfig ?? new AppConfigData();
             _database = new SQLiteDatabase(@"C:\ViSM\Database\databaseViSM.db");
-            _repository = new MachineStatusRepository();
-            _messageQueue = new MessageQueue(_database);
+            _database.CreateTableIfNotExists<MachineStatus>("MachineStatus");
+            _database.CreateTableIfNotExists<MachineStatus>("MachineStatusQueue");
+            _repositoryMachineStatus = new GenericRepository<MachineStatus>(_database, "MachineStatus");
+            _repositoryMachineStatusQueue = new GenericRepository<MachineStatus>(_database, "MachineStatusQueue");
+            _messageQueue = new MessageQueue(_repositoryMachineStatusQueue);
             _messageSender = new MessageSender(false); // Na początku brak połączenia   
             
-            _machineStatusService = new MachineStatusService(_repository, _messageSender, _messageQueue, _database);
+            _machineStatusService = new MachineStatusService(_repositoryMachineStatus, _repositoryMachineStatusQueue, _messageSender, _messageQueue, _database);
             LoadStatuses(this);
-            MachineStatuses = new ObservableCollection<MachineStatus>(_repository.LoadStatuses(true));
+            MachineStatuses = new ObservableCollection<MachineStatus>(_repositoryMachineStatus.GetActive());
 
             string brokerHost = "mqtt.flespi.io";  // Adres hosta brokera
             int brokerPort = 1883;  // Port brokera
