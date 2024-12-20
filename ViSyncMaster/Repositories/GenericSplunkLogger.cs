@@ -7,20 +7,12 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
-using Avalonia.ReactiveUI;
-using Avalonia;
-using Avalonia.Controls;
-using MsBox.Avalonia;
-using MsBox.Avalonia.Dto;
-using MsBox.Avalonia.Enums;
-using MsBox.Avalonia.Models;
 using ViSyncMaster.DataModel;
 using ViSyncMaster.Services;
 using ViSyncMaster.ViewModels;
 using System.Threading;
 using Avalonia.Threading;
 using ViSyncMaster.AuxiliaryClasses;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace ViSyncMaster.Repositories
 {

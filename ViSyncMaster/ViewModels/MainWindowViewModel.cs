@@ -38,7 +38,6 @@ using System.Xml.Linq;
 using System.Reactive.Subjects;
 using System.Threading;
 using System.Collections.ObjectModel;
-using SukiUI.MessageBox;
 using System.Text.Json;
 
 
@@ -47,6 +46,8 @@ namespace ViSyncMaster.ViewModels
     public partial class MainWindowViewModel : ObservableValidator, IRecipient<TimerValueChangedMessage>
     {
         #region Private Memebers
+
+        private readonly SQLiteDatabase _database;
 
         private IStatusInterfaceService mStatusInterfaceService;
         private Dictionary<Type, object> repositories = new Dictionary<Type, object>();
@@ -508,7 +509,7 @@ namespace ViSyncMaster.ViewModels
         {
             if (MachineStatuses.Any(status => status.Status == item.Status))
             {
-                // Jeśli istnieje, wykonaj akcję np. powiadomienie lub return
+                // Powiadomienie, że status już istnieje.
                 ActualValueForWarrningNoticePopup(item);
                 return;
             }
@@ -535,79 +536,7 @@ namespace ViSyncMaster.ViewModels
         }
 
         [RelayCommand]
-        private async void SettingPanelItemPressed(SettingPanelItem item)
-        {
-            const string colorSetting = "#EE82EE";
-
-            if (_lastMessage?.Name == "S1.MachineDowntime_IPC")
-            {
-                //ActualValueForWarrningNoticePopup();
-                SettingPanelIsOpen = false;
-                return;
-            }
-
-
-            // Update the selected item 
-            SelectedSettingPanelItem = item;
-
-            // Close the menu 
-            SettingPanelIsOpen = false;
-
-            timerManager.StartTimer($"{item.Status}");
-
-            ChangePropertyButtonStatus(colorSetting, item.Status);
-            // PassMessageToRepository(item);
-        }
-
-        [RelayCommand]
-        private async void MaintenancePanelItemPressed(MaintenancePanelItem item)
-        {
-            const string colorMaintenance = "#81EEEE";
-
-            if (_lastMessage?.Name == "S1.MachineDowntime_IPC")
-            {
-                //ActualValueForWarrningNoticePopup();
-                MaintenancePanelIsOpen = false;
-                return;
-            }
-
-            // Update the selected item 
-            SelectedMaintenancePanelItem = item;
-
-            // Close the menu 
-            MaintenancePanelIsOpen = false;
-
-            timerManager.StartTimer($"{item.Status}");
-
-            ChangePropertyButtonStatus(colorMaintenance, item.Status);
-            //PassMessageToRepository(item);
-        }
-
-        [RelayCommand]
-        private void LogisticPanelItemPressed(LogisticPanelItem item)
-        {
-            const string colorLogistic = "#E1D747";
-
-            if (_lastMessage?.Name == "S1.MachineDowntime_IPC")
-            {
-                //ActualValueForWarrningNoticePopup();
-                LogisticPanelIsOpen = false;
-                return;
-            }
-            // Update the selected item 
-            SelectedLogisticPanelItem = item;
-
-            // Close the menu 
-            LogisticPanelIsOpen = false;
-
-            timerManager.StartTimer($"{item.Status}");
-
-            ChangePropertyButtonStatus(colorLogistic, item.Status);
-            //PassMessageToRepository(item);
-        }
-
-        [RelayCommand]
-        private async void ActualStatusButtonPressed(MachineStatus machineStatus)
+        private void ActualStatusButtonPressed(MachineStatus machineStatus)
         {
             var newStatus = _machineStatusService.EndStatus(machineStatus);
             LoadStatuses(this);
@@ -790,12 +719,6 @@ namespace ViSyncMaster.ViewModels
             VacuumPanelIsOpen = true;
         }
 
-        [RelayCommand]
-        private void OnStatusClicked(MachineStatus status)
-        {
-            // Akcja po kliknięciu w przycisk
-            Console.WriteLine($"Kliknięto status: {status.Name}, Start: {status.StartTime}");
-        }
 
         [RelayCommand]
         private void InfoButtonPressed()
@@ -1878,15 +1801,15 @@ namespace ViSyncMaster.ViewModels
 
         public MainWindowViewModel(IStatusInterfaceService statusInterfaceService)
         {
-
             mStatusInterfaceService = statusInterfaceService;
             _sharedDataService = new SharedDataService();
             appConfig = _sharedDataService.AppConfig ?? new AppConfigData();
-
+            _database = new SQLiteDatabase(@"C:\ViSM\Database\databaseViSM.db");
             _repository = new MachineStatusRepository();
-            _messageQueue = new MessageQueue();
-            _messageSender = new MessageSender(false); // Na początku brak połączenia
-            _machineStatusService = new MachineStatusService(_repository, _messageSender, _messageQueue);
+            _messageQueue = new MessageQueue(_database);
+            _messageSender = new MessageSender(false); // Na początku brak połączenia   
+            
+            _machineStatusService = new MachineStatusService(_repository, _messageSender, _messageQueue, _database);
             LoadStatuses(this);
             MachineStatuses = new ObservableCollection<MachineStatus>(_repository.LoadStatuses(true));
 
@@ -1912,7 +1835,6 @@ namespace ViSyncMaster.ViewModels
             VacuumButtonIsVisible = appConfig.VacuumPanelAvailable;
             VacuumPanelAvailable = appConfig.VacuumPanelAvailable;
             _messageFromPlc = new GenericMessageFromPlc();
-
         }
 
         /// <summary>

@@ -21,7 +21,6 @@
   
     <Application.Styles>
         <FluentTheme />
-		<StyleInclude Source="Styles/GlassCardStyles.axaml" />
         <StyleInclude Source="Styles/AnimatedPopup.axaml"/>
         <StyleInclude Source="Styles/Button/PopupButton.axaml"/>
         <material:MaterialIconStyles />

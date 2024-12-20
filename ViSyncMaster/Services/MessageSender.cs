@@ -5,6 +5,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
+using ViSyncMaster.DataModel;
 
 namespace ViSyncMaster.Services
 {
@@ -17,18 +18,20 @@ namespace ViSyncMaster.Services
             _isConnected = isConnected;
         }
 
-        // Wysyłanie wiadomości, jeśli połączenie jest aktywne
-        public void SendMessage(string message)
+
+        public async Task<bool> SendMessageAsync(MachineStatus message)
         {
-            if (_isConnected)
+            try
             {
-                // Logika wysyłania wiadomości
-                Console.WriteLine($"Wiadomość wysłana: {message}");
+                // Symulacja wysyłania wiadomości
+                await Task.Delay(500);
+                Console.WriteLine($"Wiadomość wysłana: {message.Id}");
+                return true; // Sukces
             }
-            else
+            catch (Exception ex)
             {
-                // Logika dodawania wiadomości do kolejki, jeśli brak połączenia
-                Console.WriteLine("Brak połączenia, wiadomość dodana do kolejki.");
+                Console.WriteLine($"Błąd wysyłania wiadomości: {ex.Message}");
+                return false; // Wysyłanie nie powiodło się
             }
         }
     }

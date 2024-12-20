@@ -5,7 +5,6 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Data.Core.Plugins;
 using Avalonia.Markup.Xaml;
 using Avalonia.Styling;
-using SukiUI;
 using ViSyncMaster.Services;
 using ViSyncMaster.ViewModels;
 using ViSyncMaster.Views;

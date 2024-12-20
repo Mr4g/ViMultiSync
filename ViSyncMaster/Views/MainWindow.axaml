@@ -98,7 +98,7 @@
 					</Button>
 					<Button
 						Classes="TitleBarFlyoutsButton"
-						Background="OrangeRed"
+						Background="#DC4E41"
 						Name ="ExitButton2"
 						Content="RESTART APP"
 						Command="{Binding ExitPressedCommand}">
@@ -762,7 +762,7 @@
 					</Button>
 					<Button
 						Classes="TitleBarFlyoutsButton"
-						Background="OrangeRed"
+						Background="#DC4E41"
 						Name ="ExitButton"
 						Content="EXIT"
 						Command="{Binding ExitPressedCommand}">

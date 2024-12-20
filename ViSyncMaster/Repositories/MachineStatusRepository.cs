@@ -50,8 +50,23 @@ namespace ViSyncMaster.Repositories
         // Zapisanie statusów do pliku
         public void SaveStatuses(IEnumerable<MachineStatus> statuses)
         {
-            var json = JsonSerializer.Serialize(statuses, new JsonSerializerOptions { WriteIndented = true });
-            File.WriteAllText(_filePath, json);
+            {
+                // Konwertuje statusy aby je edytować
+                var statusList = statuses.ToList();
+
+                // Jeśli liczba statusów przekracza 100, usuwa najstarszy
+
+                    // Sortowanie według ID (czas dodania w Unix Time Epoch)
+                    statusList = statusList
+                        .OrderByDescending(status => status.Id) // Najnowsze statusy najpierw
+                        .Take(100)                              // Zachowaj tylko 100 najnowszych
+                        .ToList();                              // Konwertuj z powrotem na listę
+            
+
+                // Serializuj i zapisz do pliku
+                var json = JsonSerializer.Serialize(statusList, new JsonSerializerOptions { WriteIndented = true });
+                File.WriteAllText(_filePath, json);
+            }
         }
 
         public void UpdateStatus(MachineStatus updatedStatus)
