@@ -1,8 +1,11 @@
-﻿using System;
+﻿using Serilog;
+using System;
 using System.Collections.Generic;
+using System.Data.Common;
 using System.Data.SQLite;
 using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
 
 namespace ViSyncMaster.Services
 {
@@ -13,31 +16,41 @@ namespace ViSyncMaster.Services
         public SQLiteDatabase(string dbPath)
         {
             _connectionString = $"Data Source={dbPath};Version=3;";
+            ConfigureWALMode().Wait(); 
         }
 
         // Tworzenie tabeli dla dowolnego typu encji, jeśli nie istnieje
-        public void CreateTableIfNotExists<T>(string tableName = null)
+        public async Task CreateTableIfNotExists<T>(string tableName = null)
         {
-            using (var connection = new SQLiteConnection(_connectionString))
+            try
             {
-                connection.Open();
-
-                // Ustal nazwę tabeli
-                var finalTableName = tableName ?? typeof(T).Name;
-
-                // Generuj kolumny
-                var columns = string.Join(", ", GetColumnsForType<T>());
-
-                // Zapytanie SQL
-                var createTableQuery = $@"
-                CREATE TABLE IF NOT EXISTS {finalTableName} (
-                {columns}
-                  )";
-
-                using (var command = new SQLiteCommand(createTableQuery, connection))
+                using (var connection = new SQLiteConnection(_connectionString))
                 {
-                    command.ExecuteNonQuery();
+                    await connection.OpenAsync();
+
+                    var finalTableName = tableName ?? typeof(T).Name;
+                    var columns = string.Join(", ", GetColumnsForType<T>());
+                    var createTableQuery = $@"
+                        CREATE TABLE IF NOT EXISTS {finalTableName} (
+                        {columns}
+                        )";
+
+                    using (var command = new SQLiteCommand(createTableQuery, connection))
+                    {
+                        await command.ExecuteNonQueryAsync();
+                        Log.Information("Table '{TableName}' created or already exists.", finalTableName);
+                    }
                 }
+            }
+            catch (SQLiteException ex)
+            {
+                Log.Error(ex, "SQLite error while creating table: {TableName}", tableName);
+                throw;
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Unexpected error while creating table: {TableName}", tableName);
+                throw;
             }
         }
 
@@ -54,24 +67,104 @@ namespace ViSyncMaster.Services
         // Mapowanie typów C# na odpowiednie typy SQLite
         private string GetSQLiteColumnType(Type propertyType)
         {
-            if (propertyType == typeof(int) || propertyType == typeof(long)) return "INTEGER";
-            if (propertyType == typeof(string)) return "TEXT";
-            if (propertyType == typeof(bool)) return "BOOLEAN";
-            if (propertyType == typeof(DateTime)) return "DATETIME";
+            var underlyingType = Nullable.GetUnderlyingType(propertyType) ?? propertyType;
+
+            if (underlyingType == typeof(int) || underlyingType == typeof(long)) return "INTEGER";
+            if (underlyingType == typeof(string)) return "TEXT";
+            if (underlyingType == typeof(bool)) return "BOOLEAN";
+            if (underlyingType == typeof(DateTime)) return "DATETIME";
+
             return "TEXT"; // Default type
         }
 
         // Przykładowe wykonanie zapytania SQL
-        public void ExecuteNonQuery(string query, object parameters)
+        public async Task ExecuteNonQuery(string query, object parameters)
         {
-            using (var connection = new SQLiteConnection(_connectionString))
+            try
             {
-                connection.Open();
-                using (var command = new SQLiteCommand(query, connection))
+                using (var connection = new SQLiteConnection(_connectionString))
                 {
-                    AddParameters(command, parameters);
-                    command.ExecuteNonQuery();
+                    await connection.OpenAsync();
+
+                    using (var command = new SQLiteCommand(query, connection))
+                    {
+                        AddParameters(command, parameters);
+                        await command.ExecuteNonQueryAsync();
+                        Log.Information("Executed query: {Query}", query);
+                    }
                 }
+            }
+            catch (SQLiteException ex)
+            {
+                Log.Error(ex, "SQLite error during ExecuteNonQuery: {Query}", query);
+                throw;
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Unexpected error during ExecuteNonQuery: {Query}", query);
+                throw;
+            }
+        }
+        // Wykonywanie zapytania SQL i mapowanie wyników na generyczny typ
+        public async Task<List<T>> ExecuteReaderAsync<T>(string query)
+        {
+            try
+            {
+                using (var connection = new SQLiteConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+
+                    using (var command = new SQLiteCommand(query, connection))
+                    using (var reader = await command.ExecuteReaderAsync())
+                    {
+                        var result = new List<T>();
+
+                        while (await reader.ReadAsync())
+                        {
+                            var item = MapReaderToEntity<T>(reader);
+                            result.Add(item);
+                        }
+
+                        Log.Information("Executed query and mapped results: {Query}", query);
+                        return result;
+                    }
+                }
+            }
+            catch (SQLiteException ex)
+            {
+                Log.Error(ex, "SQLite error during ExecuteReaderAsync: {Query}", query);
+                throw;
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Unexpected error during ExecuteReaderAsync: {Query}", query);
+                throw;
+            }
+        }
+        private async Task ConfigureWALMode()
+        {
+            try
+            {
+                using (var connection = new SQLiteConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+
+                    using (var command = new SQLiteCommand("PRAGMA journal_mode = WAL;", connection))
+                    {
+                        await command.ExecuteNonQueryAsync();
+                        Log.Information("SQLite database configured to use WAL mode.");
+                    }
+                }
+            }
+            catch (SQLiteException ex)
+            {
+                Log.Error(ex, "SQLite error while configuring WAL mode.");
+                throw;
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Unexpected error while configuring WAL mode.");
+                throw;
             }
         }
 
@@ -85,28 +178,8 @@ namespace ViSyncMaster.Services
             }
         }
 
-        // Wykonywanie zapytania SQL i mapowanie wyników na generyczny typ
-        public List<T> ExecuteReader<T>(string query)
-        {
-            using (var connection = new SQLiteConnection(_connectionString))
-            {
-                connection.Open();
-                using (var command = new SQLiteCommand(query, connection))
-                {
-                    var reader = command.ExecuteReader();
-                    var result = new List<T>();
-                    while (reader.Read())
-                    {
-                        var item = MapReaderToEntity<T>(reader);
-                        result.Add(item);
-                    }
-                    return result;
-                }
-            }
-        }
-
         // Mapowanie wyników zapytania na typ encji
-        private T MapReaderToEntity<T>(SQLiteDataReader reader)
+        private T MapReaderToEntity<T>(DbDataReader reader)
         {
             var entity = Activator.CreateInstance<T>();
             var properties = typeof(T).GetProperties();
@@ -119,7 +192,25 @@ namespace ViSyncMaster.Services
                 if (prop.CanWrite && !reader.IsDBNull(reader.GetOrdinal(columnName)))
                 {
                     var value = reader[columnName];
-                    prop.SetValue(entity, Convert.ChangeType(value, prop.PropertyType));
+
+                    // Obsługuje Nullable<DateTime> (DateTime?)
+                    if (prop.PropertyType == typeof(DateTime?) && value is string stringValue)
+                    {
+                        // Próbujemy przekonwertować wartość w formie string na DateTime?
+                        if (DateTime.TryParse(stringValue, out var dateValue))
+                        {
+                            prop.SetValue(entity, dateValue);
+                        }
+                        else
+                        {
+                            prop.SetValue(entity, null); // Ustawiamy null, jeśli nie uda się przekonwertować
+                        }
+                    }
+                    else
+                    {
+                        // Standardowa konwersja wartości do odpowiedniego typu
+                        prop.SetValue(entity, Convert.ChangeType(value, prop.PropertyType));
+                    }
                 }
             }
 

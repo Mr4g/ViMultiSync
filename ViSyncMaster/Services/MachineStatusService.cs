@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text.Json;
+using System.Threading.Tasks;
 using ViSyncMaster.DataModel;
 using ViSyncMaster.Repositories;
 using ViSyncMaster.Services;
@@ -27,10 +28,12 @@ namespace ViSyncMaster.Services
             _messageSender = messageSender;
             _messageQueue = messageQueue;
             _database = database;
+
+            _repositoryMachineStatusQueue.CacheUpdated += HandleCacheUpdated;
         }
 
         // Rozpoczęcie nowego statusu
-        public MachineStatus StartStatus(MachineStatus machineStatus)
+        public async Task<MachineStatus> StartStatus(MachineStatus machineStatus)
         {
             var epochMilliseconds = DateTimeOffset.Now.ToUnixTimeMilliseconds(); // Czas epoch w milisekundach
             var uniqueId = epochMilliseconds;
@@ -38,14 +41,11 @@ namespace ViSyncMaster.Services
             machineStatus.Id = uniqueId;
             machineStatus.StartTime = DateTime.Now;
 
-            // Zapisz status w repozytorium MachineStatus
-            _repositoryMachineStatusQueue.AddOrUpdate(machineStatus);
-            _repositoryMachineStatus.AddOrUpdate(machineStatus);
+            // Asynchronicznie dodaj status do repozytoriów
+            await _repositoryMachineStatusQueue.AddOrUpdate(machineStatus);
+            await _repositoryMachineStatus.AddOrUpdate(machineStatus);
 
             var message = JsonSerializer.Serialize(machineStatus);
-
-            // Spróbuj wysłać wiadomości z kolejki
-            _messageQueue.SendAllMessages(_messageSender);
 
             return machineStatus;
         }
@@ -59,10 +59,13 @@ namespace ViSyncMaster.Services
             _repositoryMachineStatusQueue.AddOrUpdate(machineStatus);
             _repositoryMachineStatus.AddOrUpdate(machineStatus);      
 
-            // Spróbuj wysłać wiadomości z kolejki
-            _messageQueue.SendAllMessages(_messageSender);
-
             return machineStatus;
+        }
+
+        private async void HandleCacheUpdated()
+        {
+            // Po zaktualizowaniu bazy danych, spróbuj wysłać wiadomości z kolejki
+            await _messageQueue.SendAllMessages(_messageSender);
         }
 
         // Dodatkowa metoda do zarządzania kolejką statusów

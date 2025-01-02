@@ -22,9 +22,9 @@ public class MessageQueue
         //LoadMessagesFromDatabase();
     }
 
-    public void LoadMessagesFromDatabase()
+    public async Task LoadMessagesFromDatabase()
     {
-        var pendingMessages = _repositoryQueue.GetAll();
+        var pendingMessages = await _repositoryQueue.GetAllAsync();
         foreach (var message in pendingMessages)
         {
             _queue.Enqueue(message); // Dodaj do kolejki w pamięci

@@ -40,6 +40,7 @@ using System.Threading;
 using System.Collections.ObjectModel;
 using System.Text.Json;
 using System.Data.Entity;
+using Serilog;
 
 
 namespace ViSyncMaster.ViewModels
@@ -541,6 +542,27 @@ namespace ViSyncMaster.ViewModels
         private void ActualStatusButtonPressed(MachineStatus machineStatus)
         {
             var newStatus = _machineStatusService.EndStatus(machineStatus);
+
+            switch (machineStatus.Status)
+            {
+                case var name when name.Contains("MECHANICZNA", StringComparison.OrdinalIgnoreCase):
+                    ReasonDowntimeMechanicalPanelIsOpen = true;
+                    break;
+
+                case var name when name.Contains("ELEKTRYCZNA", StringComparison.OrdinalIgnoreCase):
+                    DowntimeReasonElectricPanelIsOpen = true;
+                    break;
+
+                case var name when name.Contains("PLYTA", StringComparison.OrdinalIgnoreCase):
+
+                    break;
+
+                default:
+
+                    break;
+            }
+
+
             LoadStatuses(this);
         }
 
@@ -766,6 +788,7 @@ namespace ViSyncMaster.ViewModels
         [RelayCommand]
         private void ExitPressed()
         {
+            Log.CloseAndFlush();
             System.Diagnostics.Process.GetCurrentProcess().CloseMainWindow();
             System.Diagnostics.Process.GetCurrentProcess().Kill();
         }
@@ -1597,9 +1620,9 @@ namespace ViSyncMaster.ViewModels
 
         #endregion
 
-        private void LoadStatuses(object state)
+        private async void LoadStatuses(object state)
         {
-            var loadedStatuses = _repositoryMachineStatus.GetActive();
+            var loadedStatuses = await _repositoryMachineStatus.GetFromCache();
 
             // Synchronizacja kolekcji
 
@@ -1615,6 +1638,14 @@ namespace ViSyncMaster.ViewModels
         /// InitializeApp regarding from 
         /// </summary>
         /// 
+
+        private async Task InitializeAsync()
+        {
+            _repositoryMachineStatus.UpdateCacheAsync();
+            var activeMachineStatuses = await _repositoryMachineStatus.GetFromCache();
+            MachineStatuses = new ObservableCollection<MachineStatus>(activeMachineStatuses ?? new List<MachineStatus>());
+        }
+
         private async Task InitializeAppFunctions()
         {
 
@@ -1735,6 +1766,14 @@ namespace ViSyncMaster.ViewModels
 
         public MainWindowViewModel(IStatusInterfaceService statusInterfaceService)
         {
+            Log.Logger = new LoggerConfiguration()
+                .WriteTo.File(
+                    path: "logs/log-.txt",
+                    rollingInterval: RollingInterval.Day, // Nowy plik codziennie
+                    retainedFileCountLimit: 7,           // Przechowuj tylko 7 dni logów
+                    fileSizeLimitBytes: 10 * 1024 * 1024, // Limit 10 MB na plik
+                    rollOnFileSizeLimit: true)           // Twórz nowy plik, jeśli przekroczono rozmiar
+                .CreateLogger();
             mStatusInterfaceService = statusInterfaceService;
             _sharedDataService = new SharedDataService();
             appConfig = _sharedDataService.AppConfig ?? new AppConfigData();
@@ -1748,7 +1787,7 @@ namespace ViSyncMaster.ViewModels
             
             _machineStatusService = new MachineStatusService(_repositoryMachineStatus, _repositoryMachineStatusQueue, _messageSender, _messageQueue, _database);
             LoadStatuses(this);
-            MachineStatuses = new ObservableCollection<MachineStatus>(_repositoryMachineStatus.GetActive());
+            InitializeAsync();
 
             string brokerHost = "mqtt.flespi.io";  // Adres hosta brokera
             int brokerPort = 1883;  // Port brokera
