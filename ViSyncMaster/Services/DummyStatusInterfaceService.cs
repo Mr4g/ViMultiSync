@@ -82,6 +82,10 @@ namespace ViSyncMaster.Services
         {
             return await ReadPanelDataAsync<DowntimePanelItem>("DowntimePanelData");
         }
+        public async Task<List<PanelMapping>> GetDowntimePanelActionsAsync()
+        {
+            return await ReadPanelDataAsync<PanelMapping>("PanelActions");
+        }
 
         public async Task<List<SettingPanelItem>> GetSettingPanelAsync()
         {

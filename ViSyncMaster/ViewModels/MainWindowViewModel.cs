@@ -41,6 +41,8 @@ using System.Collections.ObjectModel;
 using System.Text.Json;
 using System.Data.Entity;
 using Serilog;
+using System.Reflection;
+using System.Drawing;
 
 
 namespace ViSyncMaster.ViewModels
@@ -74,6 +76,7 @@ namespace ViSyncMaster.ViewModels
 
         private PingService pingService;
         private TimerManager timerManager;
+        private MachineStatus _pendingMachineStatus;
 
         string screenshotPath = "C:/zrzut_ekranu.png"; // Ścieżka, gdzie zostanie zapisany zrzut ekranu
         string imgurClientId = "0fe6e59673311dc"; // Zastąp wartością swojego Client ID zarejestrowanego na Imgur
@@ -84,6 +87,8 @@ namespace ViSyncMaster.ViewModels
         private string googleInstructionUrl;
         private string googleTargetPlanUrl;
 
+
+        private Dictionary<string, string> PanelActionMapping;
 
         private string brokerHost;
         private int brokerPort;
@@ -515,14 +520,73 @@ namespace ViSyncMaster.ViewModels
                 // Powiadomienie, że status już istnieje.
                 ActualValueForWarrningNoticePopup(item);
                 return;
+            } 
+
+            if (_pendingMachineStatus != null)
+            {
+                _pendingMachineStatus.Reason = item.Reason;
+                var updateStatus = _machineStatusService.EndStatus(_pendingMachineStatus);
+                _pendingMachineStatus = null; // Wyczyszczenie tymczasowego statusu
             }
-            var newStatus = _machineStatusService.StartStatus(item);
+            else
+            {
+                var newStatus = _machineStatusService.StartStatus(item);
+            }
+            
+           
+            
             LoadStatuses(this); // Zaktualizuj listę statusów
             SettingPanelIsOpen = false;
             DowntimePanelIsOpen = false;
             MaintenancePanelIsOpen = false;
             LogisticPanelIsOpen = false;
+            ControlPanelVisible = false;
         }
+
+        [RelayCommand]
+        private void ActualStatusButtonPressed(MachineStatus machineStatus)
+        {
+            if (string.IsNullOrEmpty(machineStatus?.Status) || PanelActionMapping == null)
+            {
+                return; // Zatrzymanie dalszego przetwarzania, jeśli status lub mapowanie jest puste
+            }
+
+            // Sprawdzenie, czy istnieje mapowanie w słowniku dla danego statusu
+            if (PanelActionMapping.TryGetValue(machineStatus.Status.ToUpperInvariant(), out var panelName))
+            {
+                HandleMappedStatus(machineStatus, panelName);
+            }
+            else
+            {
+                HandleUnmappedStatus(machineStatus);
+            }
+        }
+
+        private void HandleMappedStatus(MachineStatus machineStatus, string panelName)
+        {
+            // Zapisanie tymczasowego statusu, aby czekać na powód zakończenia
+            _pendingMachineStatus = machineStatus;
+
+            // Aktywacja odpowiedniego panelu
+            var property = GetType().GetProperty(panelName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+            if (property != null && property.PropertyType == typeof(bool))
+            {
+                property.SetValue(this, true); // Ustawienie właściwości na true
+            }
+            else
+            {
+                Console.WriteLine($"Nie znaleziono właściwości: {panelName}");
+            }
+            ControlPanelVisible = true;
+        }
+
+        private void HandleUnmappedStatus(MachineStatus machineStatus)
+        {
+            Console.WriteLine($"Brak zdefiniowanego panelu dla statusu: {machineStatus.Status}");
+            _machineStatusService.EndStatus(machineStatus); // Kończenie statusu bez powodu
+            LoadStatuses(this);
+        }
+
         public async Task SendMessageMqtt(MachineStatus messageq)
         {
             string topic = $"W16/{appConfig.Source}";  // Zdefiniuj temat
@@ -536,34 +600,6 @@ namespace ViSyncMaster.ViewModels
             {
                 Console.WriteLine(ex.ToString());
             }
-        }
-
-        [RelayCommand]
-        private void ActualStatusButtonPressed(MachineStatus machineStatus)
-        {
-            var newStatus = _machineStatusService.EndStatus(machineStatus);
-
-            switch (machineStatus.Status)
-            {
-                case var name when name.Contains("MECHANICZNA", StringComparison.OrdinalIgnoreCase):
-                    ReasonDowntimeMechanicalPanelIsOpen = true;
-                    break;
-
-                case var name when name.Contains("ELEKTRYCZNA", StringComparison.OrdinalIgnoreCase):
-                    DowntimeReasonElectricPanelIsOpen = true;
-                    break;
-
-                case var name when name.Contains("PLYTA", StringComparison.OrdinalIgnoreCase):
-
-                    break;
-
-                default:
-
-                    break;
-            }
-
-
-            LoadStatuses(this);
         }
 
         public static void ShowMessageBox(string message)
@@ -1040,6 +1076,7 @@ namespace ViSyncMaster.ViewModels
             // Get th channel configuration data
             var deviceInfoPanel = await mStatusInterfaceService.GetConfigHardwareAsync();
             var statusPanel = await mStatusInterfaceService.GetDowntimePanelAsync();
+            var panelActionMapping = await mStatusInterfaceService.GetDowntimePanelActionsAsync();
             var settingStatusPanel = await mStatusInterfaceService.GetSettingPanelAsync();
             var maintenanceStatusPanel = await mStatusInterfaceService.GetMaintenancePanelAsync();
             var logisticStatusPanel = await mStatusInterfaceService.GetLogisticPanelAsync();
@@ -1059,6 +1096,8 @@ namespace ViSyncMaster.ViewModels
             StatusPanel =
                 new ObservableGroupedCollection<string, DowntimePanelItem>(
                     statusPanel.GroupBy(item => item.Status));
+
+            PanelActionMapping = panelActionMapping.ToDictionary(pa => pa.Status, pa => pa.PanelName);
 
             SettingStatusPanel =
                 new ObservableGroupedCollection<string, SettingPanelItem>(

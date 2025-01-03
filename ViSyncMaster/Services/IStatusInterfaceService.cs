@@ -14,8 +14,8 @@ namespace ViSyncMaster.Services
         /// </summary>
         /// <returns></returns>
         Task<List<DowntimePanelItem>> GetDowntimePanelAsync();
+        Task<List<PanelMapping>> GetDowntimePanelActionsAsync();
         Task<List<SettingPanelItem>> GetSettingPanelAsync();
-
         Task<List<MaintenancePanelItem>> GetMaintenancePanelAsync();
         Task<List<LogisticPanelItem>> GetLogisticPanelAsync();
         Task<List<ReasonDowntimeMechanicalPanelItem>> GetReasonDowntimeMechanicalPanelAsync();
