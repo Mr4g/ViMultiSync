@@ -9,6 +9,7 @@ namespace ViSyncMaster.DataModel
 {
     public class ReasonDowntimeMechanicalPanelItem : MachineStatus
     {
+        public ReasonDowntimeMechanicalPanelItem() { }
     }
 
 }

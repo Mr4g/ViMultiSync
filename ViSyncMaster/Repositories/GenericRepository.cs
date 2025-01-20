@@ -26,7 +26,6 @@ namespace ViSyncMaster.Repositories
         {
             _db = db;
             _tableName = tableName;
-
             _bufferedQueue = new BufferedQueue<T>(entity =>
             {
                 // Dodawanie/aktualizowanie w SQLite
@@ -88,7 +87,10 @@ namespace ViSyncMaster.Repositories
         public async Task<List<T>> GetActiveAsync()
         {
             string query = $"SELECT * FROM {_tableName} WHERE IsActive = 1 ORDER BY StartTime ASC";
-            return await _db.ExecuteReaderAsync<T>(query);
+            Log.Information("Wykonywanie zapytania: {Query}", query);
+            var result = await _db.ExecuteReaderAsync<T>(query);
+            Log.Information("Znaleziono rekordy: {Count}", result.Count);
+            return result;
         }
 
         // Usuwanie rekordu

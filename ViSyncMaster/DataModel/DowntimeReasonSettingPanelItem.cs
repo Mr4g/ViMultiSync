@@ -9,6 +9,7 @@ namespace ViSyncMaster.DataModel
 {
     public class DowntimeReasonLiderPanelItem : MachineStatus
     {
+        public DowntimeReasonLiderPanelItem() { }
     }
 
 }

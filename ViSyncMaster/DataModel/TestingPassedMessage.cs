@@ -13,7 +13,13 @@ namespace ViSyncMaster.DataModel
         {
             this.Name = "S7.TestingPassed";
         }
-        public override string Value => "fasle";
+        private string _value = "false";
+        public override string Value => _value;
+
+        public void SetValue(string value)
+        {
+            _value = value;
+        }
     }
 
 

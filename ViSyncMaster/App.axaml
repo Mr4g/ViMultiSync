@@ -12,7 +12,9 @@
     <Application.Resources>
         <SolidColorBrush x:Key="OrangeRedBrush" Color="OrangeRed" />
         <SolidColorBrush x:Key="GrayBrush" Color="Gray" />
-    </Application.Resources>
+		<views:TimeSpanToStringConverter x:Key="TimeSpanToStringConverter" />
+		<views:NullToZeroConverter x:Key="NullToZeroConverter"/>
+	</Application.Resources>
 
 
     <Application.DataTemplates>
@@ -23,6 +25,7 @@
         <FluentTheme />
         <StyleInclude Source="Styles/AnimatedPopup.axaml"/>
         <StyleInclude Source="Styles/Button/PopupButton.axaml"/>
+		<StyleInclude Source="avares://Avalonia.Controls.DataGrid/Themes/Fluent.xaml"/>
         <material:MaterialIconStyles />
 	</Application.Styles>
 </Application>

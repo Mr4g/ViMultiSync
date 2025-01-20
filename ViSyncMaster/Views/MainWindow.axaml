@@ -17,7 +17,7 @@
         Height="900"
         Icon="/Assets/W16icon2.ico"
         Background="#0B0A0F"
-        Title="ViMultiLink_Engage"
+        Title="ViSyncMaster"
         ExtendClientAreaToDecorationsHint="True"
         ExtendClientAreaTitleBarHeightHint="-1"
         FontFamily="Century Gothic"
@@ -130,7 +130,7 @@
 										<Button
 											Classes="PopupButton"
 											Content="{Binding Status}"
-											Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).ReportMachineStatusCommand}"
+											Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).ReportMachineDowntimeCommand}"
 											CommandParameter="{Binding}"
                                                 ></Button>
 									</DataTemplate>
@@ -471,7 +471,7 @@
                 RowDefinitions="*,Auto">
 				<TextBlock
                     Grid.Row="0"
-                    Text="Wezwać Utrzymanie Ruchu?"
+                    Text="Wybierz dalsze działanie"
                     HorizontalAlignment="Center"
                     FontSize="28"
                     Foreground="WhiteSmoke"
@@ -483,7 +483,7 @@
 								<ItemsControl ItemsSource="{Binding}">
 									<ItemsControl.ItemsPanel>
 										<ItemsPanelTemplate >
-											<UniformGrid Rows="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).RowForCallForServicePanel}" Columns="2" HorizontalAlignment="Center" VerticalAlignment="Center">
+											<UniformGrid Rows="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).RowForCallForServicePanel}" Columns="1" HorizontalAlignment="Center" VerticalAlignment="Center">
 											</UniformGrid>
 										</ItemsPanelTemplate>
 									</ItemsControl.ItemsPanel>
@@ -545,7 +545,7 @@
 											<Button
 												Classes="PopupButton"
 												Content="{Binding Status}"
-												Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).ServiceArrivalPanelItemPressedCommand}"
+												Command="{Binding}"
 												CommandParameter="{Binding}">
 											</Button>
 										</DataTemplate>
@@ -1062,7 +1062,7 @@
 		<!-- Title bar -->
 
 		<Border Background="#0B0A0F" Margin="0" Grid.Row="0" Height="100" CornerRadius="0,0,0,0" IsVisible="true">
-			<Grid ColumnDefinitions="10, Auto, Auto,* ,Auto , Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, 10" Margin ="1">
+			<Grid ColumnDefinitions="10, Auto, Auto,* ,Auto , Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, 10" Margin ="1">
 				<StackPanel Grid.Column="1" Orientation="Vertical">
 					<Image Source="/Assets/logo.png" VerticalAlignment="Center" Grid.Column="1" Width="260" />
 				</StackPanel>
@@ -1098,54 +1098,59 @@
 					<Image Source="{SvgImage /Assets/icons/info2.svg}"/>
 				</Button>
 				<Button Grid.Column="5"
-                    Name = "ScreenShotButton"
-                    Command="{Binding ScreenShotButtonPressedCommand}">
-					<Image Source="{SvgImage /Assets/icons/errorScreen.svg}"/>
+	                    Name = "TableStatusOfMachine"
+	                    Command="{Binding LoadStatusTableOfMachineCommand}">
+					<Image Source="{SvgImage /Assets/icons/wrench.svg}"/>
 				</Button>
 				<Button Grid.Column="6"
+                    Name = "ScreenShotButton"
+                    Command="{Binding ScreenShotButtonPressedCommand}">
+					<Image Source="{SvgImage /Assets/icons/mark.svg}"/>
+				</Button>
+				<Button Grid.Column="7"
                     Name = "OpenSerialPortButton"
 					IsVisible="{Binding OpenSerialPortButtonIsVisible}"
                     Command="{Binding OpenSerialPort}">
 					<Image Source="{SvgImage /Assets/icons/serialPort.svg}"/>
 				</Button>
-				<Button Grid.Column="7"
+				<Button Grid.Column="8"
 					Name = "AdaptronicButton"
 				    IsVisible="{Binding AdaptronicButtonIsVisible}"
 					Command="{Binding LoadPageAdaptronic}">
 					<Image Source="{SvgImage /Assets/icons/adaptronic2.svg}"/>
 				</Button>
-				<Button Grid.Column="8"
+				<Button Grid.Column="9"
 					Name = "GoogleDriveButton"
 					IsVisible="{Binding GoogleDriveButtonIsVisible}"
 					Command="{Binding LoadPageGoogleDisk}">
 					<Image Source="{SvgImage /Assets/icons/googleDrive.svg}"/>
 				</Button>
-				<Button Grid.Column="9"
+				<Button Grid.Column="10"
 					Name = "InstructionButton"
 					IsVisible="{Binding InstructionButtonIsVisible}"
 					Command="{Binding LoadPageInstruction}">
 					<Image Source="{SvgImage /Assets/icons/info.svg}"/>
 				</Button>
-				<Button Grid.Column="10"
+				<Button Grid.Column="11"
 					Name = "TargetPlanButton"
 					IsVisible="{Binding TargetPlanButtonIsVisible}"
 					Command="{Binding LoadPageTargetPlan}">
 					<Image Source="{SvgImage /Assets/icons/targetPlan.svg}"/>
 				</Button>
-				<Button Grid.Column="11" Command="{Binding LoadPageSap}">
+				<Button Grid.Column="12" Command="{Binding LoadPageSap}">
 					<Image Source="{SvgImage /Assets/icons/sap.svg}"/>
 				</Button>
-				<Button Grid.Column="12" Name="SplunkPanelButton" Command="{Binding #SplunkPanelPopup.BeginOpen}">
+				<Button Grid.Column="13" Name="SplunkPanelButton" Command="{Binding #SplunkPanelPopup.BeginOpen}">
 					<Image Source="{SvgImage /Assets/icons/splunk.svg}"/>
 				</Button>
 				<!--IsVisible="{Binding IsLoginToApp}"-->
-				<Button Grid.Column="13"
+				<Button Grid.Column="14"
                         Name = "UserButton"
 						IsVisible="{Binding UserButtonIsVisible}"
                         Command="{Binding  #LoginPanelPopup.BeginOpen}">
 					<Image Source="{SvgImage /Assets/icons/userThin.svg}"/>
 				</Button>
-				<Button Grid.Column="14" Name ="OptionsPanelButton" Command="{Binding #OptionsPanelPopup.BeginOpen}" >
+				<Button Grid.Column="15" Name ="OptionsPanelButton" Command="{Binding #OptionsPanelPopup.BeginOpen}" >
 					<Image Source="{SvgImage /Assets/icons/gears.svg}"/>
 				</Button>
 			</Grid>
@@ -1182,7 +1187,7 @@
 					</StackPanel>
 				</Button>
 			</StackPanel>
-			<StackPanel Grid.Column="0" Grid.Row="1" Margin="5,20,5,5" VerticalAlignment="Bottom">
+			<StackPanel Grid.Column="0" Grid.Row="1" Margin="5,5,5,5" VerticalAlignment="Bottom">
 				<ItemsControl ItemsSource="{Binding MachineStatuses}">
 					<ItemsControl.ItemTemplate>
 						<DataTemplate x:DataType="dataModel:MachineStatus">
@@ -1191,15 +1196,35 @@
 									CommandParameter="{Binding}"
 									Background="{Binding Color}"
 									Margin="5">
-								<StackPanel Orientation="Vertical" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="5">
-									<TextBlock Text="{Binding Status}" />
-									<TextBlock Text="{Binding Duration, StringFormat=' {0:hh\\:mm\\:ss}' }" />
-								</StackPanel>
+								<Grid HorizontalAlignment="Stretch" VerticalAlignment="Center" Margin="5">
+									<!-- Define columns: the first for text (auto width), the second for the icon (fixed width) -->
+									<Grid.ColumnDefinitions>
+										<ColumnDefinition Width="*" />
+										<!-- Text column takes remaining space -->
+										<ColumnDefinition Width="*" />
+										<!-- Icon column takes only needed space -->
+										<ColumnDefinition Width="Auto" />
+										<!-- Empty space column on the right -->
+									</Grid.ColumnDefinitions>
+									<!-- Left section (Status and Times) -->
+									<StackPanel Grid.Column="0" Orientation="Vertical" HorizontalAlignment="Left" VerticalAlignment="Center">
+										<TextBlock Text="{Binding Status}" />
+										<TextBlock Text="{Binding DurationStatus, StringFormat=' {0:hh\\:mm\\:ss}' }" HorizontalAlignment="Left" />
+										<TextBlock Text="{Binding DurationService, StringFormat=' {0:hh\\:mm\\:ss}' }" HorizontalAlignment="Left"/>
+									</StackPanel>
+
+									<!-- Right section (Icons) -->
+									<StackPanel Grid.Column="2" Margin ="30,0,0,0"  Orientation="Vertical" HorizontalAlignment="Right" VerticalAlignment="Center">
+										<Image Width="30" Height="35" IsVisible="{Binding CallForServiceRunning}" Source="{SvgImage /Assets/icons/hourglass.svg}"/>
+										<Image Width="30" Height="35" IsVisible="{Binding ServiceArrivalRunning}" Source="{SvgImage /Assets/icons/wrench.svg}"/>
+									</StackPanel>
+								</Grid>
 							</Button>
 						</DataTemplate>
 					</ItemsControl.ItemTemplate>
 				</ItemsControl>
 			</StackPanel>
+
 
 			<!-- ControlPanel -->
 			<Border  Grid.Column="1">

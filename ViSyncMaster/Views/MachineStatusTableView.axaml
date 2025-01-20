@@ -1,0 +1,102 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:dataModel="clr-namespace:ViSyncMaster.DataModel"
+             xmlns:viewModels="clr-namespace:ViSyncMaster.ViewModels"
+             xmlns:lvc="clr-namespace:LiveChartsCore.SkiaSharpView.Avalonia;assembly=LiveChartsCore.SkiaSharpView.Avalonia"
+             x:Class="ViSyncMaster.Views.MachineStatusTableView"
+             x:DataType="viewModels:MachineStatusTableViewModel">
+
+	<UserControl.Styles>
+		<!-- Styl dla tabeli -->
+		<Style Selector="DataGrid">
+			<Setter Property="Background" Value="#1D1F27"/>
+			<Setter Property="BorderBrush" Value="#3C3F47"/>
+			<Setter Property="BorderThickness" Value="1"/>
+			<Setter Property="CornerRadius" Value="10"/>
+			<Setter Property="FontSize" Value="16"/>
+		</Style>
+
+		<!-- Styl dla komórek -->
+		<Style Selector="DataGridCell">
+			<Setter Property="Background" Value="#2D2F38"/>
+			<Setter Property="Foreground" Value="White"/>
+			<Setter Property="Padding" Value="10"/>
+			<Setter Property="FontSize" Value="24"/>
+			<Setter Property="TextBlock.TextAlignment" Value="Center"/>
+		</Style>
+
+		<!-- Styl dla nagłówków kolumn -->
+		<Style Selector="DataGridColumnHeader">
+			<Setter Property="Background" Value="#3A3F47"/>
+			<Setter Property="Foreground" Value="White"/>
+			<Setter Property="Padding" Value="10"/>
+			<Setter Property="Height" Value="40"/>
+			<Setter Property="HorizontalContentAlignment" Value="Center"/>
+			<Setter Property="FontSize" Value="18"/>
+		</Style>
+
+		<!-- Styl dla wierszy -->
+		<Style Selector="DataGridRow">
+			<Setter Property="Background" Value="#24262F"/>
+			<Setter Property="Foreground" Value="White"/>
+		</Style>
+
+		<!-- Styl dla wierszy po najechaniu -->
+		<Style Selector="DataGridRow:hover">
+			<Setter Property="Background" Value="#3A3F47"/>
+		</Style>
+	</UserControl.Styles>
+
+	<Grid Margin="20">
+		<!-- Definicja wierszy -->
+		<Grid.RowDefinitions>
+			<RowDefinition Height="*"/>
+			<!-- Tabela zajmuje całą dostępną przestrzeń -->
+			<RowDefinition Height="2*"/>
+			<!-- Wykres zajmuje więcej miejsca niż tabela -->
+		</Grid.RowDefinitions>
+
+		<!-- Tabela -->
+		<DataGrid ItemsSource="{Binding MachineStatusList}" AutoGenerateColumns="False" CanUserResizeColumns="True" CanUserReorderColumns="True"
+				  CanUserSortColumns="True" GridLinesVisibility="None" Grid.Row="0">
+			<DataGrid.Columns>
+				<DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="*"/>
+				<DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="*"/>
+				<DataGridTextColumn Header="Start Time" Binding="{Binding StartTime}" Width="*"/>
+				<!--<DataGridTextColumn Header="End Time" Binding="{Binding EndTime}" Width="*"/>-->
+				<DataGridTextColumn Header="Duration Status" Binding="{Binding DurationStatus, Converter={StaticResource TimeSpanToStringConverter} Mode=OneWay}" Width="*" />
+				<DataGridTextColumn Header="Duration Service" Binding="{Binding DurationService, Converter={StaticResource TimeSpanToStringConverter} Mode=OneWay}" Width="*" />
+				<DataGridTemplateColumn Header="Duration Waiting ">
+					<DataGridTemplateColumn.CellTemplate>
+						<DataTemplate>
+							<Grid>
+								<ProgressBar
+									Minimum="0"
+									Maximum="60"
+									Value="{Binding DurationWaitingForService, Converter={StaticResource NullToZeroConverter}, Mode=TwoWay}"
+									Foreground="Red"
+									Background="#1D1F27"
+									Height="20" />
+								<TextBlock
+									Text="{Binding DurationWaitingForService, Converter={StaticResource TimeSpanToStringConverter}}"
+									HorizontalAlignment="Center"
+									VerticalAlignment="Center"
+									FontWeight="Bold"
+									Foreground="WhiteSmoke" />
+							</Grid>
+						</DataTemplate>
+					</DataGridTemplateColumn.CellTemplate>
+				</DataGridTemplateColumn>
+			</DataGrid.Columns>
+		</DataGrid>
+
+		<lvc:CartesianChart
+			Grid.Row="1"
+			Series="{Binding ChartSeries}"
+			XAxes="{Binding XAxes}"
+			YAxes="{Binding YAxes}">
+		</lvc:CartesianChart>
+	</Grid>
+
+
+</UserControl>

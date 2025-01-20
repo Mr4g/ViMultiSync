@@ -17,7 +17,6 @@ namespace ViSyncMaster.Views
     {
         private VirtualKeyboardTextInputMethod virtualKeyboardTextInput = null;
         MainWindowViewModel viewModel;
-
         private int delayInSeconds = 5;
 
         #region Private Members

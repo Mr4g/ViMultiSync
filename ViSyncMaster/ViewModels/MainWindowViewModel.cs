@@ -24,30 +24,20 @@ using ScreenCapturerNS;
 using Bitmap = System.Drawing.Bitmap;
 using Icon = MsBox.Avalonia.Enums.Icon;
 using Path = System.IO.Path;
-using System.Timers;
 using Timer = System.Threading.Timer;
 using ViSyncMaster.AuxiliaryClasses;
-using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
-using Avalonia.Input;
 using CommunityToolkit.Mvvm.Messaging;
-using ReactiveUI;
-using ViSyncMaster.Stores;
-using Newtonsoft.Json.Linq;
-using System.Xml.Linq;
-using System.Reactive.Subjects;
-using System.Threading;
 using System.Collections.ObjectModel;
-using System.Text.Json;
-using System.Data.Entity;
 using Serilog;
 using System.Reflection;
-using System.Drawing;
+using System.Linq;
+using ViSyncMaster.Handlers;
 
 
 namespace ViSyncMaster.ViewModels
 {
-    public partial class MainWindowViewModel : ObservableValidator, IRecipient<TimerValueChangedMessage>
+    public partial class MainWindowViewModel : ObservableValidator
     {
         #region Private Memebers
 
@@ -68,6 +58,7 @@ namespace ViSyncMaster.ViewModels
         private TestingPassedMessage _messageToSplunkPassed;
         private ConnectedMessage _messageToSplunkConnected;
         private MessagePgToSplunk _messageToSplunkPg;
+        private int _machineStatusCounter = 2;
 
         private GenericSplunkLogger<IEntity> _splunkLogger;
 
@@ -75,7 +66,6 @@ namespace ViSyncMaster.ViewModels
         private TaskCompletionSource<bool> _dataIsSendingToSplunkCompletionSource = new TaskCompletionSource<bool>();
 
         private PingService pingService;
-        private TimerManager timerManager;
         private MachineStatus _pendingMachineStatus;
 
         string screenshotPath = "C:/zrzut_ekranu.png"; // Ścieżka, gdzie zostanie zapisany zrzut ekranu
@@ -95,6 +85,8 @@ namespace ViSyncMaster.ViewModels
         string clientId;
         string token;
 
+        private List<CallForServicePanelItem> _allCallForServicePanelData = new List<CallForServicePanelItem>();
+
         /// <summary>
         /// Klasa odpowiedzialna za wysyłanie danych, zarządzanie kolejką wiadomości oraz zapisywanie i odczytywanie statusów maszyn.
         /// </summary>
@@ -110,6 +102,8 @@ namespace ViSyncMaster.ViewModels
         private readonly MessageQueue _messageQueue;
         private readonly MessageSender _messageSender;
         private readonly MachineStatusService _machineStatusService;
+
+        private readonly SplunkMessageHandler _splunkMessageHandler;
 
         #endregion
         private bool sentMessageWithTrue = false;
@@ -467,11 +461,14 @@ namespace ViSyncMaster.ViewModels
 
         private UCBrowser _activeUserControl;
 
-        public UCBrowser ActivePage
-        {
-            get => _activeUserControl;
-            set => SetProperty(ref _activeUserControl, value);
-        }
+        //public UCBrowser ActivePage
+        //{
+        //    get => _activeUserControl;
+        //    set => SetProperty(ref _activeUserControl, value);
+        //}
+
+        [ObservableProperty]
+        private UserControl _activePage;
 
         #region Public Command
 
@@ -511,55 +508,88 @@ namespace ViSyncMaster.ViewModels
         public void SplunkPanelButtonPressed() => SplunkPanelIsOpen ^= true;
 
 
+        private void UpdateCallForServicePanel(int stepOfStatus)
+        {
+            // Filtrowanie danych na podstawie StepOfStatus
+            var filteredItems = _allCallForServicePanelData // Upewnij się, że przechowujesz dane źródłowe w tej zmiennej
+                .Where(item =>
+                    (stepOfStatus == 0 && (item.Name == "CallForService" || item.Name == "Exit")) ||
+                    (stepOfStatus == 1 && (item.Name == "ServiceArrival" || item.Name == "DowntimeReason" || item.Name == "Exit")) ||
+                    (stepOfStatus == 2 && (item.Name == "DowntimeReason" || item.Name == "Exit")))
+                .GroupBy(item => item.Name);
+            // Aktualizacja CallForServicePanel
+            CallForServicePanel = new ObservableGroupedCollection<string, CallForServicePanelItem>(filteredItems);
+        }   
 
         [RelayCommand]
-        private void ReportMachineStatus(MachineStatus item)
+        private async Task ReportMachineDowntime(MachineStatus item)
+        {
+            UpdateCallForServicePanel(item.StepOfStatus);
+            if (MachineStatuses.Any(status => status.Status == item.Status))
+            {
+                // Powiadomienie, że status już istnieje.
+                ActualValueForWarrningNoticePopup(item);
+                return;
+            }
+            if (item.Name == "S7.DowntimeReason")
+            {
+                _pendingMachineStatus.Reason = item.Reason;
+                HandleUnmappedStatus(_pendingMachineStatus);
+                _pendingMachineStatus = null;
+            }
+            else
+            {
+                CallForServicePanelIsOpen = true;
+                ControlPanelVisible = true;
+                _pendingMachineStatus = item;
+            }      
+            //LoadStatuses(this); // Zaktualizuj listę statusów
+            SettingPanelIsOpen = false;
+            DowntimePanelIsOpen = false;
+            MaintenancePanelIsOpen = false;
+            LogisticPanelIsOpen = false;
+            
+        }
+
+        [RelayCommand]
+        private async Task ReportMachineStatus(MachineStatus item)
         {
             if (MachineStatuses.Any(status => status.Status == item.Status))
             {
                 // Powiadomienie, że status już istnieje.
                 ActualValueForWarrningNoticePopup(item);
                 return;
-            } 
-
-            if (_pendingMachineStatus != null)
+            }
+            if (item.Name == "S7.DowntimeReason")
             {
                 _pendingMachineStatus.Reason = item.Reason;
-                var updateStatus = _machineStatusService.EndStatus(_pendingMachineStatus);
-                _pendingMachineStatus = null; // Wyczyszczenie tymczasowego statusu
+                HandleUnmappedStatus(_pendingMachineStatus);
+                _pendingMachineStatus = null;
             }
             else
             {
                 var newStatus = _machineStatusService.StartStatus(item);
             }
-            
-           
-            
-            LoadStatuses(this); // Zaktualizuj listę statusów
+            //LoadStatuses(this); // Zaktualizuj listę statusów
             SettingPanelIsOpen = false;
             DowntimePanelIsOpen = false;
             MaintenancePanelIsOpen = false;
             LogisticPanelIsOpen = false;
-            ControlPanelVisible = false;
-        }
+            CallForServicePanelIsOpen = false;
 
+        }
         [RelayCommand]
         private void ActualStatusButtonPressed(MachineStatus machineStatus)
         {
-            if (string.IsNullOrEmpty(machineStatus?.Status) || PanelActionMapping == null)
-            {
-                return; // Zatrzymanie dalszego przetwarzania, jeśli status lub mapowanie jest puste
-            }
-
-            // Sprawdzenie, czy istnieje mapowanie w słowniku dla danego statusu
-            if (PanelActionMapping.TryGetValue(machineStatus.Status.ToUpperInvariant(), out var panelName))
-            {
-                HandleMappedStatus(machineStatus, panelName);
-            }
-            else
+            if (machineStatus.StepOfStatus == 0)
             {
                 HandleUnmappedStatus(machineStatus);
+                return;
             }
+            UpdateCallForServicePanel(machineStatus.StepOfStatus);
+            _pendingMachineStatus = machineStatus;
+            CallForServicePanelIsOpen = true;
+            ControlPanelVisible = true;
         }
 
         private void HandleMappedStatus(MachineStatus machineStatus, string panelName)
@@ -584,8 +614,69 @@ namespace ViSyncMaster.ViewModels
         {
             Console.WriteLine($"Brak zdefiniowanego panelu dla statusu: {machineStatus.Status}");
             _machineStatusService.EndStatus(machineStatus); // Kończenie statusu bez powodu
+           
+            ReasonDowntimeMechanicalPanelIsOpen = false;
+            DowntimeReasonElectricPanelIsOpen = false;
+            DowntimeReasonKptjPanelIsOpen = false;
+            DowntimeReasonPlatePanelIsOpen = false;
+            ControlPanelVisible = false;
+
             LoadStatuses(this);
         }
+        [RelayCommand]
+        private void CallForServicePanelItemPressed(CallForServicePanelItem item)
+        {
+            // Update the selected item 
+            if (_pendingMachineStatus != null)
+            {
+                // Scal brakujące dane z CallForServicePanelItem do _pendingMachineStatus
+                MergePendingMachineStatusWithPanelItem(_pendingMachineStatus, item);
+
+                // Rozpocznij nowy status
+                //var updatedStatus = _machineStatusService.StartStatus(_pendingMachineStatus);
+                if (_pendingMachineStatus.StepOfStatus != 2)
+                    _pendingMachineStatus = null; // Wyczyszczenie tymczasowego statusu po scaleniu
+            }
+        }
+        private void MergePendingMachineStatusWithPanelItem(MachineStatus pendingStatus, CallForServicePanelItem panelItem)
+        {
+            if (pendingStatus == null || panelItem == null || panelItem.Name == "Exit")
+            {
+                CallForServicePanelIsOpen = false;
+                return;
+            }
+            if (panelItem.Name == "CallForService")
+            {
+                pendingStatus.CallForService = DateTime.Now;
+                var updateStatus = _machineStatusService.StartStatus(pendingStatus);
+            }
+            if (panelItem.Name == "ServiceArrival")
+            {
+                pendingStatus.ServiceArrival = DateTime.Now;
+                var updateStatus = _machineStatusService.UpdateStatus(pendingStatus);
+            }
+            if (panelItem.Name == "DowntimeReason")
+            {
+                if (string.IsNullOrEmpty(pendingStatus?.Status) || PanelActionMapping == null)
+                {
+                    return; // Zatrzymanie dalszego przetwarzania, jeśli status lub mapowanie jest puste
+                }
+
+                if (PanelActionMapping.TryGetValue(pendingStatus.Status.ToUpperInvariant(), out var panelName))
+                {
+                    HandleMappedStatus(pendingStatus, panelName);
+                }
+                else
+                {
+                    HandleUnmappedStatus(pendingStatus);
+                }
+                CallForServicePanelIsOpen = false;
+                return;
+            }
+            CallForServicePanelIsOpen = false;
+            ControlPanelVisible = false;
+            LoadStatuses(this);
+        }// Możesz dodać więcej pól, jeśli są dostępne w CallForServicePanelItem
 
         public async Task SendMessageMqtt(MachineStatus messageq)
         {
@@ -626,98 +717,6 @@ namespace ViSyncMaster.ViewModels
             box.ShowAsync();
         }
 
-        [RelayCommand]
-        private void ReasonDowntimeMechanicalPanelItemPressed(ReasonDowntimeMechanicalPanelItem item)
-        {
-            // Update the selected item 
-            SelectedReasonDowntimeMechanicalPanelItem = item;
-
-            // Close the menu 
-            ReasonDowntimeMechanicalPanelIsOpen = false;
-            ControlPanelVisible = false;
-            ServiceCalled = false;
-            ServiceArrival = false;
-            //PassMessageToRepository(item);
-            ClearActualButtonStatus();
-        }
-
-        [RelayCommand]
-        private void DowntimeReasonElectricPanelItemPressed(DowntimeReasonElectricPanelItem item)
-        {
-            // Update the selected item 
-            SelectedDowntimeReasonElectricPanelItem = item;
-
-            // Close the menu 
-            DowntimeReasonElectricPanelIsOpen = false;
-            ControlPanelVisible = false;
-            ServiceCalled = false;
-            ServiceArrival = false;
-            //PassMessageToRepository(item);
-            ClearActualButtonStatus();
-        }
-
-        [RelayCommand]
-        private void DowntimeReasonLiderPanelItemPressed(DowntimeReasonLiderPanelItem item)
-        {
-            // Update the selected item 
-            SelectedDowntimeReasonLiderPanelItem = item;
-
-            // Close the menu 
-            DowntimeReasonLiderPanelIsOpen = false;
-            ControlPanelVisible = false;
-            ServiceCalled = false;
-            ServiceArrival = false;
-            //PassMessageToRepository(item);
-            ClearActualButtonStatus();
-        }
-
-        [RelayCommand]
-        private void DowntimeReasonKptjPanelItemPressed(DowntimeReasonKptjPanelItem item)
-        {
-            // Update the selected item 
-            SelectedDowntimeReasonKptjPanelItem = item;
-
-            // Close the menu 
-            DowntimeReasonKptjPanelIsOpen = false;
-            ControlPanelVisible = false;
-            ServiceCalled = false;
-            ServiceArrival = false;
-            //PassMessageToRepository(item);
-            ClearActualButtonStatus();
-        }
-
-        [RelayCommand]
-        private void DowntimeReasonPlatePanelItemPressed(DowntimeReasonPlatePanelItem item)
-        {
-            // Update the selected item 
-            SelectedDowntimeReasonPlatePanelItem = item;
-
-            // Close the menu 
-            DowntimeReasonPlatePanelIsOpen = false;
-            ControlPanelVisible = false;
-            ServiceCalled = false;
-            ServiceArrival = false;
-            //PassMessageToRepository(item);
-            ClearActualButtonStatus();
-        }
-
-
-        [RelayCommand]
-        private void CallForServicePanelItemPressed(CallForServicePanelItem item)
-        {
-            // Update the selected item 
-            SelectedCallForServicePanelItem = item;
-
-            if (item != null && item.Value == "true")
-            {
-                CallServiceStatus();
-                ServiceCalled = true;
-            }
-
-            CallForServicePanelIsOpen = false;
-            ControlPanelVisible = false;
-            //PassMessageToRepository(item);
-        }
 
         [RelayCommand]
         private void CallForServiceFromNavigationMenu()
@@ -725,24 +724,6 @@ namespace ViSyncMaster.ViewModels
             if (ServiceCalled) return;
             CallForServicePanelIsOpen = true;
             ControlPanelVisible = true;
-        }
-
-        [RelayCommand]
-        private void ServiceArrivalPanelItemPressed(ServiceArrivalPanelItem item)
-        {
-            SelectedServiceArrivalPanelItem = item;
-
-            ServiceArrivalPanelIsOpen = false;
-
-            ControlPanelVisible = false;
-            if (item != null && item.Value == "true")
-            {
-                ServiceArrivalStatus();
-                ServiceArrival = true;
-                timerManager.StartTimer($"{item.Name}");
-            }
-
-            //PassMessageToRepository(item);
         }
 
         [RelayCommand]
@@ -1152,17 +1133,19 @@ namespace ViSyncMaster.ViewModels
                 new ObservableGroupedCollection<string, SplunkPanelItem>(
                     splunkStatusPanel.GroupBy(item => item.Group));
 
-            CallForServicePanel =
+            CallForServicePanel = 
                 new ObservableGroupedCollection<string, CallForServicePanelItem>(
-                    callForServicePanel.GroupBy(item => item.Name));
+                callForServicePanel.GroupBy(item => item.Name));
 
-            RowForCallForServicePanel = LoadSizeOfGrid(callForServicePanel.Count);
+            RowForCallForServicePanel = 1;
 
             ServiceArrivalPanel =
                 new ObservableGroupedCollection<string, ServiceArrivalPanelItem>(
                     serviceArrivalPanel.GroupBy(item => item.Name));
 
             RowForServiceArrivalPanel = LoadSizeOfGrid(serviceArrivalPanel.Count);
+
+            _allCallForServicePanelData = callForServicePanel;
         }
 
         private int LoadSizeOfGrid(int numberOfElements)
@@ -1189,100 +1172,6 @@ namespace ViSyncMaster.ViewModels
             ControlPanelVisible = false;
         }
 
-        private void ClearActualButtonStatus()
-        {
-            ActualStatusButtonIsVisible = false;
-            ActualStatusButtonText = "";
-            ServiceArrivalButtonIsVisible = false;
-            CallForServiceButtonIsVisible = false;
-            DowntimeIsActive = false;
-            ClearButtonsService();
-        }
-        private void ClearButtonsService()
-        {
-            CallForServiceButtonText = "WEZWIJ UR";
-            CallForServiceButtonIsVisible = false;
-            CallForServiceColor = "#DC4E41";
-            ServiceArrivalButtonColor = "#DC4E41";
-            ServiceArrivalButtonIsVisible = false;
-            ServiceArrivalButtonText = "OCZEKIWANIE NA UR";
-        }
-
-        private void CallServiceStatus()
-        {
-            ServiceArrivalButtonIsVisible = true;
-            CallForServiceButtonText = "UR WEZWANE";
-            CallForServiceColor = "#008000";
-        }
-
-        private void ServiceArrivalStatus()
-        {
-            ServiceArrivalButtonText = "UR NA MIEJSCU";
-            ServiceArrivalButtonColor = "#008000";
-        }
-
-
-        /// <summary>
-        /// After the refactoring
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="message"></param>
-        //public async void PassMessageToRepository<T>(T message)
-        //    where T : class, IEntity
-        //{
-        //    if (!repositories.ContainsKey(typeof(T)))
-        //    {
-        //        repositories[typeof(T)] = new GenericRepository<T>();
-        //    }
-
-        //    var repository = repositories[typeof(T)] as GenericRepository<T>;
-
-        //    switch (sentMessageWithTrue)
-        //    {
-        //        case true when message != null && message.Value == "false" && message.Name != "S1.MachineDowntime" && message.Name != "S7.CallForService" && message.Name != "S7.ServiceArrival":
-        //            await SendMessageToSplunk(message);
-        //            //repository.Add(message);
-        //            sentMessageWithTrue = false;
-        //            message.Value = "true";
-        //            _lastMessage = null;
-        //            return;
-        //        case true when _lastMessage != null && message.Name != "S7.CallForService" && message.Name != "S7.ServiceArrival":
-        //            _lastMessage.Value = "false";
-        //            await SendMessageToSplunk(_lastMessage);
-        //            _lastMessage.Value = "true";
-        //            //repository.Add(_lastMessage);
-        //            sentMessageWithTrue = false;
-        //            break;
-        //    }
-
-        //    if (_lastMessage?.Name == "S1.MachineDowntime" && message.Name is "S7.CallForService" or "S7.ServiceArrival")
-        //    {
-        //        message.Status = _lastMessage.Status;
-        //        await SendMessageToSplunk(message);
-        //        repository.Add(message);
-        //        if (message.Name is "S7.CallForService" or "S7.ServiceArrival")
-        //        {
-        //            return;
-        //        }
-        //        sentMessageWithTrue = false;
-        //        message.Value = "true";
-        //    }
-        //    else
-        //    {
-        //        message.Value = "true";
-        //        await SendMessageToSplunk(message);
-        //        repository.Add(message);
-        //        sentMessageWithTrue = true;
-        //        if (message.Name == "S7.ReasonDowntime")
-        //        {
-        //            _lastMessage = null;
-        //            return;
-        //        }
-        //        _lastMessage = message;
-        //    }
-        //}
-
-
         /// <summary>
         /// Before the refactoring
         /// </summary>
@@ -1299,16 +1188,6 @@ namespace ViSyncMaster.ViewModels
             var name = nameProperty != null ? (string)nameProperty.GetValue(message) : null;
 
 
-            if (status != null && value == "false" && name != "S7.CallForService")
-            {
-                timerManager.ResetTimer($"{status}");
-                TimerkeeperStatus = "00:00:00";
-                if (name == "S1.MachineDowntime_IPC")
-                {
-                    timerManager.ResetTimer($"S7.ServiceArrival");
-                    TimerkeeperService = "00:00:00";
-                }
-            }
             var splunkLogger = new GenericSplunkLogger<T>(this);
             await splunkLogger.LogAsync(message);
         }
@@ -1359,88 +1238,62 @@ namespace ViSyncMaster.ViewModels
             VinHeatPump = "";
         }
 
+        private void LoadPage(string url)
+        {
+            if (ActivePage is UCBrowser browser)
+            {
+                // Jeśli przeglądarka już istnieje, zmieniamy adres
+                browser.ChangeBrowserAddress(url);
+            }
+            else
+            {
+                // Jeśli nie ma przeglądarki, tworzymy nową instancję
+                ActivePage = new UCBrowser(url);
+            }
+        }
         public void LoadPageManualViSyncMaster()
         {
             InfoPanelIsOpen = false;
             ControlPanelVisible = false;
 
-            if (ActivePage == null)
-            {
-                ActivePage = new UCBrowser(DeviceInfoPanel[0].LinkToManual);
-            }
-            else
-            {
-                ActivePage.ChangeBrowserAddress($"{DeviceInfoPanel[0].LinkToManual}");
-            }
+            LoadPage(DeviceInfoPanel[0].LinkToManual);
         }
 
         public void LoadPageSap()
         {
-            if (ActivePage == null)
-            {
-                ActivePage = new UCBrowser(sapUrl);
-            }
-            else
-            {
-                ActivePage.ChangeBrowserAddress($"{sapUrl}");
-            }
+            LoadPage(sapUrl);
         }
+
         public void LoadPageSplunk(string link)
         {
-            if (ActivePage == null)
-            {
-                ActivePage = new UCBrowser(link);
-            }
-            else
-            {
-                ActivePage.ChangeBrowserAddress($"{link}");
-            }
+            LoadPage(link);
         }
 
         public void LoadPageAdaptronic()
         {
-            if (ActivePage == null)
-            {
-                ActivePage = new UCBrowser(adaptronicUrl);
-            }
-            else
-            {
-                ActivePage.ChangeBrowserAddress($"{adaptronicUrl}");
-            }
+            LoadPage(adaptronicUrl);
         }
 
         public void LoadPageGoogleDisk()
         {
-            if (ActivePage == null)
-            {
-                ActivePage = new UCBrowser(googleDiskUrl);
-            }
-            else
-            {
-                ActivePage.ChangeBrowserAddress($"{googleDiskUrl}");
-            }
+            LoadPage(googleDiskUrl);
         }
+
         public void LoadPageInstruction()
         {
-            if (ActivePage == null)
-            {
-                ActivePage = new UCBrowser(googleInstructionUrl);
-            }
-            else
-            {
-                ActivePage.ChangeBrowserAddress($"{googleInstructionUrl}");
-            }
+            LoadPage(googleInstructionUrl);
         }
+
         public void LoadPageTargetPlan()
         {
-            if (ActivePage == null)
-            {
-                ActivePage = new UCBrowser(googleTargetPlanUrl);
-            }
-            else
-            {
-                ActivePage.ChangeBrowserAddress($"{googleTargetPlanUrl}");
-            }
+            LoadPage(googleTargetPlanUrl);
+        }
+
+        [RelayCommand]
+        private void LoadStatusTableOfMachine()
+        {
+            ActivePage = new MachineStatusTableView();
+            (ActivePage as MachineStatusTableView)?.SetDataContext(MachineStatuses);
         }
 
 
@@ -1469,61 +1322,19 @@ namespace ViSyncMaster.ViewModels
 
         private async Task ReSendMessageToSplunk(object state)
         {
-            // Sprawdzamy, czy _lastMessage jest niepuste, ma wartość "true" i zawiera "_IPC"
-            //if (!string.IsNullOrWhiteSpace(_lastMessage?.Value)
-            //    && _lastMessage.Value == "true"
-            //    && _lastMessage.Name.Contains("_IPC"))
-            //{
-            //    SendMessageToSplunk(_lastMessage);
-            //}
+            if (appConfig.AppMode == "VRSKT")
+            {
+                var messagePgToSplunk = _splunkMessageHandler.PreparingPgMessageToSplunk(MachineStatuses, _machineStatusCounter);
+                await SendMessageToSplunk(messagePgToSplunk);
+            }
 
-            //if (_lastMessage == null)
-            //{
-            //    _messageToSplunkPg.Downtime = "false";
-            //    _messageToSplunkPg.Waiting = "false";
-            //    _messageToSplunkPg.Producing = "false";
-            //    _messageToSplunkPg.Setting = "false";
-            //    _messageToSplunkPg.Maintenace = "false";
-            //    _messageToSplunkPg.Producing = _messageToSplunkProducing.Value == "true" ? "true" : "false";
-            //    _messageToSplunkPg.Waiting = _messageToSplunkWaiting.Value == "true" ? "true" : "false";
-            //}
-            //if (_messageToSplunkProducing.Value == null)
-            //    _messageToSplunkPg.Waiting = "true";
-
-
-
-
-            //if (!string.IsNullOrWhiteSpace(_lastMessage?.Value))
-            //{
-            //    if (_lastMessage.Value == "true" && _lastMessage.Name.Contains("MachineDowntime_IPC"))
-            //    {
-            //        // Jeśli MachineDowntime_PG jest "true", ustawiamy Downtime na "true", reszta na "false"
-            //        _messageToSplunkPg.Downtime = "true";
-            //        _messageToSplunkPg.Waiting = "false";
-            //        _messageToSplunkPg.Producing = "false";
-            //        _messageToSplunkPg.Setting = "false";
-            //        _messageToSplunkPg.Maintenace = "false";
-            //    }
-            //    else if (_lastMessage.Value == "true" && _lastMessage.Name.Contains("MaintenanceMode_IPC"))
-            //    {
-            //        // Jeśli MaintenanceMode_PG jest "true", ustawiamy Maintenace na "true", reszta na "false"
-            //        _messageToSplunkPg.Maintenace = "true";
-            //        _messageToSplunkPg.Waiting = "false";
-            //        _messageToSplunkPg.Producing = "false";
-            //        _messageToSplunkPg.Setting = "false";
-            //        _messageToSplunkPg.Downtime = "false";
-            //    }
-            //    else if (_lastMessage.Value == "true" && _lastMessage.Name.Contains("SettingMode_IPC"))
-            //    {
-            //        // Jeśli SettingMode_PG jest "true", ustawiamy Setting na "true", reszta na "false"
-            //        _messageToSplunkPg.Setting = "true";
-            //        _messageToSplunkPg.Waiting = "false";
-            //        _messageToSplunkPg.Producing = "false";
-            //        _messageToSplunkPg.Maintenace = "false";
-            //        _messageToSplunkPg.Downtime = "false";
-            //    }
-            //}
-            //await SendMessageToSplunk(_messageToSplunkPg);
+            if (MachineStatuses != null && MachineStatuses.Any())
+            {
+                foreach (var machineStatus in MachineStatuses)
+                {
+                  await SendMessageToSplunk(machineStatus);
+                }
+            }
         }
 
         private async void StatusPingService(object sender, bool isPing)
@@ -1537,37 +1348,6 @@ namespace ViSyncMaster.ViewModels
         {
             //_messageToSplunkConnected.Value = isPing ? "true" : "false";
             await SendMessageToSplunk(_messageToSplunkConnected);
-        }
-
-        public void Receive(TimerValueChangedMessage message)
-        {
-            Dictionary<string, double> timersData = message.Value;
-
-            foreach (var kvp in timersData)
-            {
-                string timerName = kvp.Key;
-                double timerValue = kvp.Value;
-                TimeSpan timeSpan = TimeSpan.FromSeconds(timerValue);
-
-                if (timerName == "S7.ServiceArrival")
-                {
-                    TimerkeeperService = timeSpan.ToString(@"hh\:mm\:ss");
-                }
-                else
-                {
-                    TimerkeeperStatus = timeSpan.ToString(@"hh\:mm\:ss");
-                }
-            }
-        }
-
-        private void ValidateNumberStation()
-        {
-            // Tutaj przeprowadź walidację _numberStation
-            // Możesz użyć NotifyDataErrorInfo do sprawdzenia błędów walidacji
-
-            // Jeśli walidacja jest poprawna, ustaw IsFormValid na true
-            // W przeciwnym razie ustaw na false
-
         }
 
         /// <summary>
@@ -1589,43 +1369,32 @@ namespace ViSyncMaster.ViewModels
                 testData.TestingFailed = testData.TestingFailed?.ToLower();
             }
 
-            //_messageToSplunkFailed.Value = "false";
-            //_messageToSplunkPassed.Value = "false";
-
-            // Zmieniamy BarOnTopApp tylko wtedy, gdy wartość jest różna
+            // Aktualizacja BarOnTopApp i LoginLabel tylko w razie zmiany
             if (BarOnTopApp != $"VRS  /  {testData.ST}")
                 BarOnTopApp = $"VRS  /  {testData.ST}";
 
-            // Zmieniamy LoginLabel tylko wtedy, gdy wartość jest różna
             if (LoginLabel != testData.Operator)
                 LoginLabel = testData.Operator;
 
+            _machineStatusCounter = testData?.Producing == "true" ? 1 : 2;
 
-            // Ustawienie wartości Producing i Waiting na podstawie Producing
-            //_messageToSplunkProducing.Value = testData?.Producing == "true" ? "true" : "false";
-            //_messageToSplunkWaiting.Value = testData?.Producing == "true" ? "false" : "true";
+            _messageToSplunkFailed.SetValue(testData?.TestingFailed == "true" ? "true" : "false");
+            _messageToSplunkPassed.SetValue(testData?.TestingPassed == "true" ? "true" : "false");
 
-            //_messageToSplunkFailed.Value = testData?.TestingFailed == "true" ? "true" : "false";
-            //_messageToSplunkPassed.Value = testData?.TestingPassed == "true" ? "true" : "false";
-
-            _messageToSplunkPg.Producing = testData?.Producing == "true" ? "true" : "false";
-            _messageToSplunkPg.Waiting = testData?.Producing == "true" ? "false" : "true";
-
-
+            // Ustaw wiadomość na podstawie licznika
+            _messageToSplunkPg.SetByCounter(_machineStatusCounter);
 
             // Wysyłanie wiadomości do Splunk
-            //await SendMessageToSplunk(_messageToSplunkPg);
             await ReSendMessageToSplunk(_messageToSplunkPg);
+
             await SendMessageToSplunk(_messageToSplunkFailed);
             await SendMessageToSplunk(_messageToSplunkPassed);
 
-            //SendMessageToSplunk(_messageToSplunkProducing);
-            //SendMessageToSplunk(_messageToSplunkWaiting);
 
-            // Jeśli Device jest dostępne, wysyłamy testData do Splunk
             if (testData.Device != null)
                 await SendMessageToSplunk(testData);
         }
+
 
         private void TimerCallback(object state)
         {
@@ -1633,29 +1402,6 @@ namespace ViSyncMaster.ViewModels
             Task.Run(async () => await ReSendMessageToSplunk(state));
         }
 
-
-        //public void CheckAndPerformAction(MessagePgToSplunk message)
-        //{
-        //    // Zlicz ile zmiennych ma wartość "true"
-        //    int trueCount = 0;
-
-        //    // Liczenie ile statusów ma wartość "true"
-        //    if (message.Producing == "true") trueCount++;
-        //    if (message.Waiting == "true") trueCount++;
-        //    if (message.Maintenace == "true") trueCount++;
-        //    if (message.Setting == "true") trueCount++;
-        //    if (message.Downtime == "true") trueCount++;
-
-        //    // Jeśli więcej niż jeden status jest ustawiony na "true", wywołaj funkcję
-        //    if (trueCount > 1)
-        //    {
-        //        // Wywołanie funkcji ostrzeżenia, jeśli więcej niż jeden status jest na "true"
-        //        Dispatcher.UIThread.Post(() =>
-        //        {
-        //            ActualValueForWarrningNoticePopup();
-        //        });
-        //    }
-        //}
 
         #endregion
 
@@ -1667,7 +1413,12 @@ namespace ViSyncMaster.ViewModels
 
             Avalonia.Threading.Dispatcher.UIThread.Post(() =>
             {
-                MachineStatuses = new ObservableCollection<MachineStatus>(loadedStatuses); // Tworzenie nowej kolekcji
+                // Synchronizacja elementów w liście
+                MachineStatuses.Clear();
+                foreach (var status in loadedStatuses)
+                {
+                    MachineStatuses.Add(status);
+                }
             });
 
         }
@@ -1823,7 +1574,8 @@ namespace ViSyncMaster.ViewModels
             _repositoryMachineStatusQueue = new GenericRepository<MachineStatus>(_database, "MachineStatusQueue");
             _messageQueue = new MessageQueue(_repositoryMachineStatusQueue);
             _messageSender = new MessageSender(false); // Na początku brak połączenia   
-            
+            _splunkMessageHandler = new SplunkMessageHandler();
+
             _machineStatusService = new MachineStatusService(_repositoryMachineStatus, _repositoryMachineStatusQueue, _messageSender, _messageQueue, _database);
             LoadStatuses(this);
             InitializeAsync();
@@ -1838,11 +1590,9 @@ namespace ViSyncMaster.ViewModels
                 InitializeAppFunctions();
 
             CurrentTime = DateTime.Now.TimeOfDay;
-            timerManager = new TimerManager();
             _timerForVacuum = new DispatcherTimer();
             _timerForVacuum.Interval = TimeSpan.FromSeconds(1);
             _timerForVacuum.Tick += TimerTick;
-            StrongReferenceMessenger.Default.Register<TimerValueChangedMessage>(this);
             BarOnTopApp = !string.IsNullOrEmpty(appConfig.Line) && !string.IsNullOrEmpty(appConfig.WorkplaceName)
                 ? $"{appConfig.Line}  /  {appConfig.WorkplaceName}"
                 : "Brak danych / Brak danych";

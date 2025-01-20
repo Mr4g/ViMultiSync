@@ -278,8 +278,8 @@ namespace ViSyncMaster.Repositories
             if (!string.IsNullOrEmpty(data.Waiting))
                 eventFields["S1.Waiting_PG"] = data.Waiting;
 
-            if (!string.IsNullOrEmpty(data.Maintenace))
-                eventFields["S1.MaintenanceMode_PG"] = data.Maintenace;
+            if (!string.IsNullOrEmpty(data.Maintenance))
+                eventFields["S1.MaintenanceMode_PG"] = data.Maintenance;
 
             if (!string.IsNullOrEmpty(data.Setting))
                 eventFields["S1.SettingMode_PG"] = data.Setting;

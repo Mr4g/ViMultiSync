@@ -44,9 +44,14 @@ namespace ViSyncMaster.Services
             // Asynchronicznie dodaj status do repozytoriów
             await _repositoryMachineStatusQueue.AddOrUpdate(machineStatus);
             await _repositoryMachineStatus.AddOrUpdate(machineStatus);
+            return machineStatus;
+        }
 
-            var message = JsonSerializer.Serialize(machineStatus);
-
+        public async Task<MachineStatus> UpdateStatus(MachineStatus machineStatus)
+        {
+            // Asynchronicznie dodaj status do repozytoriów
+            await _repositoryMachineStatusQueue.AddOrUpdate(machineStatus);
+            await _repositoryMachineStatus.AddOrUpdate(machineStatus);
             return machineStatus;
         }
 
@@ -54,11 +59,9 @@ namespace ViSyncMaster.Services
         public MachineStatus EndStatus(MachineStatus machineStatus)
         {
             machineStatus.EndTime = DateTime.Now;  // Zaktualizowanie czasu zakończenia 
-
             // Zapisz zaktualizowany status w repozytorium MachineStatus
             _repositoryMachineStatusQueue.AddOrUpdate(machineStatus);
             _repositoryMachineStatus.AddOrUpdate(machineStatus);      
-
             return machineStatus;
         }
 

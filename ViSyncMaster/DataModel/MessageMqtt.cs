@@ -9,5 +9,6 @@ namespace ViSyncMaster.DataModel
     public class MessageMqtt : MachineStatus
     {
         public string? Source { get; set; }
+        public MessageMqtt() { }
     }
 }

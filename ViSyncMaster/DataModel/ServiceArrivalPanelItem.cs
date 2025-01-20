@@ -14,5 +14,6 @@ namespace ViSyncMaster.DataModel
     /// </summary>
     public class ServiceArrivalPanelItem : MachineStatus
     {
+        public ServiceArrivalPanelItem() { }
     }
 }

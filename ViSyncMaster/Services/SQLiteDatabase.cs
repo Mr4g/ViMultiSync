@@ -1,11 +1,14 @@
-﻿using Serilog;
+﻿using Newtonsoft.Json.Linq;
+using Serilog;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Data.Common;
 using System.Data.SQLite;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
+using ViSyncMaster.DataModel;
 
 namespace ViSyncMaster.Services
 {
@@ -16,10 +19,10 @@ namespace ViSyncMaster.Services
         public SQLiteDatabase(string dbPath)
         {
             _connectionString = $"Data Source={dbPath};Version=3;";
-            ConfigureWALMode().Wait(); 
+            ConfigureWALMode().Wait();
         }
 
-        // Tworzenie tabeli dla dowolnego typu encji, jeśli nie istnieje
+        // Create table for MachineStatus model if it doesn't exist
         public async Task CreateTableIfNotExists<T>(string tableName = null)
         {
             try
@@ -54,17 +57,18 @@ namespace ViSyncMaster.Services
             }
         }
 
-        // Pobranie kolumn z typu encji
+        // Generate columns for the specified model type
         private IEnumerable<string> GetColumnsForType<T>()
         {
             return typeof(T).GetProperties().Select(p =>
             {
                 var columnType = GetSQLiteColumnType(p.PropertyType);
-                var isPrimaryKey = p.Name == "Id" ? " PRIMARY KEY" : ""; // Jeśli nazwa to Id, dodaj PRIMARY KEY
+                var isPrimaryKey = p.Name == "Id" ? " PRIMARY KEY AUTOINCREMENT" : ""; // Use AUTOINCREMENT for Id
                 return $"{p.Name} {columnType}{isPrimaryKey}";
             });
         }
-        // Mapowanie typów C# na odpowiednie typy SQLite
+
+        // Map C# types to SQLite types
         private string GetSQLiteColumnType(Type propertyType)
         {
             var underlyingType = Nullable.GetUnderlyingType(propertyType) ?? propertyType;
@@ -77,7 +81,7 @@ namespace ViSyncMaster.Services
             return "TEXT"; // Default type
         }
 
-        // Przykładowe wykonanie zapytania SQL
+        // Execute non-query SQL commands
         public async Task ExecuteNonQuery(string query, object parameters)
         {
             try
@@ -105,7 +109,8 @@ namespace ViSyncMaster.Services
                 throw;
             }
         }
-        // Wykonywanie zapytania SQL i mapowanie wyników na generyczny typ
+
+        // Execute a query and map results to the specified model type
         public async Task<List<T>> ExecuteReaderAsync<T>(string query)
         {
             try
@@ -141,6 +146,8 @@ namespace ViSyncMaster.Services
                 throw;
             }
         }
+
+        // Enable WAL mode for better write performance
         private async Task ConfigureWALMode()
         {
             try
@@ -168,7 +175,7 @@ namespace ViSyncMaster.Services
             }
         }
 
-        // Pomocnicza metoda dodająca parametry do zapytania
+        // Add parameters to a query
         private void AddParameters(SQLiteCommand command, object parameters)
         {
             foreach (var property in parameters.GetType().GetProperties())
@@ -178,7 +185,7 @@ namespace ViSyncMaster.Services
             }
         }
 
-        // Mapowanie wyników zapytania na typ encji
+        // Map database rows to the specified entity type
         private T MapReaderToEntity<T>(DbDataReader reader)
         {
             var entity = Activator.CreateInstance<T>();
@@ -186,35 +193,51 @@ namespace ViSyncMaster.Services
 
             foreach (var prop in properties)
             {
+                // Sprawdzamy, czy właściwość ma publiczny setter
+                if (!prop.CanWrite) continue;
+
                 var columnName = prop.Name;
 
-                // Sprawdzamy, czy właściwość ma publiczny setter
-                if (prop.CanWrite && !reader.IsDBNull(reader.GetOrdinal(columnName)))
-                {
-                    var value = reader[columnName];
+                // Pobieranie wartości z readera
+                var value = reader[columnName];
 
-                    // Obsługuje Nullable<DateTime> (DateTime?)
-                    if (prop.PropertyType == typeof(DateTime?) && value is string stringValue)
-                    {
-                        // Próbujemy przekonwertować wartość w formie string na DateTime?
-                        if (DateTime.TryParse(stringValue, out var dateValue))
-                        {
-                            prop.SetValue(entity, dateValue);
-                        }
-                        else
-                        {
-                            prop.SetValue(entity, null); // Ustawiamy null, jeśli nie uda się przekonwertować
-                        }
-                    }
-                    else
-                    {
-                        // Standardowa konwersja wartości do odpowiedniego typu
-                        prop.SetValue(entity, Convert.ChangeType(value, prop.PropertyType));
-                    }
+                // Obsługuje Nullable<DateTime> (DateTime?)
+                if (prop.PropertyType == typeof(DateTime?) && value is DBNull)
+                {
+                    prop.SetValue(entity, null); // Ustawiamy null, jeśli wartość jest DBNull
+                }
+                else if (prop.PropertyType == typeof(DateTime?) && value is DateTime dateTimeValue)
+                {
+                    prop.SetValue(entity, dateTimeValue);
+                }
+                // Obsługuje zwykły DateTime
+                else if (prop.PropertyType == typeof(DateTime) && value is DateTime dateValue)
+                {
+                    prop.SetValue(entity, dateValue);
+                }
+                // Obsługuje inne typy (ogólna konwersja)
+                else if (value != DBNull.Value)
+                {
+                    prop.SetValue(entity, Convert.ChangeType(value, prop.PropertyType));
                 }
             }
 
             return entity;
+        }
+
+
+
+        // Check if a column exists in the reader
+        private bool ColumnExists(IDataRecord reader, string columnName)
+        {
+            for (int i = 0; i < reader.FieldCount; i++)
+            {
+                if (reader.GetName(i).Equals(columnName, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+            return false;
         }
     }
 }
