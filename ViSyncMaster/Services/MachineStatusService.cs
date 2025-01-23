@@ -46,6 +46,35 @@ namespace ViSyncMaster.Services
             await _repositoryMachineStatus.AddOrUpdate(machineStatus);
             return machineStatus;
         }
+        public async Task<MachineStatus> ReportPartQuality(MachineStatus machineStatus)
+        {
+            var epochMilliseconds = DateTimeOffset.Now.ToUnixTimeMilliseconds(); // Czas epoch w milisekundach
+            var uniqueId = epochMilliseconds;
+
+            machineStatus.Id = uniqueId;
+            machineStatus.StartTime = DateTime.Now;
+            machineStatus.EndTime = DateTime.Now;
+
+            // Asynchronicznie dodaj status do repozytoriów
+            await _repositoryMachineStatusQueue.AddOrUpdate(machineStatus);
+            //await _repositoryMachineStatus.AddOrUpdate(machineStatus);
+            return machineStatus;
+        }
+
+        public async Task<MachineStatus> SendMessageToSplunk(MachineStatus machineStatus)
+        {
+            var epochMilliseconds = DateTimeOffset.Now.ToUnixTimeMilliseconds(); // Czas epoch w milisekundach
+            var uniqueId = epochMilliseconds;
+
+            machineStatus.Id = uniqueId;
+            machineStatus.StartTime = DateTime.Now;
+            machineStatus.EndTime = DateTime.Now;
+
+            // Asynchronicznie dodaj status do repozytoriów
+            await _repositoryMachineStatusQueue.AddOrUpdate(machineStatus);
+
+            return machineStatus;
+        }
 
         public async Task<MachineStatus> UpdateStatus(MachineStatus machineStatus)
         {

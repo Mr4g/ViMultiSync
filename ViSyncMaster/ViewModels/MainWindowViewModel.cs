@@ -33,6 +33,7 @@ using Serilog;
 using System.Reflection;
 using System.Linq;
 using ViSyncMaster.Handlers;
+using System.Data;
 
 
 namespace ViSyncMaster.ViewModels
@@ -52,8 +53,6 @@ namespace ViSyncMaster.ViewModels
         private Timer _timerForLoadStatuses;
         private DispatcherTimer _timerForVacuum;
         private GenericMessageFromPlc _messageFromPlc;
-        private ProducingMessage _messageToSplunkProducing;
-        private WaitingMessage _messageToSplunkWaiting;
         private TestingFailedMessage _messageToSplunkFailed;
         private TestingPassedMessage _messageToSplunkPassed;
         private ConnectedMessage _messageToSplunkConnected;
@@ -524,7 +523,7 @@ namespace ViSyncMaster.ViewModels
         [RelayCommand]
         private async Task ReportMachineDowntime(MachineStatus item)
         {
-            UpdateCallForServicePanel(item.StepOfStatus);
+            UpdateCallForServicePanel(0);
             if (MachineStatuses.Any(status => status.Status == item.Status))
             {
                 // Powiadomienie, że status już istnieje.
@@ -570,13 +569,13 @@ namespace ViSyncMaster.ViewModels
             {
                 var newStatus = _machineStatusService.StartStatus(item);
             }
-            //LoadStatuses(this); // Zaktualizuj listę statusów
+            _pendingMachineStatus = item;
+            LoadStatuses(this); // Zaktualizuj listę statusów
             SettingPanelIsOpen = false;
             DowntimePanelIsOpen = false;
             MaintenancePanelIsOpen = false;
             LogisticPanelIsOpen = false;
             CallForServicePanelIsOpen = false;
-
         }
         [RelayCommand]
         private void ActualStatusButtonPressed(MachineStatus machineStatus)
@@ -634,7 +633,7 @@ namespace ViSyncMaster.ViewModels
 
                 // Rozpocznij nowy status
                 //var updatedStatus = _machineStatusService.StartStatus(_pendingMachineStatus);
-                if (_pendingMachineStatus.StepOfStatus != 2)
+                if (_pendingMachineStatus.StepOfStatus > 2)
                     _pendingMachineStatus = null; // Wyczyszczenie tymczasowego statusu po scaleniu
             }
         }
@@ -759,7 +758,6 @@ namespace ViSyncMaster.ViewModels
             OptionsPanelIsOpen = true;
             VacuumPanelIsOpen = true;
         }
-
 
         [RelayCommand]
         private void InfoButtonPressed()
@@ -1328,13 +1326,15 @@ namespace ViSyncMaster.ViewModels
                 await SendMessageToSplunk(messagePgToSplunk);
             }
 
-            if (MachineStatuses != null && MachineStatuses.Any())
-            {
-                foreach (var machineStatus in MachineStatuses)
-                {
-                  await SendMessageToSplunk(machineStatus);
-                }
-            }
+            //if (MachineStatuses != null && MachineStatuses.Any())
+            //{
+            //    // Tworzymy kopię listy MachineStatuses
+            //    var machineStatusesCopy = new List<MachineStatus>(MachineStatuses);
+            //    foreach (var machineStatus in machineStatusesCopy)
+            //    {
+            //        await _machineStatusService.SendMessageToSplunk(machineStatus);
+            //    }
+            //}
         }
 
         private async void StatusPingService(object sender, bool isPing)
@@ -1387,8 +1387,9 @@ namespace ViSyncMaster.ViewModels
             // Wysyłanie wiadomości do Splunk
             await ReSendMessageToSplunk(_messageToSplunkPg);
 
-            await SendMessageToSplunk(_messageToSplunkFailed);
-            await SendMessageToSplunk(_messageToSplunkPassed);
+            await _machineStatusService.ReportPartQuality(_messageToSplunkFailed);
+            await Task.Delay(200);
+            await _machineStatusService.ReportPartQuality(_messageToSplunkPassed);
 
 
             if (testData.Device != null)
@@ -1483,8 +1484,6 @@ namespace ViSyncMaster.ViewModels
 
         private void InitializeVRSKTFunctions()
         {
-            _messageToSplunkProducing = new ProducingMessage();
-            _messageToSplunkWaiting = new WaitingMessage();
             _messageToSplunkFailed = new TestingFailedMessage();
             _messageToSplunkPassed = new TestingPassedMessage();
             _messageToSplunkConnected = new ConnectedMessage();
@@ -1565,6 +1564,7 @@ namespace ViSyncMaster.ViewModels
                     rollOnFileSizeLimit: true)           // Twórz nowy plik, jeśli przekroczono rozmiar
                 .CreateLogger();
             mStatusInterfaceService = statusInterfaceService;
+            _pendingMachineStatus = new MachineStatus();
             _sharedDataService = new SharedDataService();
             appConfig = _sharedDataService.AppConfig ?? new AppConfigData();
             _database = new SQLiteDatabase(@"C:\ViSM\Database\databaseViSM.db");
@@ -1573,7 +1573,7 @@ namespace ViSyncMaster.ViewModels
             _repositoryMachineStatus = new GenericRepository<MachineStatus>(_database, "MachineStatus");
             _repositoryMachineStatusQueue = new GenericRepository<MachineStatus>(_database, "MachineStatusQueue");
             _messageQueue = new MessageQueue(_repositoryMachineStatusQueue);
-            _messageSender = new MessageSender(false); // Na początku brak połączenia   
+            _messageSender = new MessageSender(this); // Na początku brak połączenia   
             _splunkMessageHandler = new SplunkMessageHandler();
 
             _machineStatusService = new MachineStatusService(_repositoryMachineStatus, _repositoryMachineStatusQueue, _messageSender, _messageQueue, _database);

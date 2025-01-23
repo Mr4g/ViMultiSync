@@ -12,9 +12,21 @@ namespace ViSyncMaster.AuxiliaryClasses
 {
     public class ErrorHandler
     {
+        private static bool isErrorDisplayed = false;
+        private static readonly object lockObject = new object();
+
         // Statyczna metoda do wyświetlania komunikatu o błędzie
         public static async Task ShowErrorMessage(string errorMessage, string? errorTitle = null)
         {
+            lock (lockObject)
+            {
+                if (isErrorDisplayed)
+                {
+                    return;
+                }
+                isErrorDisplayed = true;
+            }
+
             await Dispatcher.UIThread.InvokeAsync(async () =>
             {
                 await MsBox.Avalonia.MessageBoxManager
@@ -29,6 +41,11 @@ namespace ViSyncMaster.AuxiliaryClasses
                         Topmost = true
                     })
                     .ShowAsync();
+
+                lock (lockObject)
+                {
+                    isErrorDisplayed = false;
+                }
             });
         }
 
@@ -39,6 +56,7 @@ namespace ViSyncMaster.AuxiliaryClasses
             string errorTitle = "Error";
             await ShowErrorMessage(errorMessage, errorTitle);
         }
+
         public static async Task ShowErrorNetwork(string message)
         {
             string errorMessage = $"{message}";
