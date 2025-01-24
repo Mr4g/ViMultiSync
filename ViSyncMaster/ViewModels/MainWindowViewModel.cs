@@ -34,6 +34,8 @@ using System.Reflection;
 using System.Linq;
 using ViSyncMaster.Handlers;
 using System.Data;
+using ViSyncMaster.DeepCopy;
+using ViSyncMaster.WiFi;
 
 
 namespace ViSyncMaster.ViewModels
@@ -60,6 +62,7 @@ namespace ViSyncMaster.ViewModels
         private int _machineStatusCounter = 2;
 
         private GenericSplunkLogger<IEntity> _splunkLogger;
+        private WifiParameters _wifiParameters; 
 
         private DispatcherTimer _timerScheduleForLogging;
         private TaskCompletionSource<bool> _dataIsSendingToSplunkCompletionSource = new TaskCompletionSource<bool>();
@@ -138,6 +141,9 @@ namespace ViSyncMaster.ViewModels
 
         [ObservableProperty]
         private string _loginLabel;
+
+        [ObservableProperty]
+        private string _ssid;
 
         [ObservableProperty]
         [NotifyDataErrorInfo]
@@ -1320,21 +1326,22 @@ namespace ViSyncMaster.ViewModels
 
         private async Task ReSendMessageToSplunk(object state)
         {
+            Ssid = _wifiParameters.FetchWifiName();
             if (appConfig.AppMode == "VRSKT")
             {
                 var messagePgToSplunk = _splunkMessageHandler.PreparingPgMessageToSplunk(MachineStatuses, _machineStatusCounter);
                 await SendMessageToSplunk(messagePgToSplunk);
             }
 
-            //if (MachineStatuses != null && MachineStatuses.Any())
-            //{
-            //    // Tworzymy kopię listy MachineStatuses
-            //    var machineStatusesCopy = new List<MachineStatus>(MachineStatuses);
-            //    foreach (var machineStatus in machineStatusesCopy)
-            //    {
-            //        await _machineStatusService.SendMessageToSplunk(machineStatus);
-            //    }
-            //}
+            if (MachineStatuses != null && MachineStatuses.Any())
+            {
+                // Tworzymy kopię listy MachineStatuses
+                var machineStatusesCopy = new List<MachineStatus>(MachineStatuses.Select(status => status.DeepCopy()));
+                foreach (var machineStatus in machineStatusesCopy)
+                {
+                    await _machineStatusService.ReSendMessageToSplunk(machineStatus);
+                }
+            }
         }
 
         private async void StatusPingService(object sender, bool isPing)
@@ -1402,8 +1409,6 @@ namespace ViSyncMaster.ViewModels
             // Wywołujemy metodę asynchroniczną w tle
             Task.Run(async () => await ReSendMessageToSplunk(state));
         }
-
-
         #endregion
 
         private async void LoadStatuses(object state)
@@ -1421,7 +1426,6 @@ namespace ViSyncMaster.ViewModels
                     MachineStatuses.Add(status);
                 }
             });
-
         }
 
         #region InitializeAppFunctions
@@ -1451,6 +1455,8 @@ namespace ViSyncMaster.ViewModels
 
             _timerForReSendMassage = new Timer(TimerCallback, null, TimeSpan.Zero, TimeSpan.FromSeconds(15));
             _timerForLoadStatuses = new Timer(LoadStatuses, null, TimeSpan.Zero, TimeSpan.FromSeconds(1));
+
+            _wifiParameters = new WifiParameters(); 
 
             // Sprawdzenie trybu z pliku konfiguracyjnego
             if (appConfig.AppMode == "CUPP")

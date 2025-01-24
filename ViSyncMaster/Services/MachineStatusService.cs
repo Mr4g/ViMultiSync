@@ -61,18 +61,10 @@ namespace ViSyncMaster.Services
             return machineStatus;
         }
 
-        public async Task<MachineStatus> SendMessageToSplunk(MachineStatus machineStatus)
+        // Wysyłanie wiadomości które już posiadają ID/Start/End etc..
+        public async Task<MachineStatus> ReSendMessageToSplunk(MachineStatus machineStatus)
         {
-            var epochMilliseconds = DateTimeOffset.Now.ToUnixTimeMilliseconds(); // Czas epoch w milisekundach
-            var uniqueId = epochMilliseconds;
-
-            machineStatus.Id = uniqueId;
-            machineStatus.StartTime = DateTime.Now;
-            machineStatus.EndTime = DateTime.Now;
-
-            // Asynchronicznie dodaj status do repozytoriów
             await _repositoryMachineStatusQueue.AddOrUpdate(machineStatus);
-
             return machineStatus;
         }
 

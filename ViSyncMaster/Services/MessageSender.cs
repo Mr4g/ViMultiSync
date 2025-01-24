@@ -137,7 +137,11 @@ namespace ViSyncMaster.Services
                         || propertyName == "timeEpoch" || propertyName == "reason" || propertyName == "device"
                         || propertyName == "testFault" || propertyName == "totalAbs" || propertyName == "tGoodAbs"
                         || propertyName == "operator" || propertyName == "testObject" || propertyName == "serialNumber"
-                        || propertyName == "timeOfAllStatus" || propertyName == "timeOfAllRepairs")
+                        || propertyName == "id" || propertyName == "callForService" || propertyName == "startTime" 
+                        || propertyName == "callForServiceRunning" || propertyName == "serviceArrival"
+                        || propertyName == "serviceArrivalRunning" || propertyName == "endTime" || propertyName == "isActive"
+                        || propertyName == "durationStatus" || propertyName == "durationService" || propertyName == "durationWaitingForService" 
+                        || propertyName == "stepOfStatus")
                     {
                         eventFields[propertyName] = propertyValue.ToString();
                     }
