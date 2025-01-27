@@ -109,7 +109,7 @@ namespace ViSyncMaster.DataModel
         /// <summary>
         /// Wartość wyliczana na podstawie stanu zakończenia.
         /// </summary>
-        public virtual string Value => IsActive ? "true" : "false";
+        public virtual string Value { get; set; }
 
         public event PropertyChangedEventHandler? PropertyChanged;
                 protected virtual void OnPropertyChanged(string propertyName)

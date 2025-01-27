@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using ViSyncMaster.Entitys;
 
 namespace ViSyncMaster.DataModel
@@ -13,6 +9,7 @@ namespace ViSyncMaster.DataModel
         {
             this.Name = "S7.TestingFailed";
         }
+
         private string _value = "false";
         public override string Value => _value;
 
@@ -21,6 +18,4 @@ namespace ViSyncMaster.DataModel
             _value = value;
         }
     }
-
-
 }

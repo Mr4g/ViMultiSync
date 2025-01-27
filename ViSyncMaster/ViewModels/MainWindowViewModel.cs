@@ -79,6 +79,8 @@ namespace ViSyncMaster.ViewModels
         private string googleInstructionUrl;
         private string googleTargetPlanUrl;
 
+        
+        private int _counterTest = 0;
 
         private Dictionary<string, string> PanelActionMapping;
 
@@ -1366,7 +1368,7 @@ namespace ViSyncMaster.ViewModels
         {
             await Task.Run(() => _serialPortListener.StartListening(appConfig.ComNumber));
         }
-
+        private string _previousProducingState = string.Empty;
         private async void OnFrameReceived(object sender, Rs232Data testData)
         {
             if (testData != null)
@@ -1385,22 +1387,42 @@ namespace ViSyncMaster.ViewModels
 
             _machineStatusCounter = testData?.Producing == "true" ? 1 : 2;
 
-            _messageToSplunkFailed.SetValue(testData?.TestingFailed == "true" ? "true" : "false");
-            _messageToSplunkPassed.SetValue(testData?.TestingPassed == "true" ? "true" : "false");
-
             // Ustaw wiadomość na podstawie licznika
             _messageToSplunkPg.SetByCounter(_machineStatusCounter);
 
             // Wysyłanie wiadomości do Splunk
-            await ReSendMessageToSplunk(_messageToSplunkPg);
 
-            await _machineStatusService.ReportPartQuality(_messageToSplunkFailed);
-            await Task.Delay(200);
-            await _machineStatusService.ReportPartQuality(_messageToSplunkPassed);
+            ReSendMessageToSplunk(_messageToSplunkPg);
 
+
+            _messageToSplunkFailed.SetValue(testData?.TestingFailed == "true" ? "true" : "false");
+            _messageToSplunkPassed.SetValue(testData?.TestingPassed == "true" ? "true" : "false");
+
+            if (_messageToSplunkPassed.Value == "true")
+            {
+                _counterTest++;
+                Debug.WriteLine($"CounterTest value: {_counterTest}");
+            }
+
+            // Wysyłanie tylko tych wiadomości, które mają wartość "true"
+            if (_messageToSplunkFailed.Value == "true")
+            {
+                Debug.WriteLine("Sending _messageToSplunkFailed");
+                SendMessageToSplunk(_messageToSplunkFailed);
+            }
+
+            if (_messageToSplunkPassed.Value == "true")
+            {
+                Debug.WriteLine("Sending _messageToSplunkPassed");
+                //_machineStatusService.ReportPartQuality(_messageToSplunkPassed);
+                SendMessageToSplunk(_messageToSplunkPassed);
+            }
 
             if (testData.Device != null)
-                await SendMessageToSplunk(testData);
+            {
+                Debug.WriteLine("Sending testData");
+                SendMessageToSplunk(testData);
+            }
         }
 
 

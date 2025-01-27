@@ -15,6 +15,7 @@ namespace ViSyncMaster.Services
         private readonly MessageSender _messageSender;
         private readonly MessageQueue _messageQueue;
         private readonly SQLiteDatabase _database;
+        private long _lastStatusId = 0;
 
         // Konstruktor przyjmuje repozytoria generyczne dla obu tabel
         public MachineStatusService(GenericRepository<MachineStatus> repositoryMachineStatus,
@@ -48,14 +49,8 @@ namespace ViSyncMaster.Services
         }
         public async Task<MachineStatus> ReportPartQuality(MachineStatus machineStatus)
         {
-            var epochMilliseconds = DateTimeOffset.Now.ToUnixTimeMilliseconds(); // Czas epoch w milisekundach
-            var uniqueId = epochMilliseconds;
-
-            machineStatus.Id = uniqueId;
-            machineStatus.StartTime = DateTime.Now;
-            machineStatus.EndTime = DateTime.Now;
-
-            // Asynchronicznie dodaj status do repozytoriów
+            _lastStatusId++;
+            machineStatus.Id = _lastStatusId;
             await _repositoryMachineStatusQueue.AddOrUpdate(machineStatus);
             //await _repositoryMachineStatus.AddOrUpdate(machineStatus);
             return machineStatus;

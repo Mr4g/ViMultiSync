@@ -126,32 +126,57 @@ namespace ViSyncMaster.Services
             var generalFields = new Dictionary<string, string>();
             var otherFields = new Dictionary<string, string>();
 
-            foreach (var property in type.GetProperties())
-            {
-                var propertyName = char.ToLowerInvariant(property.Name[0]) + property.Name.Substring(1);
-                var propertyValue = property.GetValue(data);
+            // Najpierw zbierz wszystkie właściwości do listy
+            var properties = type.GetProperties()
+                                 .Select(p => new
+                                 {
+                                     PropertyName = char.ToLowerInvariant(p.Name[0]) + p.Name.Substring(1),
+                                     PropertyValue = p.GetValue(data)
+                                 })
+                                 .Where(p => p.PropertyValue != null && p.PropertyValue.ToString() != "" && p.PropertyName != "time")
+                                 .ToList();
 
-                if (propertyValue != null && propertyName != "time" && propertyValue != "")
+            // Sprawdź najpierw, czy istnieje właściwość "name" o odpowiedniej wartości
+            var nameProperty = properties.FirstOrDefault(p => p.PropertyName == "name" &&
+                (p.PropertyValue.ToString() == "S7.TestingPassed" || p.PropertyValue.ToString() == "S7.TestingFailed"));
+
+            if (nameProperty != null)
+            {
+                // Jeśli znajdziesz "name" o wartości "S7.TestingPassed" lub "S7.TestingFailed", obsługuj tylko te pola
+                eventFields.Clear();
+                eventFields["name"] = nameProperty.PropertyValue.ToString();
+
+                // Znajdź "value" w properties i dodaj je do eventFields
+                var valueProperty = properties.FirstOrDefault(p => p.PropertyName == "value");
+                if (valueProperty != null)
                 {
-                    if (propertyName == "name" || propertyName == "value" || propertyName == "status" 
-                        || propertyName == "timeEpoch" || propertyName == "reason" || propertyName == "device"
-                        || propertyName == "testFault" || propertyName == "totalAbs" || propertyName == "tGoodAbs"
-                        || propertyName == "operator" || propertyName == "testObject" || propertyName == "serialNumber"
-                        || propertyName == "id" || propertyName == "callForService" || propertyName == "startTime" 
-                        || propertyName == "callForServiceRunning" || propertyName == "serviceArrival"
-                        || propertyName == "serviceArrivalRunning" || propertyName == "endTime" || propertyName == "isActive"
-                        || propertyName == "durationStatus" || propertyName == "durationService" || propertyName == "durationWaitingForService" 
-                        || propertyName == "stepOfStatus")
+                    eventFields["value"] = valueProperty.PropertyValue.ToString();
+                }
+            }
+            else
+            {
+                // Standardowa logika dla pozostałych przypadków
+                foreach (var property in properties)
+                {
+                    if (property.PropertyName == "name" || property.PropertyName == "value" || property.PropertyName == "status"
+                        || property.PropertyName == "timeEpoch" || property.PropertyName == "reason" || property.PropertyName == "device"
+                        || property.PropertyName == "testFault" || property.PropertyName == "totalAbs" || property.PropertyName == "tGoodAbs"
+                        || property.PropertyName == "operator" || property.PropertyName == "testObject" || property.PropertyName == "serialNumber"
+                        || property.PropertyName == "id" || property.PropertyName == "callForService" || property.PropertyName == "startTime"
+                        || property.PropertyName == "callForServiceRunning" || property.PropertyName == "serviceArrival"
+                        || property.PropertyName == "serviceArrivalRunning" || property.PropertyName == "endTime" || property.PropertyName == "isActive"
+                        || property.PropertyName == "durationStatus" || property.PropertyName == "durationService" || property.PropertyName == "durationWaitingForService"
+                        || property.PropertyName == "stepOfStatus")
                     {
-                        eventFields[propertyName] = propertyValue.ToString();
+                        eventFields[property.PropertyName] = property.PropertyValue.ToString();
                     }
-                    else if (propertyName == "source")
+                    else if (property.PropertyName == "source")
                     {
-                        generalFields[propertyName] = propertyValue.ToString();
+                        generalFields[property.PropertyName] = property.PropertyValue.ToString();
                     }
                     else
                     {
-                        otherFields[propertyName] = propertyValue.ToString();
+                        otherFields[property.PropertyName] = property.PropertyValue.ToString();
                     }
                 }
             }

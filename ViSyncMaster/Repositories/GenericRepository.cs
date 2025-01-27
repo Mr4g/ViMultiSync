@@ -37,6 +37,10 @@ namespace ViSyncMaster.Repositories
         }
         public async Task AddOrUpdate(T entity)
         {
+            if (entity.Id == 0)
+            {
+                entity.Id = DateTimeOffset.Now.ToUnixTimeMilliseconds(); // Ustawienie Id na podstawie czasu epoch w milisekundach
+            }
             // Dodaj do kolejki zamiast bezpośrednio do bazy danych
             await _bufferedQueue.Enqueue(entity);
         }
