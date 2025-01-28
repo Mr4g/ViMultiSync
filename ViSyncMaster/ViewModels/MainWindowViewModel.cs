@@ -584,6 +584,7 @@ namespace ViSyncMaster.ViewModels
             MaintenancePanelIsOpen = false;
             LogisticPanelIsOpen = false;
             CallForServicePanelIsOpen = false;
+            ControlPanelVisible = false;
         }
         [RelayCommand]
         private void ActualStatusButtonPressed(MachineStatus machineStatus)
