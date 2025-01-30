@@ -515,7 +515,7 @@ namespace ViSyncMaster.ViewModels
         public void SplunkPanelButtonPressed() => SplunkPanelIsOpen ^= true;
 
 
-        private void UpdateCallForServicePanel(int stepOfStatus)
+        private void UpdateCallForServicePanel(int stepOfStatus, MachineStatus machineStatus)
         {
             // Filtrowanie danych na podstawie StepOfStatus
             var filteredItems = _allCallForServicePanelData // Upewnij się, że przechowujesz dane źródłowe w tej zmiennej
@@ -523,15 +523,30 @@ namespace ViSyncMaster.ViewModels
                     (stepOfStatus == 0 && (item.Name == "CallForService" || item.Name == "Exit")) ||
                     (stepOfStatus == 1 && (item.Name == "ServiceArrival" || item.Name == "DowntimeReason" || item.Name == "Exit")) ||
                     (stepOfStatus == 2 && (item.Name == "DowntimeReason" || item.Name == "Exit")))
-                .GroupBy(item => item.Name);
+                .ToList();
+
+            // Zmiana statusu elementów na status przychodzący z machineStatus
+
+            foreach (var item in filteredItems)
+            {
+                if (item.Name == "CallForService")
+                {
+                    item.SetStatusBasedOnRole(machineStatus.Status);
+                }
+            }
+            // Grupowanie zaktualizowanych elementów
+            var groupedItems = filteredItems.GroupBy(item => item.Name);
+            
+
             // Aktualizacja CallForServicePanel
-            CallForServicePanel = new ObservableGroupedCollection<string, CallForServicePanelItem>(filteredItems);
-        }   
+            CallForServicePanel = new ObservableGroupedCollection<string, CallForServicePanelItem>(groupedItems);
+           
+        }
 
         [RelayCommand]
         private async Task ReportMachineDowntime(MachineStatus item)
         {
-            UpdateCallForServicePanel(0);
+            UpdateCallForServicePanel(0, item);
             if (MachineStatuses.Any(status => status.Status == item.Status))
             {
                 // Powiadomienie, że status już istnieje.
@@ -583,6 +598,7 @@ namespace ViSyncMaster.ViewModels
             DowntimePanelIsOpen = false;
             MaintenancePanelIsOpen = false;
             LogisticPanelIsOpen = false;
+            DowntimeReasonLiderPanelIsOpen = false;
             CallForServicePanelIsOpen = false;
             ControlPanelVisible = false;
         }
@@ -594,7 +610,7 @@ namespace ViSyncMaster.ViewModels
                 HandleUnmappedStatus(machineStatus);
                 return;
             }
-            UpdateCallForServicePanel(machineStatus.StepOfStatus);
+            UpdateCallForServicePanel(machineStatus.StepOfStatus, machineStatus);
             _pendingMachineStatus = machineStatus;
             CallForServicePanelIsOpen = true;
             ControlPanelVisible = true;
@@ -1263,7 +1279,7 @@ namespace ViSyncMaster.ViewModels
             InfoPanelIsOpen = false;
             ControlPanelVisible = false;
 
-            LoadPage(DeviceInfoPanel[0].LinkToManual);
+            LoadPage("file:///C:/ViSM/ConfigFiles/Instrukcja%20ViSyncMaster.pdf");
         }
 
         public void LoadPageSap()

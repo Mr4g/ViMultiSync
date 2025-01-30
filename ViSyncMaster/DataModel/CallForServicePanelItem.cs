@@ -14,6 +14,32 @@ namespace ViSyncMaster.DataModel
     /// </summary>
     public class CallForServicePanelItem : MachineStatus
     {
+        public void SetStatusBasedOnRole(string role)
+        {
+            if (string.IsNullOrEmpty(role))
+            {
+                throw new ArgumentException("Role cannot be null or empty", nameof(role));
+            }
 
+            switch (role.ToLower())
+            {
+                case "mechaniczna":
+                case "elektryczna":
+                case "płyta":        
+                    this.Status = "WEZWIJ SERWIS";
+                    break;
+
+                case "kptj":
+                    this.Status = "WEZWIJ KPTJ";
+                    break;
+
+                case "lider":
+                    this.Status = "WEZWIJ LIDER";
+                    break;
+
+                default:
+                    throw new ArgumentException($"Unknown role: {role}", nameof(role));
+            }
+        }
     }
 }
