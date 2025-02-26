@@ -15,7 +15,7 @@ public partial class MachineStatusTableView : UserControl
     }
 
     public void SetDataContext(ObservableCollection<MachineStatus> machineStatuses)
-    {
+    { 
         var viewModel = new MachineStatusTableViewModel(machineStatuses);
         DataContext = viewModel;  // Ustawienie DataContext w widoku
     }

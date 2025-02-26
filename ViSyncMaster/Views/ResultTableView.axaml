@@ -1,0 +1,219 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:dataModel="clr-namespace:ViSyncMaster.DataModel"
+             xmlns:viewModels="clr-namespace:ViSyncMaster.ViewModels"
+			 xmlns:material="using:Material.Icons.Avalonia"
+             xmlns:lvc="clr-namespace:LiveChartsCore.SkiaSharpView.Avalonia;assembly=LiveChartsCore.SkiaSharpView.Avalonia"
+             xmlns:vms="using:ViewModelsSamples.Lines.Area"
+             x:Class="ViSyncMaster.ResultTableView"
+             x:DataType="viewModels:ResultTableViewModel"
+			 VerticalAlignment="Top">
+
+	<UserControl.Styles>
+		<!-- Styl dla tabeli -->
+		<Style Selector="DataGrid">
+			<Setter Property="Background" Value="#1D1F27"/>
+			<Setter Property="BorderBrush" Value="#3C3F47"/>
+			<Setter Property="BorderThickness" Value="1"/>
+			<Setter Property="CornerRadius" Value="10"/>
+			<Setter Property="FontSize" Value="16"/>
+		</Style>
+
+		<!-- Styl dla komórek -->
+		<Style Selector="DataGridCell">
+			<Setter Property="Background" Value="#2D2F38"/>
+			<Setter Property="Foreground" Value="White"/>
+			<Setter Property="Padding" Value="10"/>
+			<Setter Property="FontSize" Value="24"/>
+			<Setter Property="TextBlock.TextAlignment" Value="Center"/>
+		</Style>
+
+		<!-- Styl dla nagłówków kolumn -->
+		<Style Selector="DataGridColumnHeader">
+			<Setter Property="Background" Value="#3A3F47"/>
+			<Setter Property="Foreground" Value="White"/>
+			<Setter Property="Padding" Value="10"/>
+			<Setter Property="Height" Value="40"/>
+			<Setter Property="HorizontalContentAlignment" Value="Center"/>
+			<Setter Property="FontSize" Value="18"/>
+		</Style>
+
+		<!-- Styl dla wierszy -->
+		<Style Selector="DataGridRow">
+			<Setter Property="Background" Value="#24262F"/>
+			<Setter Property="Foreground" Value="White"/>
+		</Style>
+
+		<!-- Styl dla wierszy po najechaniu -->
+		<Style Selector="DataGridRow:hover">
+			<Setter Property="Background" Value="#3A3F47"/>
+		</Style>
+	</UserControl.Styles>
+
+	<Grid>
+		<!-- Definiowanie wierszy w Gridzie -->
+		<Grid.RowDefinitions>
+			<RowDefinition Height="*"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="*" />
+		</Grid.RowDefinitions>
+
+		<Grid.ColumnDefinitions>
+			<ColumnDefinition Width="*"/>
+			<ColumnDefinition Width="Auto"/>
+			<ColumnDefinition Width="Auto"/>
+			<ColumnDefinition Width="Auto"/>
+			<ColumnDefinition Width="Auto"/>
+			<ColumnDefinition Width="*" />
+		</Grid.ColumnDefinitions>
+
+		<!-- Panel sterowania (przyciski, textbox, targety) -->
+		<StackPanel Orientation="Vertical" Grid.Row="1" VerticalAlignment="Top" Grid.ColumnSpan="6">
+			<StackPanel Orientation="Horizontal">
+				<Button Content="ZM 1 (05:40 - 13:40)" Command="{Binding FilterShift1Command}"
+						        Background="#0B0A0F"
+								Foreground="WhiteSmoke"
+								FontSize="18"
+						        Margin="10, 5, 10, 5"
+								FontWeight="Bold"/>
+				<Button Content="ZM 2 (13:40 - 21:40)" Command="{Binding FilterShift2Command}"
+						        Background="#0B0A0F"
+								Foreground="WhiteSmoke"
+								FontSize="18"
+						        Margin="10, 5, 10, 5"
+								FontWeight="Bold"/>
+				<Button Content="ZM 2 WCZORAJ (13:40 - 21:40)" Command="{Binding FilterYesterdayShift2Command}"
+						        Background="#0B0A0F"
+								Foreground="WhiteSmoke"
+								FontSize="18"
+						        Margin="10, 5, 10, 5"
+								FontWeight="Bold"/>
+				<Button Content="TYDZIEŃ" Command="{Binding FilterWholeWeekCommand}"
+						        Background="#0B0A0F"
+								Foreground="WhiteSmoke"
+								FontSize="18"
+							    Margin="10, 5, 10, 5"
+								FontWeight="Bold"/>
+			</StackPanel>
+
+			<!-- Tabela wyników -->
+			<DataGrid ItemsSource="{Binding GroupedResultList}" AutoGenerateColumns="False" VerticalAlignment="Top"
+					  CanUserResizeColumns="True" CanUserReorderColumns="True" IsReadOnly="true" MaxHeight="240"
+					  CanUserSortColumns="True" GridLinesVisibility="None" RowHeight="40">
+				<DataGrid.Columns>
+					<DataGridTextColumn Header="Produkt" Binding="{Binding ProductName}" Width="*"/>
+					<DataGridTextColumn Header="OK" Binding="{Binding PassedCount}" Width="*"/>
+					<DataGridTextColumn Header="NOK" Binding="{Binding FailedCount}" Width="*"/>
+					<DataGridTextColumn Header="Operator" Binding="{Binding Operators}" Width="*"/>
+				</DataGrid.Columns>
+			</DataGrid>
+		</StackPanel>
+
+
+		<!-- Panel prawy: Wskaźniki kołowe -->
+		<StackPanel Grid.Row="3" Grid.Column="1" Orientation="Vertical" HorizontalAlignment="Center" Margin="30" VerticalAlignment="Center">
+			<!-- Wiersz z dwoma wykresami kołowymi -->
+			<Border CornerRadius="28" Background="#0B0A0F" HorizontalAlignment="Center">
+				<StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+					<!-- Pierwszy wykres kołowy -->
+					<StackPanel Orientation="Vertical" HorizontalAlignment="Center" Margin="10">
+							<lvc:PieChart
+							Series="{Binding Series}"
+							InitialRotation="135"
+							Width="400"
+							Height="400"
+							MaxValue="{Binding Target}"
+							LegendPosition="Bottom"
+							LegendTextPaint="{Binding LegendTextPaint}"
+							LegendTextSize="24"
+							MaxAngle="270">
+						</lvc:PieChart>
+						<TextBlock Text="Target" HorizontalAlignment="Center" FontSize="16" Foreground="White"/>
+					</StackPanel>
+				</StackPanel>
+			</Border>
+		</StackPanel>
+
+		<!-- Panel prawy: Wskaźniki kołowe -->
+		<StackPanel Grid.Row="3" Grid.Column="3" Orientation="Vertical" HorizontalAlignment="Center" Margin="30" VerticalAlignment="Center">
+			<!-- Wiersz z dwoma wykresami kołowymi -->
+			<Border CornerRadius="28" Background="#0B0A0F" HorizontalAlignment="Center">
+				<StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+					<!-- Pierwszy wykres kołowy -->
+					<StackPanel Orientation="Vertical" HorizontalAlignment="Center" Margin="10">
+						<lvc:PieChart
+							Series="{Binding SeriesEfficiency}"
+							VisualElements="{Binding VisualElements}"
+							InitialRotation="-225"
+							Width="400"
+							Height="400"
+							MaxValue="200"
+							MaxAngle="270">
+						</lvc:PieChart>
+						<TextBlock Text="Wydajność [%]" HorizontalAlignment="Center" FontSize="16" Foreground="White"/>
+					</StackPanel>
+				</StackPanel>
+			</Border>
+		</StackPanel>
+
+		<!-- Panel prawy: Wskaźniki kołowe --><!--
+		<StackPanel Grid.Row="2" Grid.Column="5" Orientation="Vertical" HorizontalAlignment="Center" Margin="30">
+			--><!-- Wiersz z dwoma wykresami kołowymi --><!--
+			<Border CornerRadius="28" Background="#0B0A0F" HorizontalAlignment="Center">
+				<StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+					--><!-- Pierwszy wykres kołowy --><!--
+					<StackPanel Orientation="Vertical" HorizontalAlignment="Center" Margin="10">
+						<lvc:PieChart
+							Series="{Binding SeriesExpectedEfficiency}"
+							InitialRotation="135"
+							Width="400"
+							Height="400"
+							MaxValue="100"
+							MaxAngle="270">
+						</lvc:PieChart>
+						<TextBlock Text="Oczekiwana realizacja targetu [%]" HorizontalAlignment="Center" FontSize="16" Foreground="White"/>
+					</StackPanel>
+				</StackPanel>
+			</Border>
+		</StackPanel>-->
+
+
+
+
+
+
+		<!-- Panel sterowania (przyciski, textbox, targety) -->
+		<Border Grid.Row="4" Grid.Column="2" Grid.ColumnSpan="1" CornerRadius="10" Background="#0B0A0F" Margin="10" VerticalAlignment="Center">
+			<StackPanel Orientation="Horizontal">
+
+					<!-- Tekstowe pole do wprowadzania targetu -->
+				<TextBox Width="100" Height="50" Margin="20"
+						 Text="{Binding Target, Mode=TwoWay}"
+						 Watermark="Wprowadź target"
+						 HorizontalAlignment="Center"
+						 FontSize="20"
+						 Padding="10" 
+					     Background="DarkGray"
+					     Foreground="Black" 
+					     BorderThickness="2"/>
+
+				<!-- Przycisk do zapisu targetu -->
+					<Button Content="Zapisz Target" MinWidth="100" MinHeight="40" HorizontalContentAlignment="Right" Margin="20"
+							Command="{Binding SaveTargetCommand}"
+							Background="OrangeRed"
+							Padding="10"
+							Foreground="WhiteSmoke"
+							FontSize="18"
+							FontWeight="Bold"
+							HorizontalAlignment="Right"/>
+			</StackPanel>
+		</Border>
+	</Grid>
+	
+
+</UserControl>

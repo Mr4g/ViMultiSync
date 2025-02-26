@@ -23,6 +23,8 @@ namespace ViSyncMaster.DataModel
         public string? FaultAbs { get; set; } // Number of failed test objects
         public string? TestingPassed { get; set; }
         public string? TestingFailed { get; set; }
+        public string? ProductName { get; set; }
+        public string? OperatorId { get; set; }
         public string? Producing { get; set; }
         public string? TGoodRel { get; set; } // Relative number of passed test objects with retest (%)
         public string? GoodRel { get; set; } // Relative number of passed test objects (%)

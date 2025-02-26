@@ -15,7 +15,7 @@ using ViSyncMaster.ViewModels;
 
 namespace ViSyncMaster.Services
 {
- public class MessageSender
+    public class MessageSender
     {
         private readonly string splunkUrl;
         private readonly string hecToken;
@@ -46,7 +46,30 @@ namespace ViSyncMaster.Services
 
                     string currentTime = DateTime.Now.ToString("yyyy-MM-dd_HH:mm:ss.fff");
 
-                    DateTimeOffset dto = new DateTimeOffset(DateTime.UtcNow);
+                    DateTimeOffset dto;
+                    var startTimeProperty = typeof(T).GetProperty("StartTime");
+                    var sendTimeProperty = typeof(T).GetProperty("SendTime");
+
+                    if(sendTimeProperty != null)
+                    {
+                        var sendTimeValue = sendTimeProperty.GetValue(data) as DateTime?;
+                        dto = sendTimeValue.HasValue
+                            ? new DateTimeOffset(sendTimeValue.Value.ToUniversalTime())
+                            : new DateTimeOffset(DateTime.UtcNow);
+                    }
+                    else if (startTimeProperty != null)
+                    {
+                        var startTimeValue = startTimeProperty.GetValue(data) as DateTime?;
+                        dto = startTimeValue.HasValue
+                            ? new DateTimeOffset(startTimeValue.Value.ToUniversalTime())
+                            : new DateTimeOffset(DateTime.UtcNow);
+                    }
+                    else
+                    {
+                        // Jeśli właściwość StartTime nie istnieje
+                        dto = new DateTimeOffset(DateTime.UtcNow);
+                    }
+
                     string unixTimeMilliSeconds = dto.ToUnixTimeMilliseconds().ToString();
 
                     string jsonPayload = ConvertDataToJson(data, unixTimeMilliSeconds, currentTime);
@@ -56,7 +79,7 @@ namespace ViSyncMaster.Services
                     Console.WriteLine($"Wysyłanie");
 
                     // Ustawienie timeout dla HttpClient
-                    var timeoutTokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(10)); // Ustaw timeout na 10 sekund
+                    var timeoutTokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(30)); // Ustaw timeout na 10 sekund
 
                     try
                     {
@@ -136,6 +159,9 @@ namespace ViSyncMaster.Services
                                  .Where(p => p.PropertyValue != null && p.PropertyValue.ToString() != "" && p.PropertyName != "time")
                                  .ToList();
 
+            var sendTimeProperty = type.GetProperty("SendTime");
+            string sendTimeValue = sendTimeProperty?.GetValue(data)?.ToString();
+
             // Sprawdź najpierw, czy istnieje właściwość "name" o odpowiedniej wartości
             var nameProperty = properties.FirstOrDefault(p => p.PropertyName == "name" &&
                 (p.PropertyValue.ToString() == "S7.TestingPassed" || p.PropertyValue.ToString() == "S7.TestingFailed"));
@@ -148,9 +174,15 @@ namespace ViSyncMaster.Services
 
                 // Znajdź "value" w properties i dodaj je do eventFields
                 var valueProperty = properties.FirstOrDefault(p => p.PropertyName == "value");
+                var idProperty = properties.FirstOrDefault(p => p.PropertyName == "id");
+                var productNameProperty = properties.FirstOrDefault(p => p.PropertyName == "productName");
+                var operatorIdProperty = properties.FirstOrDefault(p => p.PropertyName == "operatorId");
                 if (valueProperty != null)
                 {
-                    eventFields["value"] = valueProperty.PropertyValue.ToString();
+                    eventFields["id"] = idProperty.PropertyValue?.ToString() ?? "default_value";
+                    eventFields["value"] = valueProperty.PropertyValue?.ToString() ?? "default_value";
+                    eventFields["productName"] = productNameProperty?.PropertyValue?.ToString() ?? "default_value";
+                    eventFields["operatorId"] = operatorIdProperty?.PropertyValue?.ToString() ?? "default_value";
                 }
             }
             else
@@ -166,7 +198,8 @@ namespace ViSyncMaster.Services
                         || property.PropertyName == "callForServiceRunning" || property.PropertyName == "serviceArrival"
                         || property.PropertyName == "serviceArrivalRunning" || property.PropertyName == "endTime" || property.PropertyName == "isActive"
                         || property.PropertyName == "durationStatus" || property.PropertyName == "durationService" || property.PropertyName == "durationWaitingForService"
-                        || property.PropertyName == "stepOfStatus")
+                        || property.PropertyName == "stepOfStatus" || property.PropertyName == "efficiency" || property.PropertyName == "efficiencyRequired" 
+                        || property.PropertyName == "target" || property.PropertyName == "passedPiecesPerShift" || property.PropertyName == "failedPiecesPerShift")
                     {
                         eventFields[property.PropertyName] = property.PropertyValue.ToString();
                     }
@@ -185,7 +218,7 @@ namespace ViSyncMaster.Services
             // Add general fields based on your viewModel condition
             if (_viewModel.IsTimeStampFromiPC)
             {
-                generalFields.Add("time", unixTimeMilliSeconds);
+                generalFields.Add("time", string.IsNullOrEmpty(sendTimeValue) ? unixTimeMilliSeconds : sendTimeValue);
                 generalFields.Add("sourcetype", "_json");
                 generalFields.Add("index", appConfig.Index);
                 generalFields.Add("source", appConfig.Source);
@@ -234,10 +267,25 @@ namespace ViSyncMaster.Services
                 }, Formatting.None); // delete format
             }
 
-            // Clear line and blank symbols
-            var jsonPayloadWithoutWhitespace = Regex.Replace(jsonPayload, @"\s+", "");
 
-            return jsonPayloadWithoutWhitespace;
+            // Tym wywołaniem metody usuwającej białe znaki i polskie znaki:
+            var jsonPayloadCleaned = RemoveDiacriticsAndWhitespace(jsonPayload);
+
+            return jsonPayloadCleaned;
+        }
+        private string RemoveDiacriticsAndWhitespace(string input)
+        {
+            // Usuń białe znaki (spacje, taby, nowe linie)
+            string noWhitespace = Regex.Replace(input, @"\s+", "");
+
+            // Normalizacja - rozkłada znaki z diakrytykami (np. ą -> a + ˛)
+            string normalized = noWhitespace.Normalize(NormalizationForm.FormD);
+
+            // Usuń znaki diakrytyczne (kategoria Mn - NonSpacingMark)
+            string noDiacritics = Regex.Replace(normalized, @"\p{Mn}+", "");
+
+            // Zamień wyjątki (Ł, ł)
+            return noDiacritics.Replace('Ł', 'L').Replace('ł', 'l');
         }
     }
 }

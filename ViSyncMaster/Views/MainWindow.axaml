@@ -8,7 +8,7 @@
         xmlns:ViSyncMaster="clr-namespace:ViSyncMaster.Controls"
         xmlns:collections="clr-namespace:CommunityToolkit.Mvvm.Collections;assembly=CommunityToolkit.Mvvm"
         xmlns:dataModel="clr-namespace:ViSyncMaster.DataModel"
-        xmlns:avalonia="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+        xmlns:material="using:Material.Icons.Avalonia"
         mc:Ignorable="d" d:DesignWidth="1400" d:DesignHeight="1000"
         x:Class="ViSyncMaster.Views.MainWindow"
         x:DataType="viewModels:MainWindowViewModel"
@@ -1071,7 +1071,7 @@
 		<!-- Title bar -->
 
 		<Border Background="#0B0A0F" Margin="0" Grid.Row="0" Height="100" CornerRadius="0,0,0,0" IsVisible="true">
-			<Grid ColumnDefinitions="10, Auto, Auto,* ,Auto , Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, 10" Margin ="1">
+			<Grid ColumnDefinitions="10, Auto, Auto,* ,Auto , Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto,Auto, 10" Margin ="1">
 				<StackPanel Grid.Column="1" Orientation="Vertical">
 					<Image Source="/Assets/logo.png" VerticalAlignment="Center" Grid.Column="1" Width="260" />
 				</StackPanel>
@@ -1107,59 +1107,65 @@
 					<Image Source="{SvgImage /Assets/icons/info2.svg}"/>
 				</Button>
 				<Button Grid.Column="5"
+						Name = "TableResultTest"
+						IsVisible="{Binding AdaptronicButtonIsVisible}"
+						Command="{Binding LoadStatusTableOfResultCommand}">
+					<Image Source="{SvgImage /Assets/icons/table.svg}"/>
+				</Button>
+				<Button Grid.Column="6"
 	                    Name = "TableStatusOfMachine"
 	                    Command="{Binding LoadStatusTableOfMachineCommand}">
 					<Image Source="{SvgImage /Assets/icons/wrench.svg}"/>
 				</Button>
-				<Button Grid.Column="6"
+				<Button Grid.Column="7"
                     Name = "ScreenShotButton"
-                    Command="{Binding ScreenShotButtonPressedCommand}">
+                    Command="{Binding LoadStatusTableOfMachineCommand}">
 					<Image Source="{SvgImage /Assets/icons/mark.svg}"/>
 				</Button>
-				<Button Grid.Column="7"
+				<Button Grid.Column="8"
                     Name = "OpenSerialPortButton"
 					IsVisible="{Binding OpenSerialPortButtonIsVisible}"
                     Command="{Binding OpenSerialPort}">
 					<Image Source="{SvgImage /Assets/icons/serialPort.svg}"/>
 				</Button>
-				<Button Grid.Column="8"
+				<Button Grid.Column="9"
 					Name = "AdaptronicButton"
 				    IsVisible="{Binding AdaptronicButtonIsVisible}"
 					Command="{Binding LoadPageAdaptronic}">
 					<Image Source="{SvgImage /Assets/icons/adaptronic2.svg}"/>
 				</Button>
-				<Button Grid.Column="9"
+				<Button Grid.Column="10"
 					Name = "GoogleDriveButton"
 					IsVisible="{Binding GoogleDriveButtonIsVisible}"
 					Command="{Binding LoadPageGoogleDisk}">
 					<Image Source="{SvgImage /Assets/icons/googleDrive.svg}"/>
 				</Button>
-				<Button Grid.Column="10"
+				<Button Grid.Column="11"
 					Name = "InstructionButton"
 					IsVisible="{Binding InstructionButtonIsVisible}"
 					Command="{Binding LoadPageInstruction}">
 					<Image Source="{SvgImage /Assets/icons/info.svg}"/>
 				</Button>
-				<Button Grid.Column="11"
+				<Button Grid.Column="12"
 					Name = "TargetPlanButton"
 					IsVisible="{Binding TargetPlanButtonIsVisible}"
 					Command="{Binding LoadPageTargetPlan}">
 					<Image Source="{SvgImage /Assets/icons/targetPlan.svg}"/>
 				</Button>
-				<Button Grid.Column="12" Command="{Binding LoadPageSap}">
+				<Button Grid.Column="13" Command="{Binding LoadPageSap}">
 					<Image Source="{SvgImage /Assets/icons/sap.svg}"/>
 				</Button>
-				<Button Grid.Column="13" Name="SplunkPanelButton" Command="{Binding #SplunkPanelPopup.BeginOpen}">
+				<Button Grid.Column="14" Name="SplunkPanelButton" Command="{Binding #SplunkPanelPopup.BeginOpen}">
 					<Image Source="{SvgImage /Assets/icons/splunk.svg}"/>
 				</Button>
 				<!--IsVisible="{Binding IsLoginToApp}"-->
-				<Button Grid.Column="14"
+				<Button Grid.Column="15"
                         Name = "UserButton"
 						IsVisible="{Binding UserButtonIsVisible}"
                         Command="{Binding  #LoginPanelPopup.BeginOpen}">
 					<Image Source="{SvgImage /Assets/icons/userThin.svg}"/>
 				</Button>
-				<Button Grid.Column="15" Name ="OptionsPanelButton" Command="{Binding #OptionsPanelPopup.BeginOpen}" >
+				<Button Grid.Column="16" Name ="OptionsPanelButton" Command="{Binding #OptionsPanelPopup.BeginOpen}" >
 					<Image Source="{SvgImage /Assets/icons/gears.svg}"/>
 				</Button>
 			</Grid>
@@ -1313,20 +1319,14 @@
 		<!-- Bottom bar -->
 		<Grid Grid.Row="2">
 			<StackPanel Orientation="Horizontal">
-				<avalonia:MaterialIcon Width="25"
-									   Height="25"
-									   Margin =" 10, 0, 10,5"
-									   HorizontalAlignment="Left"
-									   Foreground="WhiteSmoke"
-									   Kind="Clock" />
-				<TextBlock Margin =" 0, 0, 15,5" Text="{Binding CurrentTime, StringFormat={}{0:hh}:{0:mm}}"
+				<TextBlock Margin ="10, 0, 15,5" Text="{Binding CurrentTime, StringFormat={}{0:hh}:{0:mm}}"
 						   FontWeight="SemiBold" FontSize="18" Foreground="WhiteSmoke"
 						   HorizontalAlignment="Left" VerticalAlignment="Center">
 				</TextBlock>
 				<Image Grid.Column="2"
 					   Width="25"
-									   Height="25"
-									   Margin =" 10, 0, 10,5"
+					   Height="25"
+					   Margin =" 10, 0, 10,5"
 	                   Source="{SvgImage /Assets/icons/sendingToSplunk.svg}"
 	                   IsVisible="{Binding DataIsSendingToSplunk}">
 				</Image>

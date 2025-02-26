@@ -136,6 +136,8 @@ namespace ViSyncMaster.AuxiliaryClasses
                 { "FAULT_REL", value => testData.FaultRel = value },
                 { "S7.TestingPassed", value => testData.TestingPassed = value }, 
                 { "S7.TestingFailed", value => testData.TestingFailed = value },
+                { "S7.OperatorId", value => testData.OperatorId = value },
+                { "S7.ProductName", value => testData.ProductName = value },
                 { "S1.Producing", value => testData.Producing = value }
                 // Dodaj kolejne mapowania według potrzeb
             };

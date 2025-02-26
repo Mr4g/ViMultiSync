@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
 using System.Data.SQLite;
+using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -20,6 +21,7 @@ namespace ViSyncMaster.Services
         {
             _connectionString = $"Data Source={dbPath};Version=3;";
             ConfigureWALMode().Wait();
+            EnforceFifoLimitForAllTables().Wait(); 
         }
 
         // Create table for MachineStatus model if it doesn't exist
@@ -147,6 +149,54 @@ namespace ViSyncMaster.Services
             }
         }
 
+        public async Task<List<T>> ExecuteReaderAsync<T>(string query, Dictionary<string, object> parameters = null)
+        {
+            try
+            {
+                using (var connection = new SQLiteConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+
+                    using (var command = new SQLiteCommand(query, connection))
+                    {
+                        // Dodanie parametrów do zapytania, jeśli są
+                        if (parameters != null)
+                        {
+                            foreach (var param in parameters)
+                            {
+                                command.Parameters.AddWithValue(param.Key, param.Value);
+                            }
+                        }
+
+                        using (var reader = await command.ExecuteReaderAsync())
+                        {
+                            var result = new List<T>();
+
+                            while (await reader.ReadAsync())
+                            {
+                                var item = MapReaderToEntity<T>(reader);
+                                result.Add(item);
+                            }
+
+                            Log.Information("Executed query and mapped results: {Query}", query);
+                            return result;
+                        }
+                    }
+                }
+            }
+            catch (SQLiteException ex)
+            {
+                Log.Error(ex, "SQLite error during ExecuteReaderAsync: {Query}", query);
+                throw;
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Unexpected error during ExecuteReaderAsync: {Query}", query);
+                throw;
+            }
+        }
+
+
         // Enable WAL mode for better write performance
         private async Task ConfigureWALMode()
         {
@@ -193,36 +243,129 @@ namespace ViSyncMaster.Services
 
             foreach (var prop in properties)
             {
-                // Sprawdzamy, czy właściwość ma publiczny setter
                 if (!prop.CanWrite) continue;
 
                 var columnName = prop.Name;
+                if (!ColumnExists(reader, columnName)) continue;
 
-                // Pobieranie wartości z readera
                 var value = reader[columnName];
 
-                // Obsługuje Nullable<DateTime> (DateTime?)
-                if (prop.PropertyType == typeof(DateTime?) && value is DBNull)
+                if (value == DBNull.Value)
                 {
-                    prop.SetValue(entity, null); // Ustawiamy null, jeśli wartość jest DBNull
+                    prop.SetValue(entity, null);
                 }
-                else if (prop.PropertyType == typeof(DateTime?) && value is DateTime dateTimeValue)
+                else if (prop.PropertyType == typeof(double))
                 {
-                    prop.SetValue(entity, dateTimeValue);
+                    prop.SetValue(entity, Convert.ToDouble(value, CultureInfo.InvariantCulture));
                 }
-                // Obsługuje zwykły DateTime
-                else if (prop.PropertyType == typeof(DateTime) && value is DateTime dateValue)
+                else if (prop.PropertyType == typeof(double?))
                 {
-                    prop.SetValue(entity, dateValue);
+                    prop.SetValue(entity, value == null ? (double?)null : Convert.ToDouble(value, CultureInfo.InvariantCulture));
                 }
-                // Obsługuje inne typy (ogólna konwersja)
-                else if (value != DBNull.Value)
+                else if (prop.PropertyType.IsGenericType && prop.PropertyType.GetGenericTypeDefinition() == typeof(Nullable<>))
+                {
+                    var underlyingType = Nullable.GetUnderlyingType(prop.PropertyType);
+                    prop.SetValue(entity, Convert.ChangeType(value, underlyingType));
+                }
+                else
                 {
                     prop.SetValue(entity, Convert.ChangeType(value, prop.PropertyType));
                 }
             }
 
             return entity;
+        }
+
+        private async Task EnforceFifoLimit(string tableName, int maxRecords = 100000)
+        {
+            try
+            {
+                using (var connection = new SQLiteConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+
+                    // 1️⃣ Sprawdź liczbę rekordów
+                    using (var countCommand = new SQLiteCommand($"SELECT COUNT(*) FROM {tableName};", connection))
+                    {
+                        var count = Convert.ToInt32(await countCommand.ExecuteScalarAsync());
+
+                        if (count > maxRecords)
+                        {
+                            int recordsToDelete = count - maxRecords; // Tyle musimy usunąć
+
+                            // 2️⃣ Pobierz ID ostatniego rekordu, który zostawiamy
+                            var findThresholdQuery = $@"
+                            SELECT ID FROM {tableName} 
+                            ORDER BY ID ASC LIMIT {recordsToDelete};";
+
+                            long idThreshold = 0;
+                            using (var thresholdCommand = new SQLiteCommand(findThresholdQuery, connection))
+                            using (var reader = await thresholdCommand.ExecuteReaderAsync())
+                            {
+                                if (await reader.ReadAsync())
+                                {
+                                    idThreshold = reader.GetInt64(0); // Najstarsze ID, które zostawiamy
+                                }
+                            }
+
+                            if (idThreshold > 0)
+                            {
+                                // 3️⃣ Usuń wszystkie rekordy starsze niż znalezione ID
+                                var deleteQuery = $"DELETE FROM {tableName} WHERE ID < {idThreshold};";
+
+                                using (var deleteCommand = new SQLiteCommand(deleteQuery, connection))
+                                {
+                                    int deletedRows = await deleteCommand.ExecuteNonQueryAsync();
+                                    Log.Information("FIFO enforced: removed {RecordsRemoved} old records from {TableName}.", deletedRows, tableName);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Error while enforcing FIFO limit on table: {TableName}", tableName);
+            }
+        }
+
+        private async Task EnforceFifoLimitForAllTables(int maxRecords = 100000)
+        {
+            var tableNames = await GetTableNames();
+
+            foreach (var tableName in tableNames)
+            {
+                await EnforceFifoLimit(tableName, maxRecords);
+            }
+        }
+
+        private async Task<List<string>> GetTableNames()
+        {
+            var tableNames = new List<string>();
+
+            try
+            {
+                using (var connection = new SQLiteConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+                    string query = "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';";
+
+                    using (var command = new SQLiteCommand(query, connection))
+                    using (var reader = await command.ExecuteReaderAsync())
+                    {
+                        while (await reader.ReadAsync())
+                        {
+                            tableNames.Add(reader.GetString(0));
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Error while retrieving table names.");
+            }
+
+            return tableNames;
         }
 
 

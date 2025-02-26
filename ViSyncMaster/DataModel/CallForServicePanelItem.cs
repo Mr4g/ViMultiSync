@@ -38,7 +38,8 @@ namespace ViSyncMaster.DataModel
                     break;
 
                 default:
-                    throw new ArgumentException($"Unknown role: {role}", nameof(role));
+                    this.Status = $"WEZWIJ {role}";
+                    break;
             }
         }
     }

@@ -16,6 +16,16 @@ namespace ViSyncMaster.DataModel
         public string Name { get; set; }
 
         /// <summary>
+        /// Numer Operatora 
+        /// </summary>
+        public string? OperatorId { get; set; }
+
+        /// <summary>
+        /// Numer produktu 
+        /// </summary>
+        public string? ProductName { get; set; }
+
+        /// <summary>
         /// Aktualny status maszyny.
         /// </summary>
         public string? Status { get; set; }
@@ -29,6 +39,11 @@ namespace ViSyncMaster.DataModel
         /// Czas rozpoczęcia statusu.
         /// </summary>
         public DateTime? StartTime { get; set; }
+
+        /// <summary>
+        /// Czas dodania statusu do DB
+        /// </summary>
+        public long? SendTime { get; set; }
 
         /// <summary>
         /// Czas zgłoszenia wezwania serwisu.
@@ -58,12 +73,12 @@ namespace ViSyncMaster.DataModel
         /// <summary>
         /// Czy status jest aktywny (brak EndTime oznacza aktywność).
         /// </summary>
-        public bool IsActive => !EndTime.HasValue;
+        public virtual bool IsActive => !EndTime.HasValue;
 
         /// <summary>
         /// Łączny czas trwania statusu.
         /// </summary>
-        public TimeSpan? DurationStatus => StartTime.HasValue
+        public virtual TimeSpan? DurationStatus => StartTime.HasValue
             ? (EndTime ?? DateTime.Now) - StartTime
             : null;
 
@@ -81,6 +96,10 @@ namespace ViSyncMaster.DataModel
             ? (ServiceArrival ?? DateTime.Now) - CallForService
             : null;
 
+        /// <summary>
+        /// Aktualny status wysłania przez http..
+        /// </summary>
+        public string SendStatus {  get; set; } = "Pending";
 
         /// <summary>
         /// Aktualny krok statusu:

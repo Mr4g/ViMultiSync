@@ -13,6 +13,7 @@
 				<Button Content="Zoom -" Click="OnZoomOutButtonClicked" Background="WhiteSmoke" />
 				<Button Content="Zoom R" Click="ResetZoomClicked" Background="WhiteSmoke" />
 				<Button Content="Tool" Click="OnDevToolsButtonClicked" Background="WhiteSmoke" />
+				<Button Content="Reset Cookies" Click="OnResetCookiesButtonClicked" Background="WhiteSmoke"/>
 				<TextBox x:Name="addressTextBox" DockPanel.Dock="Top" KeyDown="OnAddressTextBoxKeyDown" IsVisible="false" />
             </StackPanel>
 			<Decorator x:Name="browserWrapper"/>

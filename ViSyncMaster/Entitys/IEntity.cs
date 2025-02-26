@@ -7,8 +7,9 @@ using System.Threading.Tasks;
 
 namespace ViSyncMaster.Entitys
 {
-    public interface IEntity 
+    public interface IEntity
     {
-        long Id { get; set; } 
+        long Id { get; set; }
+        string SendStatus { get; set; } 
     }
 }

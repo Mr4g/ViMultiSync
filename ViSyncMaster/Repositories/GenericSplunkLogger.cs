@@ -83,7 +83,21 @@ namespace ViSyncMaster.Repositories
 
                     string currentTime = DateTime.Now.ToString("yyyy-MM-dd_HH:mm:ss.fff");
 
-                    DateTimeOffset dto = new DateTimeOffset(DateTime.UtcNow);
+                    DateTimeOffset dto;
+                    var startTimeProperty = typeof(T).GetProperty("StartTime");
+
+                    if (startTimeProperty != null)
+                    {
+                        var startTimeValue = startTimeProperty.GetValue(data) as DateTime?;
+                        dto = startTimeValue.HasValue
+                            ? new DateTimeOffset(startTimeValue.Value.ToUniversalTime())
+                            : new DateTimeOffset(DateTime.UtcNow);
+                    }
+                    else
+                    {
+                        // Jeśli właściwość StartTime nie istnieje
+                        dto = new DateTimeOffset(DateTime.UtcNow);
+                    }
                     string unixTimeMilliSeconds = dto.ToUnixTimeMilliseconds().ToString();
 
                     string jsonPayload;
@@ -105,7 +119,7 @@ namespace ViSyncMaster.Repositories
                     Console.WriteLine($"Wysyłanie");
 
                     // Ustawienie timeout dla HttpClient
-                    var timeoutTokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(10)); // Ustaw timeout na 30 sekund
+                    var timeoutTokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(30)); // Ustaw timeout na 30 sekund
 
                     try
                     {
@@ -309,9 +323,24 @@ namespace ViSyncMaster.Repositories
                 @fields = otherFields
             }, Formatting.None); // delete format
 
-            var jsonPayloadWithoutWhitespace = Regex.Replace(jsonPayload, @"\s+", "");
+            // Tym wywołaniem metody usuwającej białe znaki i polskie znaki:
+            var jsonPayloadCleaned = RemoveDiacriticsAndWhitespace(jsonPayload);
 
-            return jsonPayloadWithoutWhitespace;
+            return jsonPayloadCleaned;
+        }
+        private string RemoveDiacriticsAndWhitespace(string input)
+        {
+            // Usuń białe znaki (spacje, taby, nowe linie)
+            string noWhitespace = Regex.Replace(input, @"\s+", "");
+
+            // Normalizacja - rozkłada znaki z diakrytykami (np. ą -> a + ˛)
+            string normalized = noWhitespace.Normalize(NormalizationForm.FormD);
+
+            // Usuń znaki diakrytyczne (kategoria Mn - NonSpacingMark)
+            string noDiacritics = Regex.Replace(normalized, @"\p{Mn}+", "");
+
+            // Zamień wyjątki (Ł, ł)
+            return noDiacritics.Replace('Ł', 'L').Replace('ł', 'l');
         }
     }
 }

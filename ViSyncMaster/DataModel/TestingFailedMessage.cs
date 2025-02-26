@@ -11,7 +11,15 @@ namespace ViSyncMaster.DataModel
         }
 
         private string _value = "false";
+        public string? ProductName { get; set; }
+        public string? OperatorId { get; set; }
+        private bool _isActive = false;
+        private TimeSpan? _durationStatus = null;
         public override string Value => _value;
+
+        public override bool IsActive => _isActive;
+
+        public override TimeSpan? DurationStatus => _durationStatus;
 
         public void SetValue(string value)
         {

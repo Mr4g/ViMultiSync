@@ -5,7 +5,7 @@
              xmlns:ViSyncMaster="clr-namespace:ViSyncMaster"
              xmlns:views="clr-namespace:ViSyncMaster.Views"
              xmlns:viewModels="clr-namespace:ViSyncMaster.ViewModels"
-             xmlns:material="using:Material.Icons.Avalonia"
+			 xmlns:styles="clr-namespace:ViSyncMaster.Styles"
              RequestedThemeVariant="Default">
 
 
@@ -26,6 +26,6 @@
         <StyleInclude Source="Styles/AnimatedPopup.axaml"/>
         <StyleInclude Source="Styles/Button/PopupButton.axaml"/>
 		<StyleInclude Source="avares://Avalonia.Controls.DataGrid/Themes/Fluent.xaml"/>
-        <material:MaterialIconStyles />
+		<StyleInclude Source="avares://ViSyncMaster/Styles/Icons/Icons.axaml"/>
 	</Application.Styles>
 </Application>

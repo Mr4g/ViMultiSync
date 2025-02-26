@@ -60,7 +60,6 @@ namespace ViSyncMaster.ViewModels
         private ConnectedMessage _messageToSplunkConnected;
         private MessagePgToSplunk _messageToSplunkPg;
         private int _machineStatusCounter = 2;
-
         private GenericSplunkLogger<IEntity> _splunkLogger;
         private WifiParameters _wifiParameters; 
 
@@ -79,7 +78,9 @@ namespace ViSyncMaster.ViewModels
         private string googleInstructionUrl;
         private string googleTargetPlanUrl;
 
-        
+
+        public event Action? ResultTableUpdate;
+
         private int _counterTest = 0;
 
         private Dictionary<string, string> PanelActionMapping;
@@ -103,9 +104,13 @@ namespace ViSyncMaster.ViewModels
 
         private readonly GenericRepository<MachineStatus> _repositoryMachineStatus;
         private readonly GenericRepository<MachineStatus> _repositoryMachineStatusQueue;
+        private readonly GenericRepository<MachineStatus> _repositoryTestingResultQueue;
+        private readonly GenericRepository<MachineStatus> _repositoryTestingResult;
+        private readonly GenericRepository<ProductionEfficiency> _repositoryProductionEfficiency;
         private readonly MessageQueue _messageQueue;
         private readonly MessageSender _messageSender;
         private readonly MachineStatusService _machineStatusService;
+        private ResultTableView _resultTableView;
 
         private readonly SplunkMessageHandler _splunkMessageHandler;
 
@@ -329,6 +334,9 @@ namespace ViSyncMaster.ViewModels
         [ObservableProperty]
         private ObservableCollection<MachineStatus> machineStatuses;
 
+        [ObservableProperty]
+        private ObservableCollection<MachineStatus> resultTest;
+
 
         #endregion
 
@@ -463,6 +471,8 @@ namespace ViSyncMaster.ViewModels
 
         private bool HasNumberStation => !string.IsNullOrEmpty(NumberStation);
         private bool HasNumberGnv => !string.IsNullOrEmpty(VinHeatPump);
+
+        public ObservableCollection<MachineStatus> ResultTestList { get; internal set; }
 
         #endregion
 
@@ -1319,6 +1329,12 @@ namespace ViSyncMaster.ViewModels
             (ActivePage as MachineStatusTableView)?.SetDataContext(MachineStatuses);
         }
 
+        [RelayCommand]
+        private void LoadStatusTableOfResult()
+        {
+            ActivePage = _resultTableView;
+        }
+
 
         public void OpenSerialPort()
         {
@@ -1345,6 +1361,13 @@ namespace ViSyncMaster.ViewModels
 
         private async Task ReSendMessageToSplunk(object state)
         {
+            //_messageToSplunkFailed.SetValue("true");
+            //_messageToSplunkPassed.SetValue("true");
+
+            //_machineStatusService.ReportPartQuality(_messageToSplunkPassed);
+            //_machineStatusService.ReportPartQuality(_messageToSplunkFailed);
+
+            //LoadResultToTable();
             Ssid = _wifiParameters.FetchWifiName();
             if (appConfig.AppMode == "VRSKT")
             {
@@ -1386,6 +1409,7 @@ namespace ViSyncMaster.ViewModels
             await Task.Run(() => _serialPortListener.StartListening(appConfig.ComNumber));
         }
         private string _previousProducingState = string.Empty;
+
         private async void OnFrameReceived(object sender, Rs232Data testData)
         {
             if (testData != null)
@@ -1402,18 +1426,30 @@ namespace ViSyncMaster.ViewModels
             if (LoginLabel != testData.Operator)
                 LoginLabel = testData.Operator;
 
-            _machineStatusCounter = testData?.Producing == "true" ? 1 : 2;
+            // Porównanie aktualnego stanu Producing z poprzednim
+            if (_previousProducingState != testData.Producing)
+            {
+                Debug.WriteLine($"Producing state changed from {_previousProducingState} to {testData.Producing}");
 
-            // Ustaw wiadomość na podstawie licznika
-            _messageToSplunkPg.SetByCounter(_machineStatusCounter);
+                _machineStatusCounter = testData.Producing == "true" ? 1 : 2;
 
-            // Wysyłanie wiadomości do Splunk
+                // Ustaw wiadomość na podstawie licznika
+                _messageToSplunkPg.SetByCounter(_machineStatusCounter);
 
-            ReSendMessageToSplunk(_messageToSplunkPg);
+                // Wysyłanie wiadomości do Splunk tylko, jeśli nastąpiła zmiana
+                ReSendMessageToSplunk(_messageToSplunkPg);
 
+                // Aktualizacja poprzedniego stanu
+                _previousProducingState = testData.Producing;
+            }
 
+            // Ustawienie wartości dla TestingFailed i TestingPassed
             _messageToSplunkFailed.SetValue(testData?.TestingFailed == "true" ? "true" : "false");
+            _messageToSplunkFailed.ProductName = testData?.ProductName;
+            _messageToSplunkFailed.OperatorId = testData?.OperatorId;
             _messageToSplunkPassed.SetValue(testData?.TestingPassed == "true" ? "true" : "false");
+            _messageToSplunkPassed.ProductName = testData?.ProductName;
+            _messageToSplunkPassed.OperatorId = testData?.OperatorId;   
 
             if (_messageToSplunkPassed.Value == "true")
             {
@@ -1425,14 +1461,13 @@ namespace ViSyncMaster.ViewModels
             if (_messageToSplunkFailed.Value == "true")
             {
                 Debug.WriteLine("Sending _messageToSplunkFailed");
-                SendMessageToSplunk(_messageToSplunkFailed);
+                _machineStatusService.ReportPartQuality(_messageToSplunkFailed);
             }
 
             if (_messageToSplunkPassed.Value == "true")
             {
                 Debug.WriteLine("Sending _messageToSplunkPassed");
-                //_machineStatusService.ReportPartQuality(_messageToSplunkPassed);
-                SendMessageToSplunk(_messageToSplunkPassed);
+                _machineStatusService.ReportPartQuality(_messageToSplunkPassed);
             }
 
             if (testData.Device != null)
@@ -1441,7 +1476,6 @@ namespace ViSyncMaster.ViewModels
                 SendMessageToSplunk(testData);
             }
         }
-
 
         private void TimerCallback(object state)
         {
@@ -1452,6 +1486,8 @@ namespace ViSyncMaster.ViewModels
 
         private async void LoadStatuses(object state)
         {
+            TimeSpan currentTimeOfDay = DateTime.Now.TimeOfDay;
+            CurrentTime = currentTimeOfDay;
             var loadedStatuses = await _repositoryMachineStatus.GetFromCache();
 
             // Synchronizacja kolekcji
@@ -1466,6 +1502,23 @@ namespace ViSyncMaster.ViewModels
                 }
             });
         }
+        private async void LoadResultToTable()
+        {
+            var loadedResult = await _repositoryTestingResult.GetFromCacheTestResult();
+
+            // Synchronizacja kolekcji
+
+            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+            {
+                // Synchronizacja elementów w liście
+                ResultTest.Clear();
+                foreach (var result in loadedResult)
+                {
+                    ResultTest.Add(result);
+                }
+            });
+            ResultTableUpdate?.Invoke();
+        }
 
         #region InitializeAppFunctions
         /// <summary>
@@ -1477,7 +1530,9 @@ namespace ViSyncMaster.ViewModels
         {
             _repositoryMachineStatus.UpdateCacheAsync();
             var activeMachineStatuses = await _repositoryMachineStatus.GetFromCache();
+            var resultTestFromDb = await _repositoryTestingResult.GetFromCache();
             MachineStatuses = new ObservableCollection<MachineStatus>(activeMachineStatuses ?? new List<MachineStatus>());
+            ResultTest = new ObservableCollection<MachineStatus> (resultTestFromDb ?? new List<MachineStatus>());
         }
 
         private async Task InitializeAppFunctions()
@@ -1533,9 +1588,12 @@ namespace ViSyncMaster.ViewModels
             _messageToSplunkPassed = new TestingPassedMessage();
             _messageToSplunkConnected = new ConnectedMessage();
             _messageToSplunkPg = new MessagePgToSplunk();
+            _resultTableView = new ResultTableView();
+            _resultTableView.SetDataContext(ResultTest, _machineStatusService);
             // Inicjalizacja SerialPortListener tylko raz
             _serialPortListener = new SerialPortListener();
             _serialPortListener.FrameReceived += OnFrameReceived;
+            _machineStatusService.TableResultTestUpdate += LoadResultToTable;
             adaptronicUrl = appConfig.UrlAdaptronic;
             googleDiskUrl = appConfig.UrlDiscGoogle;
             googleInstructionUrl = appConfig.UrlInstruction;
@@ -1615,13 +1673,21 @@ namespace ViSyncMaster.ViewModels
             _database = new SQLiteDatabase(@"C:\ViSM\Database\databaseViSM.db");
             _database.CreateTableIfNotExists<MachineStatus>("MachineStatus");
             _database.CreateTableIfNotExists<MachineStatus>("MachineStatusQueue");
+            _database.CreateTableIfNotExists<MachineStatus>("TestingResultQueue");
+            _database.CreateTableIfNotExists<MachineStatus>("TestingResult");
+            _database.CreateTableIfNotExists<ProductionEfficiency>("ProductionEfficiency");
             _repositoryMachineStatus = new GenericRepository<MachineStatus>(_database, "MachineStatus");
             _repositoryMachineStatusQueue = new GenericRepository<MachineStatus>(_database, "MachineStatusQueue");
-            _messageQueue = new MessageQueue(_repositoryMachineStatusQueue);
+            _repositoryTestingResultQueue = new GenericRepository<MachineStatus>(_database, "TestingResultQueue");
+            _repositoryTestingResult = new GenericRepository<MachineStatus>(_database, "TestingResult");
+            _repositoryProductionEfficiency = new GenericRepository<ProductionEfficiency>(_database, "ProductionEfficiency");
+            // Inicjalizacja widoku, który będzie używany przez DataContext
+            _messageQueue = new MessageQueue(_repositoryMachineStatusQueue, _repositoryTestingResultQueue, _repositoryProductionEfficiency);
             _messageSender = new MessageSender(this); // Na początku brak połączenia   
             _splunkMessageHandler = new SplunkMessageHandler();
 
-            _machineStatusService = new MachineStatusService(_repositoryMachineStatus, _repositoryMachineStatusQueue, _messageSender, _messageQueue, _database);
+            _machineStatusService = new MachineStatusService(_repositoryMachineStatus, _repositoryMachineStatusQueue, 
+                _repositoryTestingResultQueue, _repositoryTestingResult, _repositoryProductionEfficiency,  _messageSender, _messageQueue, _database);
             LoadStatuses(this);
             InitializeAsync();
 
