@@ -199,7 +199,12 @@ namespace ViSyncMaster.Services
                         || property.PropertyName == "serviceArrivalRunning" || property.PropertyName == "endTime" || property.PropertyName == "isActive"
                         || property.PropertyName == "durationStatus" || property.PropertyName == "durationService" || property.PropertyName == "durationWaitingForService"
                         || property.PropertyName == "stepOfStatus" || property.PropertyName == "efficiency" || property.PropertyName == "efficiencyRequired" 
-                        || property.PropertyName == "target" || property.PropertyName == "passedPiecesPerShift" || property.PropertyName == "failedPiecesPerShift")
+                        || property.PropertyName == "target" || property.PropertyName == "passedPiecesPerShift" || property.PropertyName == "failedPiecesPerShift"
+                        || property.PropertyName == "numberProduct" || property.PropertyName == "numberClamp" || property.PropertyName == "heightClamp" 
+                        || property.PropertyName == "breakingForceLumberg" || property.PropertyName == "breakingForceClamp" || property.PropertyName == "breakingForcePlug"
+                        || property.PropertyName == "breakingForceInjection" || property.PropertyName == "injectionHardness" || property.PropertyName == "eq"
+                        || property.PropertyName == "screwdriverTorque" || property.PropertyName == "shellSize" || property.PropertyName == "pasteWeight"
+                        || property.PropertyName == "department" || property.PropertyName == "signature")
                     {
                         eventFields[property.PropertyName] = property.PropertyValue.ToString();
                     }

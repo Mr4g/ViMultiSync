@@ -213,10 +213,11 @@ namespace ViSyncMaster.Views
                 if (textBox.PasswordChar == '*')
                     isPasswordChar = true;
 
+                string currentText = textBox.Text; // Pobranie obecnego tekstu
 
                 // TextBox ma ustawiony PasswordChar na '*'
                 FocusManager.ClearFocus();
-                virtualKeyboardTextInput.SetActive(e, isPasswordChar);
+                virtualKeyboardTextInput.SetActive(e, isPasswordChar, currentText);
                 isPasswordChar = false;
             }
         }

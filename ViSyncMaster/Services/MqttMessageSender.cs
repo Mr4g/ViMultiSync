@@ -2,6 +2,7 @@
 using MQTTnet.Client;
 
 using System;
+using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -14,7 +15,7 @@ namespace ViSyncMaster.Services
         private readonly IMqttClient _mqttClient;
         private readonly MqttClientOptions _mqttOptions;
 
-        public MqttMessageSender(string brokerHost, int brokerPort, string clientId, string token)
+        public MqttMessageSender(string brokerHost, int brokerPort, string clientId, string username, string password)
         {
             var mqttFactory = new MqttFactory();
             _mqttClient = mqttFactory.CreateMqttClient();
@@ -22,7 +23,7 @@ namespace ViSyncMaster.Services
             _mqttOptions = new MqttClientOptionsBuilder()
                 .WithTcpServer(brokerHost, brokerPort)
                 .WithClientId(clientId)  // clientId = login (token)
-                .WithCredentials(token, token)  // login i hasło = token
+                .WithCredentials(username, password)  // login i hasło = token
                 .WithCleanSession()  // Opcjonalnie: ustawienie CleanSession
                 .Build();
 
@@ -32,32 +33,32 @@ namespace ViSyncMaster.Services
         }
 
         // Metoda do wysyłania wiadomości
-        public async Task SendMqttMessageAsync(string topic, MachineStatus messageObject)
+        public async Task SendMqttMessageAsync(string topic, string messageObject)
         {
             try
             {
-                // Serializuj obiekt do JSON
+                // Serializuj obiekt do JSON - jeśli to jest model danych
                 string jsonMessage = JsonSerializer.Serialize(messageObject);
 
                 // Upewnij się, że jesteś połączony z brokerem
                 if (!_mqttClient.IsConnected)
                 {
-                    Console.WriteLine("Łączenie z brokerem MQTT...");
+                    Debug.WriteLine("Łączenie z brokerem MQTT...");
                     await _mqttClient.ConnectAsync(_mqttOptions);
                 }
 
                 var mqttMessage = new MqttApplicationMessageBuilder()
                     .WithTopic(topic)
-                    .WithPayload(jsonMessage) // Wysyłanie JSON jako payload
+                    .WithPayload(messageObject) // Wysyłanie JSON jako payload
                     .WithQualityOfServiceLevel(MQTTnet.Protocol.MqttQualityOfServiceLevel.AtLeastOnce)
                     .Build();
 
                 var result = await _mqttClient.PublishAsync(mqttMessage);
 
                 if (result.ReasonCode == MqttClientPublishReasonCode.Success)
-                    Console.WriteLine($"Wiadomość JSON wysłana: {jsonMessage} na temat: {topic}");
+                    Debug.WriteLine($"Wiadomość JSON wysłana: {messageObject} na temat: {topic}");
                 else
-                    Console.WriteLine($"Nie udało się wysłać wiadomości. Kod: {result.ReasonCode}");
+                    Debug.WriteLine($"Nie udało się wysłać wiadomości. Kod: {result.ReasonCode}");
             }
             catch (Exception ex)
             {
@@ -68,13 +69,13 @@ namespace ViSyncMaster.Services
 
         private Task OnConnectedAsync(MqttClientConnectedEventArgs args)
         {
-            Console.WriteLine("Połączono z brokerem MQTT.");
+            Debug.WriteLine("Połączono z brokerem MQTT.");
             return Task.CompletedTask;
         }
 
         private Task OnDisconnectedAsync(MqttClientDisconnectedEventArgs args)
         {
-            Console.WriteLine("Rozłączono z brokerem MQTT. Próba ponownego połączenia...");
+            Debug.WriteLine("Rozłączono z brokerem MQTT. Próba ponownego połączenia...");
             _ = ReconnectAsync();
             return Task.CompletedTask;
         }
@@ -88,7 +89,7 @@ namespace ViSyncMaster.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Nie udało się ponownie połączyć z brokerem: {ex.Message}");
+                Debug.WriteLine($"Nie udało się ponownie połączyć z brokerem: {ex.Message}");
             }
         }
     }

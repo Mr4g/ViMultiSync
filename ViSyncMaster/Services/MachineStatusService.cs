@@ -5,8 +5,10 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using ViSyncMaster.DataModel;
+using ViSyncMaster.DataModel.Extension;
 using ViSyncMaster.Repositories;
 using ViSyncMaster.Services;
+using ViSyncMaster.ViewModels;
 
 namespace ViSyncMaster.Services
 {
@@ -17,6 +19,8 @@ namespace ViSyncMaster.Services
         private readonly GenericRepository<MachineStatus> _repositoryTestingResultQueue;
         private readonly GenericRepository<MachineStatus> _repositoryTestingResult;
         private readonly GenericRepository<ProductionEfficiency> _repositoryProductionEfficiency;
+        private readonly GenericRepository<FirstPartModel> _repositoryFirstPartQueue;
+        private readonly MqttMessageSender _mqttMessageSender;
         private readonly MessageSender _messageSender;
         private readonly MessageQueue _messageQueue;
         private readonly SQLiteDatabase _database;
@@ -24,6 +28,8 @@ namespace ViSyncMaster.Services
         private CancellationTokenSource _cacheUpdatedCts = new();
         private Task _lastTask = Task.CompletedTask;
         public event Action? TableResultTestUpdate;
+        private AppConfigData _appConfig = MainWindowViewModel.appConfig;
+        private ConfigMqtt _mqttConfig = MainWindowViewModel.mqttConfig;
 
 
         // Konstruktor przyjmuje repozytoria generyczne dla obu tabel
@@ -32,15 +38,19 @@ namespace ViSyncMaster.Services
                                     GenericRepository<MachineStatus> repositoryTestingResultQueue,
                                     GenericRepository<MachineStatus> repositoryTestingResult,
                                     GenericRepository<ProductionEfficiency> repositoryProductionEfficiency,
+                                    GenericRepository<FirstPartModel> repositoryFirstPartQueue,
                                     MessageSender messageSender,
                                     MessageQueue messageQueue,
-                                    SQLiteDatabase database)
+                                    SQLiteDatabase database,
+                                    MqttMessageSender mqttMessageSender)
         {
             _repositoryMachineStatus = repositoryMachineStatus;
             _repositoryMachineStatusQueue = repositoryMachineStatusQueue;
             _repositoryTestingResultQueue = repositoryTestingResultQueue;
             _repositoryTestingResult = repositoryTestingResult;
             _repositoryProductionEfficiency = repositoryProductionEfficiency;
+            _repositoryFirstPartQueue = repositoryFirstPartQueue;
+            _mqttMessageSender = mqttMessageSender;
             _messageSender = messageSender;
             _messageQueue = messageQueue;
             _database = database;
@@ -49,6 +59,7 @@ namespace ViSyncMaster.Services
             _repositoryMachineStatusQueue.CacheUpdated += HandleCacheUpdated;
             _repositoryTestingResultQueue.CacheUpdated += HandleCacheUpdated;
             _repositoryProductionEfficiency.CacheUpdated += HandleCacheUpdated;
+            _repositoryFirstPartQueue.CacheUpdated += HandleCacheUpdated;
 
         }
 
@@ -65,6 +76,8 @@ namespace ViSyncMaster.Services
             // Asynchronicznie dodaj status do repozytoriów
             await _repositoryMachineStatusQueue.AddOrUpdate(machineStatus);
             await _repositoryMachineStatus.AddOrUpdate(machineStatus);
+            var jsonMessage = JsonSerializer.Serialize(machineStatus.ToMqttFormat());
+            await SendMessageMqtt(jsonMessage);
             return machineStatus;
         }
         public async Task<MachineStatus> ReportPartQuality(MachineStatus machineStatus)
@@ -77,11 +90,8 @@ namespace ViSyncMaster.Services
             machineStatus.Id = uniqueId;
             await _repositoryTestingResultQueue.AddOrUpdate(machineStatus);
             await _repositoryTestingResult.AddOrUpdate(machineStatus);
-            if (machineStatus.Name == "S7.TestingPassed")
-            {
-                Debug.WriteLine($"PASS TO DATABASE S7.TestingPassed ReportPartQuality {machineStatus.Id}");
-            }
-            //await _repositoryMachineStatus.AddOrUpdate(machineStatus);
+            //var jsonMessage = JsonSerializer.Serialize(machineStatus.ToMqttFormatForTestingMessage());
+            //await SendMessageMqtt(jsonMessage);
             return machineStatus;
         }
 
@@ -89,13 +99,22 @@ namespace ViSyncMaster.Services
         {
             var epochMilliseconds = DateTimeOffset.Now.ToUnixTimeMilliseconds(); // Czas epoch w milisekundach
             var uniqueId = epochMilliseconds;
-
             productionEfficiency.SendTime = epochMilliseconds;
             productionEfficiency.Id = uniqueId;
             await _repositoryProductionEfficiency.AddOrUpdate(productionEfficiency);
             return productionEfficiency;
         }
- 
+
+        public async Task<FirstPartModel> SendFirstPartAsync(FirstPartModel firstPartModel)
+        {
+            var epochMilliseconds = DateTimeOffset.Now.ToUnixTimeMilliseconds(); // Czas epoch w milisekundach
+            var uniqueId = epochMilliseconds;
+
+            firstPartModel.SendTime = epochMilliseconds;
+            firstPartModel.Id = uniqueId;
+            await _repositoryFirstPartQueue.AddOrUpdate(firstPartModel);
+            return firstPartModel;
+        }
 
         // Wysyłanie wiadomości które już posiadają ID/Start/End etc..
         public async Task<MachineStatus> ReSendMessageToSplunk(MachineStatus machineStatus)
@@ -103,6 +122,8 @@ namespace ViSyncMaster.Services
             var epochMilliseconds = DateTimeOffset.Now.ToUnixTimeMilliseconds(); // Czas epoch w milisekundach
             machineStatus.SendTime = epochMilliseconds;
             await _repositoryMachineStatusQueue.AddOrUpdate(machineStatus);
+            var jsonMessage = JsonSerializer.Serialize(machineStatus.ToMqttFormat());
+            await SendMessageMqtt(jsonMessage);
             return machineStatus;
         }
 
@@ -111,16 +132,28 @@ namespace ViSyncMaster.Services
             // Asynchronicznie dodaj status do repozytoriów
             await _repositoryMachineStatusQueue.AddOrUpdate(machineStatus);
             await _repositoryMachineStatus.AddOrUpdate(machineStatus);
+            var jsonMessage = JsonSerializer.Serialize(machineStatus.ToMqttFormat());
+            await SendMessageMqtt(jsonMessage);
+            return machineStatus;
+        }
+        public async Task<MessagePgToSplunk> SendPgMessage(MessagePgToSplunk machineStatus)
+        {
+            // Asynchronicznie dodaj status do repozytoriów
+            var jsonMessage = JsonSerializer.Serialize(machineStatus.ToMqttPgFormat());
+           
+            await SendMessageMqtt(jsonMessage);
             return machineStatus;
         }
 
         // Zakończenie statusu
-        public MachineStatus EndStatus(MachineStatus machineStatus)
+        public async Task<MachineStatus> EndStatus(MachineStatus machineStatus)
         {
             machineStatus.EndTime = DateTime.Now;  // Zaktualizowanie czasu zakończenia 
             // Zapisz zaktualizowany status w repozytorium MachineStatus
-            _repositoryMachineStatusQueue.AddOrUpdate(machineStatus);
-            _repositoryMachineStatus.AddOrUpdate(machineStatus);      
+            await _repositoryMachineStatusQueue.AddOrUpdate(machineStatus);
+            await _repositoryMachineStatus.AddOrUpdate(machineStatus);
+            var jsonMessage = JsonSerializer.Serialize(machineStatus.ToMqttFormat());
+            await SendMessageMqtt(jsonMessage);
             return machineStatus;
         }
 
@@ -167,6 +200,21 @@ namespace ViSyncMaster.Services
 
             // Można dodać logikę do przetwarzania wiadomości w kolejce
             _messageQueue.SendAllMessages(_messageSender);
+        }
+
+        public async Task SendMessageMqtt(string messageq)
+        {
+            string topic = $"{_mqttConfig.topic}{_appConfig.Source}";  // Zdefiniuj temat
+
+            try
+            {
+                // Wyślij wiadomość za pomocą MqttMessageSender
+                await _mqttMessageSender.SendMqttMessageAsync(topic, messageq);  // Przekazanie obiektu bezpośrednio
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
+            }
         }
     }
 }

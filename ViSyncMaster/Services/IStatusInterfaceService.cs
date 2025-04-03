@@ -26,6 +26,7 @@ namespace ViSyncMaster.Services
         Task<List<DowntimeReasonLiderPanelItem>> GetDowntimeReasonLiderPanelAsync();
         Task<List<DowntimeReasonKptjPanelItem>> GetDowntimeReasonKptjPanelAsync();
         Task<List<DowntimeReasonPlatePanelItem>> GetDowntimeReasonPlatePanelAsync();
+        Task<List<ConfigMqtt>> GetConfigMqttAsync();
         Task<List<ConfigHardwareItem>> GetConfigHardwareAsync();
 
     }

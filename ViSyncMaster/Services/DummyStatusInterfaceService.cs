@@ -141,6 +141,10 @@ namespace ViSyncMaster.Services
         {
             return await ReadPanelDataAsync<DowntimeReasonPlatePanelItem>("DowntimeReasonPlatePanelData");
         }
+        public async Task<List<ConfigMqtt>> GetConfigMqttAsync()
+        {
+            return await ReadPanelDataAsync<ConfigMqtt>("ConfigMqtt");
+        }
         public async Task<List<ConfigHardwareItem>> GetConfigHardwareAsync()
         {
             return await ReadResourcesDataAsync<ConfigHardwareItem>("ConfigHardware.json");

@@ -8,7 +8,7 @@
              mc:Ignorable="d"
              x:Class="ViSyncMaster.Keyboard.VirtualKeyboard">
     <DockPanel Margin="10">
-        <TextBox Name="TextBox" DockPanel.Dock="Top"></TextBox>
+        <TextBox Name="TextBox" MinHeight="50" FontSize="24" DockPanel.Dock="Top"></TextBox>
         <Grid DockPanel.Dock="Bottom">
             <!-- QuickAndDirty resize bugfix -->
             <layout:VirtualKeyboardLayoutUS Opacity="0" IsHitTestVisible="False"/>

@@ -113,9 +113,9 @@ namespace ViSyncMaster.DataModel
             get
             {
                 if (!StartTime.HasValue) return 0;
-                if (CallForService.HasValue && !ServiceArrival.HasValue) return 1;
+                if (CallForService.HasValue && !ServiceArrival.HasValue && !EndTime.HasValue) return 1;
                 if (ServiceArrival.HasValue && string.IsNullOrEmpty(Reason)) return 2;
-                if (!string.IsNullOrEmpty(Reason)) return 3;
+                if (EndTime.HasValue) return 3;
                 return 0;
             }
         }

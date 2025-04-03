@@ -1,0 +1,196 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:collections="clr-namespace:CommunityToolkit.Mvvm.Collections;assembly=CommunityToolkit.Mvvm"
+             xmlns:vm="clr-namespace:ViSyncMaster.ViewModels"
+			 xmlns:local="clr-namespace:ViSyncMaster.Converter"
+             mc:Ignorable="d"
+             x:Class="ViSyncMaster.FormFirstPartView"
+             x:DataType="vm:FormFirstPartViewModel"
+			 HorizontalAlignment="Center"
+			 VerticalAlignment="Top"
+             d:DesignWidth="800" d:DesignHeight="450">
+
+	<UserControl.Resources>
+		<local:FirstErrorConverter x:Key="FirstErrorConverter"/>
+	</UserControl.Resources>
+
+	<!-- Globalne style dla TextBox i TextBlock -->
+	<UserControl.Styles>
+
+			<Style Selector="ComboBox">
+				<!-- Zmiana koloru tekstu -->
+				<Setter Property="Foreground" Value="Black"/>
+				<Setter Property="FontSize" Value="18"/>
+				<!-- Zmiana koloru tekstu w rozwijanym menu -->
+			</Style>
+
+		
+		<Style Selector="TextBox">
+			<Setter Property="MinWidth" Value="400"/>
+			<Setter Property="MaxWidth" Value="450"/>
+			<Setter Property="MinHeight" Value="50"/>
+			<Setter Property="FontSize" Value="24"/>
+			<Setter Property="VerticalContentAlignment" Value="Center"/>
+			<Setter Property="HorizontalAlignment" Value="Stretch"/>
+			<Setter Property="Foreground" Value="Black"/>
+		</Style>
+		<Style Selector="TextBlock.Title">
+			<Setter Property="FontSize" Value="18"/>
+			<Setter Property="FontWeight" Value="Bold"/>
+			<Setter Property="Foreground" Value="Black"/>
+		</Style>
+		<Style Selector="TextBlock">
+			<Setter Property="FontSize" Value="12"/>
+			<Setter Property="FontWeight" Value="Bold"/>
+			<Setter Property="Foreground" Value="Red"/>
+		</Style>
+
+		<Style Selector="ComboBox">
+			<Setter Property="BackgroundSizing" Value="CenterBorder"/>
+			<Setter Property="FontSize" Value="18"/>
+			<Setter Property="MinWidth" Value="400"/>
+			<Setter Property="MaxWidth" Value="400"/>
+			<Setter Property="FontWeight" Value="Bold"/>
+			<Setter Property="MinHeight" Value="50"/>
+		</Style>
+	</UserControl.Styles>
+
+	<ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+	<Grid>
+		<!-- Ogólne centrowanie całego formularza -->
+		<Grid.RowDefinitions>
+			<RowDefinition Height="*" />
+			<RowDefinition Height="Auto" />
+			<RowDefinition Height="Auto" />
+			<RowDefinition Height="*" />
+		</Grid.RowDefinitions>
+		<Grid.ColumnDefinitions>
+			<ColumnDefinition Width="*" />
+			<ColumnDefinition Width="Auto" />
+			<ColumnDefinition Width="Auto" />
+			<ColumnDefinition Width="*" />
+		</Grid.ColumnDefinitions>
+
+		<!-- Tytuł formularza w drugim wierszu -->
+		<TextBlock Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="4"
+				   Text="Formularz pierwszej sztuki"
+				   HorizontalAlignment="Center"
+				   VerticalAlignment="Center"
+				   Margin="20"
+				   FontSize="32" FontWeight="Bold" Foreground="WhiteSmoke"/>
+		
+		<!-- Kontener formularza -->
+		<Border Grid.Row="2" Grid.Column="1" Opacity="{Binding OpacityForm}" Grid.ColumnSpan="2" Padding="20" 
+				Background="WhiteSmoke" CornerRadius="10" 
+				BorderThickness="1" BorderBrush="Gray">
+			<!-- Wewnętrzny Grid dzielący obszar na dwie kolumny (dla pól) oraz wiersz dla przycisku -->
+			<Grid>
+				<Grid.RowDefinitions>
+					<!-- Wiersz z polami formularza -->
+					<RowDefinition Height="Auto" />
+					<!-- Wiersz z przyciskiem -->
+					<RowDefinition Height="Auto" />
+				</Grid.RowDefinitions>
+				<!-- Dla rozmieszczenia pól używamy czterech kolumn – pierwsza i ostatnia działają jako marginesy, a dwie środkowe przeznaczone są na pola -->
+				<Grid.ColumnDefinitions>
+					<ColumnDefinition Width="*" />
+					<ColumnDefinition Width="Auto" />
+					<ColumnDefinition Width="Auto" />
+					<ColumnDefinition Width="*" />
+				</Grid.ColumnDefinitions>
+
+				<!-- Lewa kolumna formularza (środkowa kolumna numer 1) -->
+				<StackPanel Grid.Row="0" Grid.Column="1" Spacing="10" Margin="30,10,30,10">
+					<TextBlock Classes="Title" Text="Podaj numer produktu:"/>
+					<TextBox Text="{Binding FirstPartModel.NumberProduct, UpdateSourceTrigger=PropertyChanged}"/>
+
+					<TextBlock  IsVisible="{Binding IsNumberClampVisible}" Classes="Title" Text="Podaj numer zacisku:"/>
+					<TextBox IsVisible="{Binding IsNumberClampVisible}" 
+							 Text="{Binding FirstPartModel.NumberClamp, UpdateSourceTrigger=PropertyChanged}"/>
+
+					<TextBlock IsVisible="{Binding IsHeightClampVisible}" Classes="Title" Text="Podaj wysokość zacisku:"/>
+					<TextBox IsVisible="{Binding IsHeightClampVisible}" Text="{Binding FirstPartModel.HeightClamp, UpdateSourceTrigger=PropertyChanged}"/>
+
+					<TextBlock IsVisible="{Binding IsBreakingForceLumbergVisible}" Classes="Title" Text="Siła zerwania Lumberga:"/>
+					<TextBox IsVisible="{Binding IsBreakingForceLumbergVisible}" Text="{Binding FirstPartModel.BreakingForceLumberg, UpdateSourceTrigger=PropertyChanged}"/>
+
+					<TextBlock IsVisible="{Binding IsBreakingForceClampVisible}" Classes="Title" Text="Siła zerwania zacisku:"/>
+					<TextBox IsVisible="{Binding IsBreakingForceClampVisible}" Text="{Binding FirstPartModel.BreakingForceClamp, UpdateSourceTrigger=PropertyChanged}"/>
+
+					<TextBlock IsVisible="{Binding IsBreakingForcePlugVisible}" Classes="Title" Text="Siła zerwania wtyczki:"/>
+					<TextBox IsVisible="{Binding IsBreakingForcePlugVisible}" Text="{Binding FirstPartModel.BreakingForcePlug, UpdateSourceTrigger=PropertyChanged}"/>
+
+					<TextBlock IsVisible="{Binding IsShellSizeVisible}" Classes="Title" Text="Wymiar łuski:" />
+					<TextBox IsVisible="{Binding IsShellSizeVisible}" Text="{Binding FirstPartModel.ShellSize, UpdateSourceTrigger=PropertyChanged}"/>
+				</StackPanel>
+
+				<!-- Prawa kolumna formularza (środkowa kolumna numer 2) -->
+				<StackPanel Grid.Row="0" Grid.Column="2" Spacing="10" Margin="30,10,30,10">
+					<TextBlock IsVisible="{Binding IsPasteWeightVisible}" Classes="Title" Text="Waga pasty:" />
+					<TextBox IsVisible="{Binding IsPasteWeightVisible}" Text="{Binding FirstPartModel.PasteWeight, UpdateSourceTrigger=PropertyChanged}"/>
+					
+					<TextBlock IsVisible="{Binding IsBreakingForceInjectionVisible}" Classes="Title" Text="Siła zerwania wtrysku:"/>
+					<TextBox IsVisible="{Binding IsBreakingForceInjectionVisible}" Text="{Binding FirstPartModel.BreakingForceInjection, UpdateSourceTrigger=PropertyChanged}"/>
+
+					<TextBlock IsVisible="{Binding IsInjectionHardnessVisible}" Classes="Title" Text="Twardość wtrysku:"/>
+					<TextBox IsVisible="{Binding IsInjectionHardnessVisible}" Text="{Binding FirstPartModel.InjectionHardness, UpdateSourceTrigger=PropertyChanged}"/>
+
+					<TextBlock IsVisible="{Binding IsEqVisible}" Classes="Title" Text="Wartość EQ:"/>
+					<TextBox IsVisible="{Binding IsEqVisible}" Text="{Binding FirstPartModel.Eq, UpdateSourceTrigger=PropertyChanged}"/>
+
+					<TextBlock IsVisible="{Binding IsScrewdriverTorqueVisible}" Classes="Title" Text="Moment obrotowy wkrętaka:"/>
+					<TextBox IsVisible="{Binding IsScrewdriverTorqueVisible}" Text="{Binding FirstPartModel.ScrewdriverTorque, UpdateSourceTrigger=PropertyChanged}"/>
+
+					<TextBlock IsVisible="{Binding IsDepartmentVisible}" Classes="Title" Text="Dział:"/>
+					<ComboBox IsVisible="{Binding IsDepartmentVisible}"
+						      SelectedIndex="0"
+							  Foreground="Black"
+							  FontSize="18"
+							  SelectedItem="{Binding FirstPartModel.Department, UpdateSourceTrigger=PropertyChanged}">
+						<ComboBox.Items>
+							<x:String>Wybierz dział...</x:String>
+							<x:String>GM</x:String>
+							<x:String>NTC</x:String>
+							<x:String>CHP</x:String>
+							<x:String>KM</x:String>
+							<x:String>SK</x:String>
+						</ComboBox.Items>
+					</ComboBox>
+
+					<TextBlock IsVisible="{Binding IsSignatureVisible}" Classes="Title" Text="Podpis:"/>
+					<TextBox IsVisible="{Binding IsSignatureVisible}" Text="{Binding FirstPartModel.Signature, UpdateSourceTrigger=PropertyChanged}"/>				
+				</StackPanel>
+			<StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Grid.ColumnSpan="3">
+				<!-- Przycisk wysyłania – rozciąga się na obie środkowe kolumny -->
+				<Button Grid.ColumnSpan="1"
+						Content="Wyślij"
+						Command="{Binding SendCommand}"
+						IsEnabled="{Binding CanSend, Mode=TwoWay}"
+						VerticalContentAlignment="Center"
+						HorizontalContentAlignment="Center"
+						Background="OrangeRed"
+						Foreground="Black"
+						FontWeight="Bold"
+						MinHeight="50" MinWidth="100"
+						Margin="30, 10, 30, 10"/>
+			   <Button Grid.ColumnSpan="2"
+						Content="Reset"
+						Command="{Binding ResetModelCommand}"
+						VerticalContentAlignment="Center"
+						HorizontalContentAlignment="Center"
+						Background="OrangeRed"
+						Foreground="Black"
+						FontWeight="Bold"
+						MinHeight="50" MinWidth="100"
+						Margin="10, 10, 30, 10"/>
+			     <TextBlock Classes="Title" Text="{Binding ValidationMessage}" Margin="30, 10, 30, 10" VerticalAlignment="Center" Foreground="Red" Grid.ColumnSpan="3"/>
+			</StackPanel>
+			</Grid>
+		</Border>
+
+	</Grid>
+	</ScrollViewer>
+	
+</UserControl>

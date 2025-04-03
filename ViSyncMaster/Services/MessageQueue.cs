@@ -12,21 +12,26 @@ public class MessageQueue
 {
     private readonly Queue<MachineStatus> _machineStatusQueue = new Queue<MachineStatus>();
     private readonly Queue<MachineStatus> _testingResultQueue = new Queue<MachineStatus>();
-    private readonly Queue<ProductionEfficiency> _productionEfficiencyQueue = new Queue<ProductionEfficiency>();    
+    private readonly Queue<ProductionEfficiency> _productionEfficiencyQueue = new Queue<ProductionEfficiency>();
+    private readonly Queue<FirstPartModel> _firstPartDataQueue = new Queue<FirstPartModel>();
     private readonly GenericRepository<MachineStatus> _repositoryMachineStatusQueue;
     private readonly GenericRepository<MachineStatus> _repositoryTestingResultQueue;
     private readonly GenericRepository<ProductionEfficiency> _repositoryProductionEfficiency;
+    private readonly GenericRepository<FirstPartModel> _reposiotryFirstPartDataQueue;
     private DateTime _lastSendTime = DateTime.MinValue;
     private readonly TimeSpan _minInterval = TimeSpan.FromSeconds(2);
     private bool _isSending = false;
 
 
-    public MessageQueue(GenericRepository<MachineStatus> repositoryMachineStatusQueue, GenericRepository<MachineStatus> repositoryTestingResultQueue,
-                        GenericRepository<ProductionEfficiency> repositoryProductionEfficiency)
+    public MessageQueue(GenericRepository<MachineStatus> repositoryMachineStatusQueue, 
+                        GenericRepository<MachineStatus> repositoryTestingResultQueue,
+                        GenericRepository<ProductionEfficiency> repositoryProductionEfficiency, 
+                        GenericRepository<FirstPartModel> repositoryFirstPartDataQueue)
     {
         _repositoryMachineStatusQueue = repositoryMachineStatusQueue;
         _repositoryTestingResultQueue = repositoryTestingResultQueue;
         _repositoryProductionEfficiency = repositoryProductionEfficiency;
+        _reposiotryFirstPartDataQueue = repositoryFirstPartDataQueue;
         Initialize();
     }
 
@@ -57,12 +62,19 @@ public class MessageQueue
             }
 
             var pendingProductionEfficiency = await _repositoryProductionEfficiency.GetByStatusInProgressAsync();
-            Debug.WriteLine($"Załadowano {pendingProductionEfficiency.Count} wiadomości z bazy danych.");
             foreach (var message in pendingProductionEfficiency)
             {
                 message.SendStatus = "InProgress";
                 await _repositoryProductionEfficiency.AddOrUpdate(message);
                 _productionEfficiencyQueue.Enqueue(message);
+            }
+
+            var pendingFirstPartData = await _reposiotryFirstPartDataQueue.GetByStatusInProgressAsync();
+            foreach (var message in pendingFirstPartData)
+            {
+                message.SendStatus = "InProgress";
+                await _reposiotryFirstPartDataQueue.AddOrUpdate(message);
+                _firstPartDataQueue.Enqueue(message);
             }
         }
         catch (Exception ex)
@@ -98,6 +110,14 @@ public class MessageQueue
                 message.SendStatus = "InProgress";
                 await _repositoryProductionEfficiency.AddOrUpdate(message);
                 _productionEfficiencyQueue.Enqueue(message);
+            }
+
+            var pendingFirstPartData = await _reposiotryFirstPartDataQueue.GetByStatusAsync();
+            foreach (var message in pendingFirstPartData)
+            {
+                message.SendStatus = "InProgress";
+                await _reposiotryFirstPartDataQueue.AddOrUpdate(message);
+                _firstPartDataQueue.Enqueue(message);
             }
         }
         catch(Exception ex)
@@ -166,6 +186,7 @@ public class MessageQueue
             _ = SendMessagesFromQueue(_machineStatusQueue, _repositoryMachineStatusQueue, messageSender);
             _ = SendMessagesFromQueue(_testingResultQueue, _repositoryTestingResultQueue, messageSender);
             _ = SendMessagesFromQueue(_productionEfficiencyQueue, _repositoryProductionEfficiency, messageSender);
+            _ = SendMessagesFromQueue(_firstPartDataQueue, _reposiotryFirstPartDataQueue, messageSender);   
         }
     }
 

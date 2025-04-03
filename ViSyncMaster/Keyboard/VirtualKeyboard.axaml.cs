@@ -36,9 +36,9 @@ namespace ViSyncMaster.Keyboard
         public bool IsPasswordChar { get; private set; }
         public static void SetDefaultLayout(Func<Type> getDefaultLayout) => DefaultLayout = getDefaultLayout;
 
-        public static async Task<string?> ShowDialog(bool isPasswordChar, TextInputOptions options, Window? owner = null)
+        public static async Task<string?> ShowDialog(bool isPasswordChar, TextInputOptions options, string currentText, Window? owner = null)
         {
-            var keyboard = new VirtualKeyboard(isPasswordChar);
+            var keyboard = new VirtualKeyboard(isPasswordChar, currentText);
 
             var window = new CoporateWindow();
             window.CoporateContent = keyboard;
@@ -69,7 +69,7 @@ namespace ViSyncMaster.Keyboard
 
         private Window _parentWindow;
 
-        public VirtualKeyboard(bool isPasswordChar)
+        public VirtualKeyboard(bool isPasswordChar, string currentText)
         {
             InitializeComponent();
             IsPasswordChar = isPasswordChar;
@@ -78,9 +78,12 @@ namespace ViSyncMaster.Keyboard
             VirtualKeyboard.SetDefaultLayout(() => typeof(VirtualKeyboardLayoutUS));
             TextBox_ = this.Get<TextBox>("TextBox");
             TransitioningContentControl_ = this.Get<Avalonia.Controls.TransitioningContentControl>("TransitioningContentControl");
-           //AcceptButton_ = this.Get<Button>("AcceptButton");
+            //AcceptButton_ = this.Get<Button>("AcceptButton");
 
-          // AcceptButton_.AddHandler(Button.ClickEvent, acceptClicked);
+            // AcceptButton_.AddHandler(Button.ClickEvent, acceptClicked);
+            // Ustawienie pocz¹tkowego tekstu
+            TextBox_.Text = currentText;
+            actualText = currentText;
 
             Initialized += async (sender, args) =>
             {
@@ -241,12 +244,11 @@ namespace ViSyncMaster.Keyboard
                 }
                 else if (key == Key.Back)
                 {
-
                     if (TextBox_.Text != null && TextBox_.Text.Length > 0)
                     {
                         TextBox_.Text = TextBox_.Text.Remove(TextBox_.Text.Length - 1, 1);
+                        actualText = actualText.Remove(actualText.Length - 1, 1); // Aktualizuj równie¿ actualText
                     }
-
                 }
                 else
                 {

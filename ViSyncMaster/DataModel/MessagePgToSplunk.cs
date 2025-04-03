@@ -20,22 +20,27 @@ namespace ViSyncMaster.DataModel
             set => SetExclusiveValue(nameof(Waiting), value);
         }
 
-        public string Maintenance
+        public string MaintenanceMode
         {
-            get => _states[nameof(Maintenance)];
-            set => SetExclusiveValue(nameof(Maintenance), value);
+            get => _states[nameof(MaintenanceMode)];
+            set => SetExclusiveValue(nameof(MaintenanceMode), value);
         }
 
-        public string Setting
+        public string SettingMode
         {
-            get => _states[nameof(Setting)];
-            set => SetExclusiveValue(nameof(Setting), value);
+            get => _states[nameof(SettingMode)];
+            set => SetExclusiveValue(nameof(SettingMode), value);
         }
 
-        public string Downtime
+        public string MachineDowntime
         {
-            get => _states[nameof(Downtime)];
-            set => SetExclusiveValue(nameof(Downtime), value);
+            get => _states[nameof(MachineDowntime)];
+            set => SetExclusiveValue(nameof(MachineDowntime), value);
+        }
+        public string LogisticMode
+        {
+            get => _states[nameof(LogisticMode)];
+            set => SetExclusiveValue(nameof(LogisticMode), value);
         }
 
         // Konstruktor domyślny
@@ -45,9 +50,10 @@ namespace ViSyncMaster.DataModel
             {
                 { nameof(Producing), "false" },
                 { nameof(Waiting), "true" }, // Domyślna wartość
-                { nameof(Maintenance), "false" },
-                { nameof(Setting), "false" },
-                { nameof(Downtime), "false" }
+                { nameof(MaintenanceMode), "false" },
+                { nameof(SettingMode), "false" },
+                { nameof(MachineDowntime), "false" },
+                { nameof(LogisticMode), "false" }
             };
         }
 
@@ -85,7 +91,7 @@ namespace ViSyncMaster.DataModel
         /// <param name="counter">Licznik określający, która właściwość ma być ustawiona na "true".</param>
         public void SetByCounter(int counter)
         {
-            if (counter < 1 || counter > 5)
+            if (counter < 1 || counter > 7)
                 throw new ArgumentOutOfRangeException(nameof(counter), "Licznik musi być w zakresie od 1 do 5.");
 
             ResetValues();
@@ -102,11 +108,12 @@ namespace ViSyncMaster.DataModel
         // Typ wyliczeniowy dla lepszej czytelności
         private enum State
         {
-            Producing = 1,
-            Waiting = 2,
-            Maintenance = 3,
-            Setting = 4,
-            Downtime = 5
+            MachineDowntime = 1,
+            LogisticMode = 2,
+            SettingMode = 3, 
+            MaintenanceMode = 4,
+            Producing = 5,
+            Waiting = 6
         }
     }
 }

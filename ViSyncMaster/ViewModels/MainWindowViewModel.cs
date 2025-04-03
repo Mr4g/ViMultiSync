@@ -36,6 +36,7 @@ using ViSyncMaster.Handlers;
 using System.Data;
 using ViSyncMaster.DeepCopy;
 using ViSyncMaster.WiFi;
+using System.Text.Json;
 
 
 namespace ViSyncMaster.ViewModels
@@ -49,7 +50,8 @@ namespace ViSyncMaster.ViewModels
         private IStatusInterfaceService mStatusInterfaceService;
         private Dictionary<Type, object> repositories = new Dictionary<Type, object>();
         private readonly SharedDataService _sharedDataService;
-        private readonly AppConfigData appConfig;
+        public static AppConfigData appConfig { get; private set; }
+        public static ConfigMqtt mqttConfig { get; private set; }
         private Timer _timer;
         private Timer _timerForReSendMassage;
         private Timer _timerForLoadStatuses;
@@ -59,7 +61,7 @@ namespace ViSyncMaster.ViewModels
         private TestingPassedMessage _messageToSplunkPassed;
         private ConnectedMessage _messageToSplunkConnected;
         private MessagePgToSplunk _messageToSplunkPg;
-        private int _machineStatusCounter = 2;
+        private int _machineStatusCounter = 6;
         private GenericSplunkLogger<IEntity> _splunkLogger;
         private WifiParameters _wifiParameters; 
 
@@ -107,10 +109,12 @@ namespace ViSyncMaster.ViewModels
         private readonly GenericRepository<MachineStatus> _repositoryTestingResultQueue;
         private readonly GenericRepository<MachineStatus> _repositoryTestingResult;
         private readonly GenericRepository<ProductionEfficiency> _repositoryProductionEfficiency;
+        private readonly GenericRepository<FirstPartModel> _repositoryFirstPartData;
         private readonly MessageQueue _messageQueue;
         private readonly MessageSender _messageSender;
         private readonly MachineStatusService _machineStatusService;
         private ResultTableView _resultTableView;
+        private FormFirstPartView _firstPartView;
 
         private readonly SplunkMessageHandler _splunkMessageHandler;
 
@@ -601,6 +605,8 @@ namespace ViSyncMaster.ViewModels
             else
             {
                 var newStatus = _machineStatusService.StartStatus(item);
+                var messagePgToSplunk = _splunkMessageHandler.PreparingPgMessageToSplunk(MachineStatuses, item, _machineStatusCounter);
+                await _machineStatusService.SendPgMessage((MessagePgToSplunk)messagePgToSplunk);
             }
             _pendingMachineStatus = item;
             LoadStatuses(this); // Zaktualizuj listę statusów
@@ -644,11 +650,12 @@ namespace ViSyncMaster.ViewModels
             ControlPanelVisible = true;
         }
 
-        private void HandleUnmappedStatus(MachineStatus machineStatus)
+        private async void HandleUnmappedStatus(MachineStatus machineStatus)
         {
             Console.WriteLine($"Brak zdefiniowanego panelu dla statusu: {machineStatus.Status}");
             _machineStatusService.EndStatus(machineStatus); // Kończenie statusu bez powodu
-           
+            var messagePgToSplunk = _splunkMessageHandler.PreparingPgMessageToSplunk(MachineStatuses, machineStatus, _machineStatusCounter);
+            await _machineStatusService.SendPgMessage((MessagePgToSplunk)messagePgToSplunk);
             ReasonDowntimeMechanicalPanelIsOpen = false;
             DowntimeReasonElectricPanelIsOpen = false;
             DowntimeReasonKptjPanelIsOpen = false;
@@ -672,7 +679,7 @@ namespace ViSyncMaster.ViewModels
                     _pendingMachineStatus = null; // Wyczyszczenie tymczasowego statusu po scaleniu
             }
         }
-        private void MergePendingMachineStatusWithPanelItem(MachineStatus pendingStatus, CallForServicePanelItem panelItem)
+        private async void MergePendingMachineStatusWithPanelItem(MachineStatus pendingStatus, CallForServicePanelItem panelItem)
         {
             if (pendingStatus == null || panelItem == null || panelItem.Name == "Exit")
             {
@@ -683,11 +690,16 @@ namespace ViSyncMaster.ViewModels
             {
                 pendingStatus.CallForService = DateTime.Now;
                 var updateStatus = _machineStatusService.StartStatus(pendingStatus);
+                var messagePgToSplunk = _splunkMessageHandler.PreparingPgMessageToSplunk(MachineStatuses, pendingStatus, _machineStatusCounter);
+                await _machineStatusService.SendPgMessage((MessagePgToSplunk)messagePgToSplunk);
+
             }
             if (panelItem.Name == "ServiceArrival")
             {
                 pendingStatus.ServiceArrival = DateTime.Now;
                 var updateStatus = _machineStatusService.UpdateStatus(pendingStatus);
+                var messagePgToSplunk = _splunkMessageHandler.PreparingPgMessageToSplunk(MachineStatuses, pendingStatus, _machineStatusCounter);
+                await _machineStatusService.SendPgMessage((MessagePgToSplunk)messagePgToSplunk);
             }
             if (panelItem.Name == "DowntimeReason")
             {
@@ -710,21 +722,6 @@ namespace ViSyncMaster.ViewModels
             CallForServicePanelIsOpen = false;
             ControlPanelVisible = false;
             LoadStatuses(this);
-        }// Możesz dodać więcej pól, jeśli są dostępne w CallForServicePanelItem
-
-        public async Task SendMessageMqtt(MachineStatus messageq)
-        {
-            string topic = $"W16/{appConfig.Source}";  // Zdefiniuj temat
-
-            try
-            {
-                // Wyślij wiadomość za pomocą MqttMessageSender
-                await _mqttSender.SendMqttMessageAsync(topic, messageq);  // Przekazanie obiektu bezpośrednio
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.ToString());
-            }
         }
 
         public static void ShowMessageBox(string message)
@@ -1334,6 +1331,11 @@ namespace ViSyncMaster.ViewModels
         {
             ActivePage = _resultTableView;
         }
+        [RelayCommand]
+        private void LoadFormFirstPart()
+        {
+            ActivePage = _firstPartView;
+        }
 
 
         public void OpenSerialPort()
@@ -1367,12 +1369,14 @@ namespace ViSyncMaster.ViewModels
             //_machineStatusService.ReportPartQuality(_messageToSplunkPassed);
             //_machineStatusService.ReportPartQuality(_messageToSplunkFailed);
 
-            //LoadResultToTable();
+
             Ssid = _wifiParameters.FetchWifiName();
             if (appConfig.AppMode == "VRSKT")
             {
                 var messagePgToSplunk = _splunkMessageHandler.PreparingPgMessageToSplunk(MachineStatuses, _machineStatusCounter);
+                await _machineStatusService.SendPgMessage((MessagePgToSplunk)messagePgToSplunk);
                 await SendMessageToSplunk(messagePgToSplunk);
+
             }
 
             if (MachineStatuses != null && MachineStatuses.Any())
@@ -1431,7 +1435,7 @@ namespace ViSyncMaster.ViewModels
             {
                 Debug.WriteLine($"Producing state changed from {_previousProducingState} to {testData.Producing}");
 
-                _machineStatusCounter = testData.Producing == "true" ? 1 : 2;
+                _machineStatusCounter = testData.Producing == "true" ? 5 : 6;
 
                 // Ustaw wiadomość na podstawie licznika
                 _messageToSplunkPg.SetByCounter(_machineStatusCounter);
@@ -1589,6 +1593,7 @@ namespace ViSyncMaster.ViewModels
             _messageToSplunkConnected = new ConnectedMessage();
             _messageToSplunkPg = new MessagePgToSplunk();
             _resultTableView = new ResultTableView();
+            _firstPartView = new FormFirstPartView(_machineStatusService);
             _resultTableView.SetDataContext(ResultTest, _machineStatusService);
             // Inicjalizacja SerialPortListener tylko raz
             _serialPortListener = new SerialPortListener();
@@ -1609,6 +1614,7 @@ namespace ViSyncMaster.ViewModels
             // Start nasłuchiwania portu w tle
             StartListeningAsync();
             LoadPageAdaptronic();
+            LoadResultToTable();
         }
 
         private void EnableFuction(string appMode)
@@ -1670,32 +1676,34 @@ namespace ViSyncMaster.ViewModels
             _pendingMachineStatus = new MachineStatus();
             _sharedDataService = new SharedDataService();
             appConfig = _sharedDataService.AppConfig ?? new AppConfigData();
+            mqttConfig = _sharedDataService.ConfigMqtt ?? new ConfigMqtt();
             _database = new SQLiteDatabase(@"C:\ViSM\Database\databaseViSM.db");
             _database.CreateTableIfNotExists<MachineStatus>("MachineStatus");
             _database.CreateTableIfNotExists<MachineStatus>("MachineStatusQueue");
             _database.CreateTableIfNotExists<MachineStatus>("TestingResultQueue");
             _database.CreateTableIfNotExists<MachineStatus>("TestingResult");
             _database.CreateTableIfNotExists<ProductionEfficiency>("ProductionEfficiency");
+            _database.CreateTableIfNotExists<FirstPartModel>("FirstPartData");
             _repositoryMachineStatus = new GenericRepository<MachineStatus>(_database, "MachineStatus");
             _repositoryMachineStatusQueue = new GenericRepository<MachineStatus>(_database, "MachineStatusQueue");
             _repositoryTestingResultQueue = new GenericRepository<MachineStatus>(_database, "TestingResultQueue");
             _repositoryTestingResult = new GenericRepository<MachineStatus>(_database, "TestingResult");
             _repositoryProductionEfficiency = new GenericRepository<ProductionEfficiency>(_database, "ProductionEfficiency");
+            _repositoryFirstPartData = new GenericRepository<FirstPartModel>(_database, "FirstPartData");
             // Inicjalizacja widoku, który będzie używany przez DataContext
-            _messageQueue = new MessageQueue(_repositoryMachineStatusQueue, _repositoryTestingResultQueue, _repositoryProductionEfficiency);
+            _messageQueue = new MessageQueue(_repositoryMachineStatusQueue, _repositoryTestingResultQueue, _repositoryProductionEfficiency, _repositoryFirstPartData);
             _messageSender = new MessageSender(this); // Na początku brak połączenia   
             _splunkMessageHandler = new SplunkMessageHandler();
+            _mqttSender = new MqttMessageSender(mqttConfig.brokerHost, mqttConfig.brokerPort, appConfig.Source, mqttConfig.username, mqttConfig.password);
 
             _machineStatusService = new MachineStatusService(_repositoryMachineStatus, _repositoryMachineStatusQueue, 
-                _repositoryTestingResultQueue, _repositoryTestingResult, _repositoryProductionEfficiency,  _messageSender, _messageQueue, _database);
+                _repositoryTestingResultQueue, _repositoryTestingResult, _repositoryProductionEfficiency, _repositoryFirstPartData, _messageSender, _messageQueue, _database, _mqttSender);
+            
+
             LoadStatuses(this);
             InitializeAsync();
 
-            string brokerHost = "mqtt.flespi.io";  // Adres hosta brokera
-            int brokerPort = 1883;  // Port brokera
-            string clientId = "SmbL";  // Identyfikator klienta
-            string token = "tsxZwnMWXFWrXGpGdghpvgN9xG3KdfcYJWPMBWZ9t6S2IbNShngzZenF4z4qBQZG";
-            _mqttSender = new MqttMessageSender(brokerHost, brokerPort, clientId, token);
+            
 
             if (appConfig.AppMode != null)
                 InitializeAppFunctions();

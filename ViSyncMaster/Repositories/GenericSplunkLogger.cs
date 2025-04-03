@@ -292,14 +292,17 @@ namespace ViSyncMaster.Repositories
             if (!string.IsNullOrEmpty(data.Waiting))
                 eventFields["S1.Waiting_PG"] = data.Waiting;
 
-            if (!string.IsNullOrEmpty(data.Maintenance))
-                eventFields["S1.MaintenanceMode_PG"] = data.Maintenance;
+            if (!string.IsNullOrEmpty(data.MaintenanceMode))
+                eventFields["S1.MaintenanceMode_PG"] = data.MaintenanceMode;
 
-            if (!string.IsNullOrEmpty(data.Setting))
-                eventFields["S1.SettingMode_PG"] = data.Setting;
+            if (!string.IsNullOrEmpty(data.SettingMode))
+                eventFields["S1.SettingMode_PG"] = data.SettingMode;
 
-            if (!string.IsNullOrEmpty(data.Downtime))
-                eventFields["S1.MachineDowntime_PG"] = data.Downtime;
+            if (!string.IsNullOrEmpty(data.MachineDowntime))
+                eventFields["S1.MachineDowntime_PG"] = data.MachineDowntime;
+
+            if (!string.IsNullOrEmpty(data.LogisticMode))
+                eventFields["S1.MachineDowntime_PG"] = data.LogisticMode;
 
             string jsonPayload;
 

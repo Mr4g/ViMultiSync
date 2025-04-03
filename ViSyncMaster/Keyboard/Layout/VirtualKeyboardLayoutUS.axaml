@@ -11,8 +11,10 @@
 	</UserControl.Resources>
 	<UserControl.Styles>
 		<Style Selector="keyboard|VirtualKey">
-			<Setter Property="Width" Value="70" />
-			<Setter Property="Height" Value="70" />
+			<Setter Property="Width" Value="80" />
+			<Setter Property="Height" Value="80" />
+			<!-- Zmiana koloru tekstu klawiszy -->
+
 		</Style>
 	</UserControl.Styles>
 	<StackPanel>

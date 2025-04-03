@@ -131,6 +131,8 @@ namespace ViSyncMaster.Keyboard
                     {
                         BorderThickness = new Thickness(1),
                         BorderBrush = new SolidColorBrush(Color.Parse("Black")),
+                        Foreground = new SolidColorBrush(Color.Parse("Black")), // Dodano Foreground
+                        FontSize = 24,
                         [!ToggleButton.WidthProperty] = new Binding("Width"),
                         [!ToggleButton.HeightProperty] = new Binding("Height"),
                         [!ToggleButton.ContentProperty] = new Binding("Caption"),
@@ -175,6 +177,8 @@ namespace ViSyncMaster.Keyboard
                         {
                             BorderThickness = new Thickness(1),
                             BorderBrush = new SolidColorBrush(Color.Parse("Black")),
+                            Foreground = new SolidColorBrush(Color.Parse("Black")), // Dodano Foreground
+                            FontSize = 24,
                             [!Button.WidthProperty] = new Binding("Width"),
                             [!Button.HeightProperty] = new Binding("Height"),
                             [!Button.ContentProperty] = new Binding("Caption"),

@@ -6,6 +6,8 @@
              xmlns:views="clr-namespace:ViSyncMaster.Views"
              xmlns:viewModels="clr-namespace:ViSyncMaster.ViewModels"
 			 xmlns:styles="clr-namespace:ViSyncMaster.Styles"
+             xmlns:materialIcons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+			 xmlns:material="using:Material.Icons.Avalonia"
              RequestedThemeVariant="Default">
 
 
@@ -20,11 +22,12 @@
     <Application.DataTemplates>
         <ViSyncMaster:ViewLocator/>
     </Application.DataTemplates>
-  
-    <Application.Styles>
-        <FluentTheme />
-        <StyleInclude Source="Styles/AnimatedPopup.axaml"/>
-        <StyleInclude Source="Styles/Button/PopupButton.axaml"/>
+
+	<Application.Styles>
+		<FluentTheme />
+		<StyleInclude Source="Styles/AnimatedPopup.axaml"/>
+		<StyleInclude Source="Styles/Button/PopupButton.axaml"/>
+		<material:MaterialIconStyles />
 		<StyleInclude Source="avares://Avalonia.Controls.DataGrid/Themes/Fluent.xaml"/>
 		<StyleInclude Source="avares://ViSyncMaster/Styles/Icons/Icons.axaml"/>
 	</Application.Styles>
