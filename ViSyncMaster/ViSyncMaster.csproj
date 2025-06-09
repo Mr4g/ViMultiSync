@@ -44,6 +44,7 @@
     <None Remove="Assets\icons\info.svg" />
     <None Remove="Assets\icons\info2.svg" />
     <None Remove="Assets\icons\mark.svg" />
+    <None Remove="Assets\icons\productionIssues.svg" />
     <None Remove="Assets\icons\scanerWhite.svg" />
     <None Remove="Assets\icons\scanerWhite2.svg" />
     <None Remove="Assets\icons\scannerWhite.svg" />

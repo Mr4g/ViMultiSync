@@ -28,6 +28,8 @@ namespace ViSyncMaster.Repositories
 
         public event Action? CacheUpdated;
 
+        public string TableName => _tableName;  // Właściwość do odczytu nazwy tabeli
+
         public GenericRepository(SQLiteDatabase db, string tableName)
         {
             _db = db;

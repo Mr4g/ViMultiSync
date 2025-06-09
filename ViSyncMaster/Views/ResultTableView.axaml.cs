@@ -16,9 +16,9 @@ public partial class ResultTableView : UserControl
         InitializeComponent();
     }
 
-    public void SetDataContext(ObservableCollection<MachineStatus> machineStatuses, MachineStatusService machineStatusService)
+    public void SetDataContext(ObservableCollection<MachineStatus> machineStatuses, MainWindowViewModel mainWindowViewModel, MachineStatusService machineStatusService)
     {
-        var viewModel = new ResultTableViewModel(machineStatusService, machineStatuses);
+        var viewModel = new ResultTableViewModel(machineStatusService, mainWindowViewModel, machineStatuses);
         DataContext = viewModel;  // Ustawienie DataContext w widoku
     }
 }

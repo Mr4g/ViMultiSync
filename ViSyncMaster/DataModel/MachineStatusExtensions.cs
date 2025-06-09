@@ -40,9 +40,24 @@ namespace ViSyncMaster.DataModel
             if (string.IsNullOrEmpty(text))
                 return text;
 
-            return string.Concat(text
-                .Normalize(NormalizationForm.FormD) // Zamienia znaki na formę rozłożoną (np. "ą" → "a" + diakrytyk)
-                .Where(c => CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark)); // Usuwa diakrytyki
+            var normalizedString = text.Normalize(NormalizationForm.FormD);
+            var stringBuilder = new StringBuilder();
+
+            foreach (var c in normalizedString)
+            {
+                var unicodeCategory = CharUnicodeInfo.GetUnicodeCategory(c);
+                if (unicodeCategory != UnicodeCategory.NonSpacingMark)
+                {
+                    stringBuilder.Append(c);
+                }
+            }
+
+            var result = stringBuilder.ToString().Normalize(NormalizationForm.FormC);
+
+            // Zamień ręcznie "ł" na "l" i "Ł" na "L"
+            result = result.Replace('ł', 'l').Replace('Ł', 'L');
+
+            return result;
         }
     }
 }

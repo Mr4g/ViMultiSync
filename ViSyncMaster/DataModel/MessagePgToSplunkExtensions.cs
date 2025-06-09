@@ -13,9 +13,24 @@ namespace ViSyncMaster.DataModel
     {
         public static Dictionary<string, object> ToMqttPgFormat(this MessagePgToSplunk status)
         {
+            // 1) Zbierz właściwości do słownika, parsując string→bool gdy trzeba
+            var statusDict = new Dictionary<string, object>();
+            foreach (var prop in status.GetType().GetProperties())
+            {
+                var raw = prop.GetValue(status);
+                if (raw is string s && bool.TryParse(s, out var b))
+                    statusDict[prop.Name] = b;
+                else
+                    statusDict[prop.Name] = raw!;
+            }
+
+            // 2) Dodaj timestamp jako string
+            statusDict["TimeStamp"] = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
+
+            // 3) Zwróć już zagnieżdżony obiekt pod kluczem "Statuses"
             return new Dictionary<string, object>
             {
-                { "Statuses", status }
+                { "Statuses", statusDict }
             };
         }
         private static string CleanStatusName(string name)

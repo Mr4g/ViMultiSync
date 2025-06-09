@@ -60,6 +60,7 @@ namespace ViSyncMaster.ViewModels
         private TestingFailedMessage _messageToSplunkFailed;
         private TestingPassedMessage _messageToSplunkPassed;
         private ConnectedMessage _messageToSplunkConnected;
+        private Rs232DataProcessor _rs232Processor;
         private MessagePgToSplunk _messageToSplunkPg;
         private int _machineStatusCounter = 6;
         private GenericSplunkLogger<IEntity> _splunkLogger;
@@ -81,7 +82,7 @@ namespace ViSyncMaster.ViewModels
         private string googleTargetPlanUrl;
 
 
-        public event Action? ResultTableUpdate;
+        public event EventHandler? ResultTableUpdate;
 
         private int _counterTest = 0;
 
@@ -157,6 +158,9 @@ namespace ViSyncMaster.ViewModels
         private string _ssid;
 
         [ObservableProperty]
+        public bool _isActiveStatus;// lub false, zależnie od logiki
+
+        [ObservableProperty]
         [NotifyDataErrorInfo]
         [RegularExpression(@"^(Line[1-6]Pump[1-6])$", ErrorMessage = "Niepoprawny numer stacji")]
         [NotifyCanExecuteChangedFor(nameof(ClearButtonPressedCommand), nameof(SendMessageToPlcCommand))]
@@ -174,10 +178,16 @@ namespace ViSyncMaster.ViewModels
         private int _rowForSettingPanel;
 
         [ObservableProperty]
+        private int _rowForDowntimePanel;
+
+        [ObservableProperty]
         private int _rowForMaintenancePanel;
 
         [ObservableProperty]
         private int _rowForLogisticPanel;
+
+        [ObservableProperty]
+        private int _rowForProductionIssuesPanel;
 
         [ObservableProperty]
         private int _rowForReasonDowntimeMechanicalPanel;
@@ -217,6 +227,9 @@ namespace ViSyncMaster.ViewModels
 
         [ObservableProperty]
         private bool _logisticPanelIsOpen = false;
+
+        [ObservableProperty]
+        private bool _productionIssuesPanelIsOpen = false;
 
         [ObservableProperty]
         private bool _ReasonDowntimeMechanicalPanelIsOpen = false;
@@ -362,6 +375,9 @@ namespace ViSyncMaster.ViewModels
         private ObservableGroupedCollection<string, LogisticPanelItem> _logisticStatusPanel = default!;
 
         [ObservableProperty]
+        private ObservableGroupedCollection<string, ProductionIssuesPanelItem> _productionIssuesStatusPanel = default!;
+
+        [ObservableProperty]
         private ObservableGroupedCollection<string, ReasonDowntimeMechanicalPanelItem> _ReasonDowntimeMechanicalPanel = default!;
 
         [ObservableProperty]
@@ -406,6 +422,10 @@ namespace ViSyncMaster.ViewModels
         private LogisticPanelItem? _selectedLogisticPanelItem;
 
         [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(ProductionIssuesPanelButtonText))]
+        private ProductionIssuesPanelItem? _selectedProductionIssuesPanelItem;
+
+        [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(ReasonDowntimeMechanicalPanelButtonText))]
         private ReasonDowntimeMechanicalPanelItem? _selectedReasonDowntimeMechanicalPanelItem;
 
@@ -442,24 +462,17 @@ namespace ViSyncMaster.ViewModels
         #endregion
 
         public string DowntimePanelButtonText => SelectedDowntimePanelItem?.Name ?? "Downtime";
-
         public string SettingPanelButtonText => SelectedSettingPanelItem?.Name ?? "Setting";
-
         public string MaintenancePanelButtonText => SelectedMaintenancePanelItem?.Name ?? "Maintenance";
-
         public string LogisticPanelButtonText => SelectedLogisticPanelItem?.Name ?? "Logistic";
-
+        public string ProductionIssuesPanelButtonText => SelectedProductionIssuesPanelItem?.Name ?? "ProductionIssues";
         public string ReasonDowntimeMechanicalPanelButtonText => SelectedReasonDowntimeMechanicalPanelItem?.Name ?? "Reason Downtime";
-
         public string DowntimeReasonElectricPanelButtonText => SelectedDowntimeReasonElectricPanelItem?.Name ?? "Downtime Reason Electric";
-
         public string DowntimeReasonLiderPanelButtonText => SelectedDowntimeReasonLiderPanelItem?.Name ?? "Downtime Reason Setting";
-
         public string DowntimeReasonKptjPanelButtonText => SelectedDowntimeReasonKptjPanelItem?.Name ?? "Downtime Reason Kptj";
         public string DowntimeReasonPlatePanelButtonText => SelectedDowntimeReasonPlatePanelItem?.Name ?? "Downtime Reason Plate";
         public string CallForServicePanelButtonText => SelectedCallForServicePanelItem?.Name ?? "Call For Service";
         public string ServiceArrivalPanelButtonText => SelectedServiceArrivalPanelItem?.Name ?? "Service Arrival";
-
         public string SplunkPanelButtonText => SelectedSplunkPanelItem?.Name ?? "Splunk";
 
         public bool CanDeleteTheNumberStationAndGnv =>
@@ -506,6 +519,9 @@ namespace ViSyncMaster.ViewModels
 
         [RelayCommand]
         public void LogisticPanelButtonPressed() => LogisticPanelIsOpen ^= true;
+
+        [RelayCommand]
+        public void ProductionIssuesPanelButtonPressed() => ProductionIssuesPanelIsOpen ^= true;
 
         [RelayCommand]
         public void ReasonDowntimeMechanicalPanelButtonPressed() => ReasonDowntimeMechanicalPanelIsOpen ^= true;
@@ -584,7 +600,7 @@ namespace ViSyncMaster.ViewModels
             DowntimePanelIsOpen = false;
             MaintenancePanelIsOpen = false;
             LogisticPanelIsOpen = false;
-            
+            ProductionIssuesPanelIsOpen = false;
         }
 
         [RelayCommand]
@@ -596,6 +612,8 @@ namespace ViSyncMaster.ViewModels
                 ActualValueForWarrningNoticePopup(item);
                 return;
             }
+            if (item.Status == "SZKOLENIE PRACOWNIKA")
+                IsActiveStatus = true;
             if (item.Name == "S7.DowntimeReason")
             {
                 _pendingMachineStatus.Reason = item.Reason;
@@ -614,6 +632,7 @@ namespace ViSyncMaster.ViewModels
             DowntimePanelIsOpen = false;
             MaintenancePanelIsOpen = false;
             LogisticPanelIsOpen = false;
+            ProductionIssuesPanelIsOpen = false;
             DowntimeReasonLiderPanelIsOpen = false;
             CallForServicePanelIsOpen = false;
             ControlPanelVisible = false;
@@ -653,6 +672,7 @@ namespace ViSyncMaster.ViewModels
         private async void HandleUnmappedStatus(MachineStatus machineStatus)
         {
             Console.WriteLine($"Brak zdefiniowanego panelu dla statusu: {machineStatus.Status}");
+            IsActiveStatus = false;
             _machineStatusService.EndStatus(machineStatus); // Kończenie statusu bez powodu
             var messagePgToSplunk = _splunkMessageHandler.PreparingPgMessageToSplunk(MachineStatuses, machineStatus, _machineStatusCounter);
             await _machineStatusService.SendPgMessage((MessagePgToSplunk)messagePgToSplunk);
@@ -1091,6 +1111,7 @@ namespace ViSyncMaster.ViewModels
             var settingStatusPanel = await mStatusInterfaceService.GetSettingPanelAsync();
             var maintenanceStatusPanel = await mStatusInterfaceService.GetMaintenancePanelAsync();
             var logisticStatusPanel = await mStatusInterfaceService.GetLogisticPanelAsync();
+            var productionIssuesStatusPanel = await mStatusInterfaceService.GetProductionIssuesPanelAsync();
             var reasonDowntimeStatusPanel = await mStatusInterfaceService.GetReasonDowntimeMechanicalPanelAsync();
             var splunkStatusPanel = await mStatusInterfaceService.GetSplunkPanelAsync();
             var callForServicePanel = await mStatusInterfaceService.GetCallForServicePanelAsync();
@@ -1107,6 +1128,8 @@ namespace ViSyncMaster.ViewModels
             StatusPanel =
                 new ObservableGroupedCollection<string, DowntimePanelItem>(
                     statusPanel.GroupBy(item => item.Status));
+
+            RowForDowntimePanel = LoadSizeOfGrid(statusPanel.Count);
 
             PanelActionMapping = panelActionMapping.ToDictionary(pa => pa.Status, pa => pa.PanelName);
 
@@ -1128,6 +1151,10 @@ namespace ViSyncMaster.ViewModels
                     logisticStatusPanel.GroupBy(item => item.Name));
 
             RowForLogisticPanel = LoadSizeOfGrid(logisticStatusPanel.Count);
+
+            ProductionIssuesStatusPanel =
+                new ObservableGroupedCollection<string, ProductionIssuesPanelItem>(
+                    productionIssuesStatusPanel.GroupBy(item => item.Name));
 
             ReasonDowntimeMechanicalPanel =
                 new ObservableGroupedCollection<string, ReasonDowntimeMechanicalPanelItem>(
@@ -1365,7 +1392,12 @@ namespace ViSyncMaster.ViewModels
         {
             //_messageToSplunkFailed.SetValue("true");
             //_messageToSplunkPassed.SetValue("true");
-
+            //_messageToSplunkPassed.OperatorId = "smbl"; 
+            //_messageToSplunkPassed.ProductName = "test2";
+            //_machineStatusService.ReportPartQuality(_messageToSplunkPassed);
+            //Task.Delay(1000).Wait();
+            //_machineStatusService.ReportPartQuality(_messageToSplunkPassed);
+            //Task.Delay(1000).Wait();
             //_machineStatusService.ReportPartQuality(_messageToSplunkPassed);
             //_machineStatusService.ReportPartQuality(_messageToSplunkFailed);
 
@@ -1416,68 +1448,61 @@ namespace ViSyncMaster.ViewModels
 
         private async void OnFrameReceived(object sender, Rs232Data testData)
         {
-            if (testData != null)
-            {
-                testData.Producing = testData.Producing?.ToLower();
-                testData.TestingPassed = testData.TestingPassed?.ToLower();
-                testData.TestingFailed = testData.TestingFailed?.ToLower();
-            }
+            if (testData == null) return;
 
-            // Aktualizacja BarOnTopApp i LoginLabel tylko w razie zmiany
+            testData.Producing = testData.Producing?.ToLower();
+            testData.TestingPassed = testData.TestingPassed?.ToLower();
+            testData.TestingFailed = testData.TestingFailed?.ToLower();
+
             if (BarOnTopApp != $"VRS  /  {testData.ST}")
                 BarOnTopApp = $"VRS  /  {testData.ST}";
 
             if (LoginLabel != testData.Operator)
                 LoginLabel = testData.Operator;
 
-            // Porównanie aktualnego stanu Producing z poprzednim
-            if (_previousProducingState != testData.Producing)
-            {
-                Debug.WriteLine($"Producing state changed from {_previousProducingState} to {testData.Producing}");
+            Log.Information("Frame received → Producing: {Producing}, Passed: {Passed}, Failed: {Failed}, Product: {Product}, Operator: {Operator}",
+                testData.Producing, testData.TestingPassed, testData.TestingFailed, testData.ProductName, testData.OperatorId);
 
-                _machineStatusCounter = testData.Producing == "true" ? 5 : 6;
+            // Nowa logika – delegujemy analizę danych do Rs232DataProcessor
+            _rs232Processor.Process(testData);
 
-                // Ustaw wiadomość na podstawie licznika
-                _messageToSplunkPg.SetByCounter(_machineStatusCounter);
-
-                // Wysyłanie wiadomości do Splunk tylko, jeśli nastąpiła zmiana
-                ReSendMessageToSplunk(_messageToSplunkPg);
-
-                // Aktualizacja poprzedniego stanu
-                _previousProducingState = testData.Producing;
-            }
-
-            // Ustawienie wartości dla TestingFailed i TestingPassed
-            _messageToSplunkFailed.SetValue(testData?.TestingFailed == "true" ? "true" : "false");
-            _messageToSplunkFailed.ProductName = testData?.ProductName;
-            _messageToSplunkFailed.OperatorId = testData?.OperatorId;
-            _messageToSplunkPassed.SetValue(testData?.TestingPassed == "true" ? "true" : "false");
-            _messageToSplunkPassed.ProductName = testData?.ProductName;
-            _messageToSplunkPassed.OperatorId = testData?.OperatorId;   
-
-            if (_messageToSplunkPassed.Value == "true")
-            {
-                _counterTest++;
-                Debug.WriteLine($"CounterTest value: {_counterTest}");
-            }
-
-            // Wysyłanie tylko tych wiadomości, które mają wartość "true"
-            if (_messageToSplunkFailed.Value == "true")
-            {
-                Debug.WriteLine("Sending _messageToSplunkFailed");
-                _machineStatusService.ReportPartQuality(_messageToSplunkFailed);
-            }
-
-            if (_messageToSplunkPassed.Value == "true")
-            {
-                Debug.WriteLine("Sending _messageToSplunkPassed");
-                _machineStatusService.ReportPartQuality(_messageToSplunkPassed);
-            }
-
+            // Jeśli Device istnieje, to wysyłamy pełną ramkę do Splunk
             if (testData.Device != null)
             {
-                Debug.WriteLine("Sending testData");
+                Log.Information("Sending full test data to Splunk: {Data}", testData);
                 SendMessageToSplunk(testData);
+            }
+        }
+
+        private void HandleProducingStarted(object sender, Rs232Data message)
+        {
+            _machineStatusCounter = 5;
+            _messageToSplunkPg.SetByCounter(_machineStatusCounter);
+            ReSendMessageToSplunk(_messageToSplunkPg);
+            _previousProducingState = "true";
+            Log.Information("Producing started → {Message}", message);
+        }
+
+        private void HandleTestFinished(object sender, Rs232Data message)
+        {
+            if (message.Status == "Failed")
+            {
+                _messageToSplunkFailed.SetValue("true");
+                _messageToSplunkFailed.ProductName = message.ProductName;
+                _messageToSplunkFailed.OperatorId = message.OperatorId;
+
+                Log.Information("Test failed → {Message}", message);
+                _machineStatusService.ReportPartQuality(_messageToSplunkFailed);
+            }
+            else if (message.Status == "Passed")
+            {
+                _messageToSplunkPassed.SetValue("true");
+                _messageToSplunkPassed.ProductName = message.ProductName;
+                _messageToSplunkPassed.OperatorId = message.OperatorId;
+
+                _counterTest++;
+                Log.Information("Test passed → {Message}, Counter={Counter}", message, _counterTest);
+                _machineStatusService.ReportPartQuality(_messageToSplunkPassed);
             }
         }
 
@@ -1510,18 +1535,14 @@ namespace ViSyncMaster.ViewModels
         {
             var loadedResult = await _repositoryTestingResult.GetFromCacheTestResult();
 
-            // Synchronizacja kolekcji
-
-            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+            await Dispatcher.UIThread.InvokeAsync(() =>
             {
-                // Synchronizacja elementów w liście
-                ResultTest.Clear();
-                foreach (var result in loadedResult)
-                {
-                    ResultTest.Add(result);
-                }
+                // zamiast Clear()+Add:
+                ResultTest.SyncWith(loadedResult, x => x.Id);
             });
-            ResultTableUpdate?.Invoke();
+
+            // to odświeży tabelę i wywoła dalsze filtrowanie
+            ResultTableUpdate?.Invoke(this, EventArgs.Empty);
         }
 
         #region InitializeAppFunctions
@@ -1529,6 +1550,25 @@ namespace ViSyncMaster.ViewModels
         /// InitializeApp regarding from 
         /// </summary>
         /// 
+
+        private async Task InitializeLogger()
+        {
+            string logDirectory = @"C:\ViSM\App\logs";
+
+            if (!Directory.Exists(logDirectory))
+            {
+                Directory.CreateDirectory(logDirectory);
+            }
+
+            Log.Logger = new LoggerConfiguration()
+                .WriteTo.File(
+                    path: Path.Combine(logDirectory, "log-.txt"),
+                    rollingInterval: RollingInterval.Day,           // Nowy plik codziennie
+                    retainedFileCountLimit: 7,                      // Przechowuj tylko 7 dni logów
+                    fileSizeLimitBytes: 10 * 1024 * 1024,           // Limit 10 MB na plik
+                    rollOnFileSizeLimit: true)                      // Twórz nowy plik, jeśli przekroczono rozmiar
+                .CreateLogger();
+        }
 
         private async Task InitializeAsync()
         {
@@ -1594,9 +1634,12 @@ namespace ViSyncMaster.ViewModels
             _messageToSplunkPg = new MessagePgToSplunk();
             _resultTableView = new ResultTableView();
             _firstPartView = new FormFirstPartView(_machineStatusService);
-            _resultTableView.SetDataContext(ResultTest, _machineStatusService);
+            _resultTableView.SetDataContext(ResultTest, this, _machineStatusService);
             // Inicjalizacja SerialPortListener tylko raz
             _serialPortListener = new SerialPortListener();
+            _rs232Processor = new Rs232DataProcessor();
+            _rs232Processor.OnProducingStarted += HandleProducingStarted;
+            _rs232Processor.OnTestFinished += HandleTestFinished;
             _serialPortListener.FrameReceived += OnFrameReceived;
             _machineStatusService.TableResultTestUpdate += LoadResultToTable;
             adaptronicUrl = appConfig.UrlAdaptronic;
@@ -1628,7 +1671,7 @@ namespace ViSyncMaster.ViewModels
                     InstructionButtonIsVisible = true;
                     TargetPlanButtonIsVisible = true;
                     UserButtonIsVisible = false;
-                    break;
+                break;
 
                 case "CUPP":
                     OpenSerialPortButtonIsVisible = false;
@@ -1637,7 +1680,7 @@ namespace ViSyncMaster.ViewModels
                     InstructionButtonIsVisible = false;
                     TargetPlanButtonIsVisible = false;
                     UserButtonIsVisible = true;
-                    break;
+                break;
 
                 default:
                     OpenSerialPortButtonIsVisible = true;
@@ -1646,7 +1689,7 @@ namespace ViSyncMaster.ViewModels
                     InstructionButtonIsVisible = true;
                     TargetPlanButtonIsVisible = true;
                     UserButtonIsVisible = true;
-                    break;
+                break;
             }
         }
 
@@ -1664,14 +1707,7 @@ namespace ViSyncMaster.ViewModels
 
         public MainWindowViewModel(IStatusInterfaceService statusInterfaceService)
         {
-            Log.Logger = new LoggerConfiguration()
-                .WriteTo.File(
-                    path: "logs/log-.txt",
-                    rollingInterval: RollingInterval.Day, // Nowy plik codziennie
-                    retainedFileCountLimit: 7,           // Przechowuj tylko 7 dni logów
-                    fileSizeLimitBytes: 10 * 1024 * 1024, // Limit 10 MB na plik
-                    rollOnFileSizeLimit: true)           // Twórz nowy plik, jeśli przekroczono rozmiar
-                .CreateLogger();
+            InitializeLogger();
             mStatusInterfaceService = statusInterfaceService;
             _pendingMachineStatus = new MachineStatus();
             _sharedDataService = new SharedDataService();

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -6,12 +7,13 @@ using System.Threading.Tasks;
 
 namespace ViSyncMaster.DataModel
 {
-    public class MachineStatusGrouped
+    public partial class MachineStatusGrouped : ObservableObject
     {
-        public string ProductName { get; set; }
-        public string Time { get; set; }  // Nowa właściwość przechowująca czas
-        public int PassedCount { get; set; } // Liczba pozytywnych wyników testów
-        public int FailedCount { get; set; } // Liczba negatywnych wyników testów
-        public string Operators { get; set; } // Lista operatorów
+        [ObservableProperty] private string _productName;
+        [ObservableProperty] private string _time;  // Nowa właściwość przechowująca czas
+        [ObservableProperty] private string _operators; // Lista operatorów
+        [ObservableProperty] private int _target; // Cel
+        [ObservableProperty] private int _shiftCounterPass; // Liczba pozytywnych wyników testów w zmianie
+        [ObservableProperty] private int _shiftCounterFail;// Liczba negatywnych wyników testów w zmianie
     }
 }

@@ -102,6 +102,11 @@ namespace ViSyncMaster.Services
             return await ReadPanelDataAsync<LogisticPanelItem>("LogisticPanelData");
         }
 
+        public async Task<List<ProductionIssuesPanelItem>> GetProductionIssuesPanelAsync()
+        {
+            return await ReadPanelDataAsync<ProductionIssuesPanelItem>("ProductionIssuesPanelData");
+        }
+
         public async Task<List<ReasonDowntimeMechanicalPanelItem>> GetReasonDowntimeMechanicalPanelAsync()
         {
             return await ReadPanelDataAsync<ReasonDowntimeMechanicalPanelItem>("ReasonDowntimeMechanicalPanelData");

@@ -6,12 +6,15 @@
              xmlns:views="clr-namespace:ViSyncMaster.Views"
              xmlns:viewModels="clr-namespace:ViSyncMaster.ViewModels"
 			 xmlns:styles="clr-namespace:ViSyncMaster.Styles"
+			 xmlns:converters="clr-namespace:ViSyncMaster.Converter"
              xmlns:materialIcons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
 			 xmlns:material="using:Material.Icons.Avalonia"
              RequestedThemeVariant="Default">
 
 
     <Application.Resources>
+		<converters:BoolToBrushConverter x:Key="BoolToBrushConverter"/>
+		<converters:BoolToThicknessConverter x:Key="BoolToThicknessConverter"/>
         <SolidColorBrush x:Key="OrangeRedBrush" Color="OrangeRed" />
         <SolidColorBrush x:Key="GrayBrush" Color="Gray" />
 		<views:TimeSpanToStringConverter x:Key="TimeSpanToStringConverter" />

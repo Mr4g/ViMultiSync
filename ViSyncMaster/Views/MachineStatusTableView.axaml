@@ -92,6 +92,7 @@
 
 		<lvc:CartesianChart
 			Grid.Row="1"
+			Margin="10"
 			Series="{Binding ChartSeries}"
 			XAxes="{Binding XAxes}"
 			YAxes="{Binding YAxes}">

@@ -30,6 +30,8 @@ namespace ViSyncMaster.Views
         private Control mMaintenancePanelButton;
         private Control mLogisticPanelPopup;
         private Control mLogisticPanelButton;
+        private Control mProductionIssuesPanelPopup;
+        private Control mProductionIssuesPanelButton;
         private Control mSplunkPanelPopup;
         private Control mSplunkPanelButton;
         private Control mOptionsPanelButton;
@@ -86,6 +88,11 @@ namespace ViSyncMaster.Views
             mLogisticPanelButton = this.FindControl<Control>("LogisticPanelButton") ??
                                    throw new Exception("Cannot find Channel Configuration Button by name ");
             mLogisticPanelPopup = this.FindControl<Control>("LogisticPanelPopup") ??
+                                  throw new Exception("Cannot find Channel Configuration Popup by name ");
+
+            mProductionIssuesPanelButton = this.FindControl<Control>("ProductionIssuesPanelButton") ??
+                       throw new Exception("Cannot find Channel Configuration Button by name ");
+            mProductionIssuesPanelPopup = this.FindControl<Control>("ProductionIssuesPanelPopup") ??
                                   throw new Exception("Cannot find Channel Configuration Popup by name ");
 
             mSplunkPanelButton = this.FindControl<Control>("SplunkPanelButton") ??
@@ -158,6 +165,16 @@ namespace ViSyncMaster.Views
             mLogisticPanelPopup.Margin = new Thickness(
                 positionLogisticButton.X + mLogisticPanelButton.Bounds.Right,
                 positionLogisticButton.Y,
+                0,
+                20);
+
+            var positionProductionIssuesButton = mProductionIssuesPanelButton.TranslatePoint(new Point(), MainGrid) ??
+                             throw new ArgumentException("Cannot get TranslatePoint from Configuration");
+
+
+            mProductionIssuesPanelPopup.Margin = new Thickness(
+                positionProductionIssuesButton.X + mProductionIssuesPanelButton.Bounds.Right,
+                positionProductionIssuesButton.Y,
                 0,
                 20);
 

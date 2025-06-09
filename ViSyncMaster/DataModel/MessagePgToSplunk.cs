@@ -43,6 +43,12 @@ namespace ViSyncMaster.DataModel
             set => SetExclusiveValue(nameof(LogisticMode), value);
         }
 
+        public string ProductionMode
+        {
+            get => _states[nameof(ProductionMode)];
+            set => SetExclusiveValue(nameof(ProductionMode), value);
+        }
+
         // Konstruktor domyślny
         public MessagePgToSplunk()
         {
@@ -53,7 +59,8 @@ namespace ViSyncMaster.DataModel
                 { nameof(MaintenanceMode), "false" },
                 { nameof(SettingMode), "false" },
                 { nameof(MachineDowntime), "false" },
-                { nameof(LogisticMode), "false" }
+                { nameof(LogisticMode), "false" },
+                { nameof(ProductionMode), "false" }
             };
         }
 
@@ -112,8 +119,9 @@ namespace ViSyncMaster.DataModel
             LogisticMode = 2,
             SettingMode = 3, 
             MaintenanceMode = 4,
-            Producing = 5,
-            Waiting = 6
+            ProductionMode = 5,
+            Producing = 6,
+            Waiting = 7
         }
     }
 }

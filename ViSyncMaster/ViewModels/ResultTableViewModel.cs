@@ -17,7 +17,9 @@ using LiveChartsCore.VisualElements;
 using LiveChartsCore.SkiaSharpView.VisualElements;
 using Avalonia.Threading;
 using ViSyncMaster.Services;
+using ViSyncMaster.ViewModels;
 using System.Threading.Tasks;
+using System.Diagnostics;
 
 namespace ViSyncMaster.ViewModels
 {
@@ -29,6 +31,10 @@ namespace ViSyncMaster.ViewModels
         private readonly ProductionEfficiencyCalculator _efficiencyCalculator;
         private DispatcherTimer _hourlyTimer;
         private ProductionEfficiency _productionEfficiency;
+        private MainWindowViewModel _mainWindowViewModel;
+        private bool _isUpdating = false;
+        private MachineStatusGrouped _totalRow;
+
 
 
         // Observable properties for binding
@@ -37,12 +43,18 @@ namespace ViSyncMaster.ViewModels
         [ObservableProperty] private ObservableCollection<ISeries> _pieChartSeriesCurrentEfficiency = new();
         [ObservableProperty] private ObservableCollection<ISeries> _pieChartSeriesExpectedEfficiency = new();
         [ObservableProperty] private ObservableCollection<MachineStatus> _resultTestList;
-        [ObservableProperty] private ObservableCollection<MachineStatusGrouped> _groupedResultList;
-        [ObservableProperty] private double _target = 200;
-        [ObservableProperty] private double _totalUnitsProduced;
+        [ObservableProperty] private ObservableCollection<MachineStatusGrouped> _groupedResultList = new();
+        [ObservableProperty] private int _target = -1;
+        [ObservableProperty] private int _totalUnitsProduced;
         [ObservableProperty] private double _expectedEfficiency;
         [ObservableProperty] private double _currentEfficiency;
         [ObservableProperty] private double _expectedOutput;
+
+        [ObservableProperty] private int _totalCount;
+        [ObservableProperty] private int _passedCount;
+        [ObservableProperty] private int _failedCount;
+        [ObservableProperty] private int _uniqueOperatorCount;
+        [ObservableProperty] private int _uniqueProductCount;
 
         public IEnumerable<ISeries> Series { get; set; }
         public IEnumerable<ISeries> SeriesEfficiency { get; set; }
@@ -52,21 +64,60 @@ namespace ViSyncMaster.ViewModels
         public ObservableValue TotalPartsProducedChart { get; set; }
         public ObservableValue ExpectedPartsChart { get; set; }
         public ObservableValue TargetPartsChart { get; set; }
-
         public SolidColorPaint LegendTextPaint { get; set; } // Kolor tekstu legendy
 
-        public ResultTableViewModel(MachineStatusService machineStatusService, ObservableCollection<MachineStatus> resultTests = null)
+        public ResultTableViewModel(MachineStatusService machineStatusService, MainWindowViewModel mainWindowViewModel, ObservableCollection<MachineStatus> resultTests = null)
         {
             _machineStatusService = machineStatusService;
+            _mainWindowViewModel = mainWindowViewModel;
             _productionEfficiency = new ProductionEfficiency();
             _originalResultTestList = resultTests ?? throw new ArgumentNullException(nameof(resultTests));
             ResultTestList = new ObservableCollection<MachineStatus>(_originalResultTestList);
-            GroupedResultList = GroupByProductName(ResultTestList);
-            AutoSelectCurrentShift();
-            InicializeChart();           
+            AutoSelectCurrentShiftAsync();
+            InicializeChart();
+            // Utwórz i dodaj wiersz TOTAL
+            _totalRow = new MachineStatusGrouped
+            {
+                ProductName = "TOTAL",
+                ShiftCounterPass = 0,
+                ShiftCounterFail = 0,
+                Operators = string.Empty
+            };
+            GroupedResultList.Add(_totalRow);
+            RefreshGroupedResultList();
+            UpdateGroupedResultListWithTotal();
             // Initializing efficiency calculator
             _efficiencyCalculator = new ProductionEfficiencyCalculator(true); // Assuming first shift
-            _originalResultTestList.CollectionChanged += (s, e) => UpdateChartData();
+            _mainWindowViewModel.ResultTableUpdate += async (s, e) =>
+            {
+                if (_isUpdating) return;
+                _isUpdating = true;
+                try
+                {
+                    // All updates in single UI-thread batch
+                    await Dispatcher.UIThread.InvokeAsync(async () =>
+                    {
+                        // 1) Apply shift filter
+                        await AutoSelectCurrentShiftAsync();
+                        // 2) Rebuild grouped list (inside Filter methods)
+                        RefreshGroupedResultList();
+                        // 3) Update total row
+                        UpdateGroupedResultListWithTotal();
+                        // 4) Calculate efficiency
+                        await CalculateAndDisplayEfficiencyAsync();
+                        // 5) Update charts
+                        TotalPartsProducedChart.Value = TotalUnitsProduced;
+                        ExpectedPartsChart.Value = ExpectedOutput;
+                        TargetPartsChart.Value = Target;
+                        Needle.Value = CurrentEfficiency;
+                        SeriesExpectedEfficiency[0].Values = new double[] { ExpectedEfficiency };
+                    });
+                }
+                finally
+                {
+                    _isUpdating = false;
+                }
+            };
             StartHourlyTimer();
         }
         private void InicializeChart()
@@ -139,7 +190,7 @@ namespace ViSyncMaster.ViewModels
             {
                new PieSeries<double>
                {
-                    Name = "Targergt do zrealizowania",
+                    Name = "Target do zrealizowania",
                     Values = new double[] { ExpectedEfficiency },
                     Fill = new SolidColorPaint(SKColor.Parse("#3498db")), // Niebieski
                     MaxRadialColumnWidth = 70,
@@ -150,25 +201,44 @@ namespace ViSyncMaster.ViewModels
                }};
             LegendTextPaint = new SolidColorPaint(SKColors.White); // Zmiana koloru legendy na biały
         }
+        private async Task AutoSelectCurrentShiftAsync()
+        {
+            var now = DateTime.Now.TimeOfDay;
+            if (now >= TimeSpan.Parse("05:40") && now < TimeSpan.Parse("13:40"))
+                await FilterShift1Async();
+            else if (now >= TimeSpan.Parse("13:40") && now < TimeSpan.Parse("21:40"))
+                await FilterShift2Async();
+        }
 
         // Command methods
-        [RelayCommand] public void FilterShift1() => FilterByTimeRangeAndGroupByProductNameAndDateTime(DateTime.Today, TimeSpan.Parse("05:40"), TimeSpan.Parse("13:40"));
-        [RelayCommand] public void FilterShift2() => FilterByTimeRangeAndGroupByProductNameAndDateTime(DateTime.Today, TimeSpan.Parse("13:40"), TimeSpan.Parse("21:40"));
-        [RelayCommand] public void FilterYesterdayShift2() => FilterByTimeRangeAndGroupByProductNameAndDateTime(DateTime.Today.AddDays(-1), TimeSpan.Parse("13:40"), TimeSpan.Parse("21:40"));
+        [RelayCommand] public async Task FilterShift1Async() => await FilterByTimeRangeAsync(DateTime.Today, TimeSpan.Parse("05:40"), TimeSpan.Parse("13:40"));
+        [RelayCommand] public async Task FilterShift2Async() => await FilterByTimeRangeAsync(DateTime.Today, TimeSpan.Parse("13:40"), TimeSpan.Parse("21:40"));
+        [RelayCommand] public async Task FilterYesterdayShift2() => FilterByTimeRangeAsync(DateTime.Today.AddDays(-1), TimeSpan.Parse("13:40"), TimeSpan.Parse("21:40"));
 
         [RelayCommand]
-        public void FilterWholeWeek()
+        public async Task FilterWholeWeekAsync()
         {
-            var startOfWeek = DateTime.Today.AddDays(-(int)DateTime.Today.DayOfWeek + 1); // Monday of this week
-            var endOfWeek = startOfWeek.AddDays(6); // Sunday of this week
+            var startOfWeek = DateTime.Today.AddDays(-(int)DateTime.Today.DayOfWeek + 1); // Monday
+            var endOfWeek = startOfWeek.AddDays(6);                                  // Sunday
 
-            var filteredList = _originalResultTestList
-                .Where(x => x.StartTime.HasValue && x.StartTime.Value.Date >= startOfWeek && x.StartTime.Value.Date <= endOfWeek)
+            // 1) Filtruj oryginalne dane
+            var filtered = _originalResultTestList
+                .Where(x => x.StartTime.HasValue
+                         && x.StartTime.Value.Date >= startOfWeek
+                         && x.StartTime.Value.Date <= endOfWeek)
                 .ToList();
 
-            ResultTestList = new ObservableCollection<MachineStatus>(filteredList);
-            GroupedResultList = GroupByProductName(ResultTestList);
-            UpdateGroupedResultListWithTotal();
+            // 2) Diff-update ResultTestList
+            ResultTestList.SyncWith(filtered, x => x.Id);
+
+            // 3) Na UI-thread odśwież grupowanie i TOTAL “in-place”
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                RefreshGroupedResultList();
+                UpdateGroupedResultListWithTotal();
+            });
+            // 4) (opcjonalnie) wysyłka liczników pass/fail
+            //await GroupByPassedFailedAndTotalCounterAsync(ResultTestList);
         }
 
         [RelayCommand]
@@ -179,114 +249,108 @@ namespace ViSyncMaster.ViewModels
             UpdateChartData();
         }
 
-        private ObservableCollection<MachineStatusGrouped> GroupByProductName(ObservableCollection<MachineStatus> resultList)
-        {
-            var groupedData = resultList
-                .GroupBy(x => x.ProductName)
-                .Select(g => new MachineStatusGrouped
-                {
-                    ProductName = g.Key,
-                    PassedCount = g.Count(x => x.Name == "S7.TestingPassed" && x.Value == "true"),
-                    FailedCount = g.Count(x => x.Name == "S7.TestingFailed" && x.Value == "true"),
-                    Operators = string.Join(", ", g.Select(x => x.OperatorId).Distinct())
-                }).ToList();
-
-            return new ObservableCollection<MachineStatusGrouped>(groupedData);
-        }
-
-        partial void OnTargetChanged(double value)
+        partial void OnTargetChanged(int value)
         {
             UpdateChartData();
         }
 
-        public void FilterByTimeRangeAndGroupByProductNameAndDateTime(DateTime date, TimeSpan startTime, TimeSpan endTime)
+        private async Task FilterByTimeRangeAsync(DateTime date, TimeSpan start, TimeSpan end)
         {
-            var filteredList = _originalResultTestList
-                .Where(x => x.StartTime.HasValue && x.StartTime.Value.Date == date && x.StartTime.Value.TimeOfDay >= startTime && x.StartTime.Value.TimeOfDay <= endTime)
+            // 1) Filtrujemy oryginalne dane do listy
+            var filtered = _originalResultTestList
+                .Where(x => x.StartTime.HasValue
+                         && x.StartTime.Value.Date == date
+                         && x.StartTime.Value.TimeOfDay >= start
+                         && x.StartTime.Value.TimeOfDay <= end)
                 .ToList();
 
-            ResultTestList = new ObservableCollection<MachineStatus>(filteredList);
-            GroupedResultList = GroupByProductName(ResultTestList);
-            UpdateGroupedResultListWithTotal();
+            // 2) Diff-update ResultTestList w miejscu (Add/Remove bez nowego obiektu)
+            ResultTestList.SyncWith(filtered, x => x.Id);
+
+            // 3) Na UI-thread odświeżamy GroupedResultList in-place
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                RefreshGroupedResultList();
+            });
+
+            // 4) (Opcjonalnie) Wylicz i wyślij liczniki pass/fail – czekamy na wynik
+            await GroupByPassedFailedAndTotalCounterAsync(ResultTestList);
         }
 
         private void UpdateGroupedResultListWithTotal()
         {
-            if (GroupedResultList == null || !GroupedResultList.Any()) return;
+            if (GroupedResultList == null) return;
 
-            var totalPassed = GroupedResultList.Sum(x => x.PassedCount);
-            var totalFailed = GroupedResultList.Sum(x => x.FailedCount);
+            // 1) Policz sumy z obecnych wierszy produktów (pomijamy TOTAL, jeśli już istnieje)
+            var totalPassed = GroupedResultList
+                .Where(x => x.ProductName != "TOTAL")
+                .Sum(x => x.ShiftCounterPass);
+            var totalFailed = GroupedResultList
+                .Where(x => x.ProductName != "TOTAL")
+                .Sum(x => x.ShiftCounterFail);
 
-            var totalRow = new MachineStatusGrouped
+            // 2) Znajdź istniejący _totalRow
+            if (_totalRow == null)
             {
-                ProductName = "TOTAL",
-                PassedCount = totalPassed,
-                FailedCount = totalFailed,
-                Operators = string.Empty
-            };
+                // jeśli nie zainicjowano go wcześniej, postaraj się go znaleźć w kolekcji
+                _totalRow = GroupedResultList.FirstOrDefault(x => x.ProductName == "TOTAL");
+            }
 
-            var updatedList = new ObservableCollection<MachineStatusGrouped>(GroupedResultList) { totalRow };
-            GroupedResultList = updatedList;
+            if (_totalRow != null)
+            {
+                // 3a) In-place aktualizacja pól TOTAL
+                _totalRow.ShiftCounterPass = totalPassed;
+                _totalRow.ShiftCounterFail = totalFailed;
+                // jeżeli masz dodatkowe właściwości, np. sumaryczny licznik:
+                // _totalRow.ShiftCounter = totalPassed + totalFailed;
+            }
+            else
+            {
+                // 3b) Jeśli _totalRow nie istnieje w kolekcji, dodaj nowy na koniec
+                _totalRow = new MachineStatusGrouped
+                {
+                    ProductName = "TOTAL",
+                    ShiftCounterPass = totalPassed,
+                    ShiftCounterFail = totalFailed,
+                    // ShiftCounter     = totalPassed + totalFailed,
+                    Operators = string.Empty
+                };
+                GroupedResultList.Add(_totalRow);
+            }
         }
 
-        public void CalculateAndDisplayEfficiency()
+        public async Task CalculateAndDisplayEfficiencyAsync()
         {
-            var efficiencyDataList = ResultTestList
+            var snapshot = ResultTestList.ToList();
+            var data = snapshot
                 .Where(x => x.StartTime.HasValue)
                 .Select(x => (x.StartTime.Value, x.Name == "S7.TestingPassed" ? 1 : 0))
                 .ToList();
 
-            int totalUnitsProduced;
-            double achievedEfficiency, expectedEfficiency, expectedOutput;
-
             _efficiencyCalculator.CalculateEfficiency(
-                (int)Target,
-                efficiencyDataList,
-                out totalUnitsProduced,
-                out expectedOutput,
-                out achievedEfficiency,
-                out expectedEfficiency
-            );
+                Target,
+                data,
+                out int produced,
+                out double expectedOut,
+                out double achievedEff,
+                out double expectedEff);
 
-            TotalUnitsProduced = Math.Round((double)totalUnitsProduced, 0);
-            ExpectedOutput = Math.Round((double)expectedOutput, 0);
-            CurrentEfficiency = Math.Round((double)achievedEfficiency, 1);
-            ExpectedEfficiency = Math.Round((double)expectedEfficiency, 1);
+            TotalUnitsProduced = produced;
+            ExpectedOutput = Math.Round(expectedOut, 0);
+            CurrentEfficiency = Math.Round(achievedEff, 1);
+            ExpectedEfficiency = Math.Round(expectedEff, 1);
         }
 
-        private void UpdateChartData()
+        private async Task UpdateChartData()
         {
-            var now = DateTime.Now.TimeOfDay;
-            if (now >= TimeSpan.Parse("05:40") && now < TimeSpan.Parse("13:40"))
-            {
-                FilterShift1();
-            }
-            else if (now >= TimeSpan.Parse("13:40") && now < TimeSpan.Parse("21:40"))
-            {
-                FilterShift2();
-            }
-
-            CalculateAndDisplayEfficiency();
+            await AutoSelectCurrentShiftAsync(); 
+            await CalculateAndDisplayEfficiencyAsync();
 
             TotalPartsProducedChart.Value = TotalUnitsProduced;
             ExpectedPartsChart.Value = ExpectedOutput;
             TargetPartsChart.Value = Target;
             Needle.Value = CurrentEfficiency;
             SeriesExpectedEfficiency[0].Values = new double[] { ExpectedEfficiency };
-        }
-
-        private void AutoSelectCurrentShift()
-        {
-            var now = DateTime.Now.TimeOfDay;
-
-            if (now >= TimeSpan.Parse("05:40") && now < TimeSpan.Parse("13:40"))
-            {
-                FilterShift1();
-            }
-            else if (now >= TimeSpan.Parse("13:40") && now < TimeSpan.Parse("21:40"))
-            {
-                FilterShift2();
-            }
         }
 
         private static void SetStyle(double sectionsOuter, double sectionsWidth, PieSeries<ObservableValue> series, SKColor color)
@@ -298,10 +362,10 @@ namespace ViSyncMaster.ViewModels
         }
         private void StartHourlyTimer()
         {
-            _hourlyTimer = new DispatcherTimer { Interval = TimeSpan.FromMinutes(30) };
+            _hourlyTimer = new DispatcherTimer { Interval = TimeSpan.FromMinutes(5) };
             _hourlyTimer.Tick += (sender, e) =>
             {
-                // Funkcja, która jest wywoływana co godzinę
+                // Funkcja, która jest wywoływana co 5 min
                 SendDataAsync();
             };
             _hourlyTimer.Start();
@@ -314,6 +378,92 @@ namespace ViSyncMaster.ViewModels
             _productionEfficiency.PassedPiecesPerShift = (int)TotalUnitsProduced;
 
             await _machineStatusService.RaportProdcuctionEfficiency(_productionEfficiency);
+        }
+
+        private async Task<ObservableCollection<MachineCounters>> GroupByPassedFailedAndTotalCounterAsync(ObservableCollection<MachineStatus> resultList)
+        {
+            var shiftPass = resultList.Count(x => x.Name == "S7.TestingPassed" && x.Value?.Equals("true", StringComparison.OrdinalIgnoreCase) == true);
+            var totalPass = _originalResultTestList.Count(x => x.Name == "S7.TestingPassed" && x.Value?.Equals("true", StringComparison.OrdinalIgnoreCase) == true);
+
+            var shiftFail = resultList.Count(x => x.Name == "S7.TestingFailed" && x.Value?.Equals("true", StringComparison.OrdinalIgnoreCase) == true);
+            var totalFail = _originalResultTestList.Count(x => x.Name == "S7.TestingFailed" && x.Value?.Equals("true", StringComparison.OrdinalIgnoreCase) == true);
+
+            var uniqueOperatorCount = _originalResultTestList.Select(x => x.OperatorId).Distinct().Count();
+            var uniqueProductCount = _originalResultTestList.Select(x => x.ProductName).Distinct().Count();
+
+            var grouped = new MachineCounters
+            {
+                ShiftCounterFail = shiftFail,
+                ShiftCounterPass = shiftPass,
+                ShiftCounter = shiftPass + shiftFail,
+                TotalCounterFail = totalFail,
+                TotalCounterPass = totalPass,
+                TotalCounter = totalPass + totalFail,
+                UniqueOperatorCount = uniqueOperatorCount,
+                UniqueProductCount = uniqueProductCount,
+                Target = Target,
+                Plan = (int)Math.Round(ExpectedOutput)
+            };
+            Debug.WriteLine($"ShiftCounterPass: {grouped.ShiftCounterPass}, " +
+                $"ShiftCounterFail: {grouped.ShiftCounterFail}, " +
+                $"TotalCounterPass: {grouped.TotalCounterPass}, " +
+                $"TotalCounterFail: {grouped.TotalCounterFail}");
+            await SendShiftCounterMqtt(grouped);
+            return new ObservableCollection<MachineCounters> { grouped };
+        }
+
+        private async Task SendShiftCounterMqtt(MachineCounters machineCounters)
+        {
+            await _machineStatusService.SendShiftCounterMqtt(machineCounters);
+        }
+        private void RefreshGroupedResultList()
+        {
+            // 1) Pobierz „nowe” dane z ResultTestList
+            var newData = ResultTestList
+                .GroupBy(x => x.ProductName)
+                .Select(g => new
+                {
+                    Name = g.Key,
+                    Pass = g.Count(x => x.Name == "S7.TestingPassed" && x.Value == "true"),
+                    Fail = g.Count(x => x.Name == "S7.TestingFailed" && x.Value == "true"),
+                    Operators = string.Join(", ", g.Select(x => x.OperatorId).Distinct())
+                })
+                .ToList();
+
+            // 2) Usuń nieistniejące ProductName
+            foreach (var exist in GroupedResultList.ToList().Where(x => x != _totalRow))
+                if (!newData.Any(n => n.Name == exist.ProductName))
+                    GroupedResultList.Remove(exist);
+
+            // 3) Dodaj lub zaktualizuj te, które zostały
+            foreach (var n in newData)
+            {
+                var exist = GroupedResultList.FirstOrDefault(x => x.ProductName == n.Name);
+                if (exist != null)
+                {
+                    exist.ShiftCounterPass = n.Pass;
+                    exist.ShiftCounterFail = n.Fail;
+                    exist.Operators = n.Operators;
+                }
+                else
+                {
+                    GroupedResultList.Add(new MachineStatusGrouped
+                    {
+                        ProductName = n.Name,
+                        ShiftCounterPass = n.Pass,
+                        ShiftCounterFail = n.Fail,
+                        Operators = n.Operators
+                    });
+                }
+            }
+            // 4) In-place aktualizacja totalRow
+            var totalPass = GroupedResultList.Where(x => x != _totalRow).Sum(x => x.ShiftCounterPass);
+            var totalFail = GroupedResultList.Where(x => x != _totalRow).Sum(x => x.ShiftCounterFail);
+            _totalRow.ShiftCounterPass = totalPass;
+            _totalRow.ShiftCounterFail = totalFail;
+            if (GroupedResultList.Remove(_totalRow))
+                GroupedResultList.Add(_totalRow);
+            // jeśli masz dodatkowe pola
         }
     }
 }

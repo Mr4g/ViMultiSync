@@ -104,12 +104,12 @@
 			<!-- Tabela wyników -->
 			<DataGrid ItemsSource="{Binding GroupedResultList}" AutoGenerateColumns="False" VerticalAlignment="Top"
 					  CanUserResizeColumns="True" CanUserReorderColumns="True" IsReadOnly="true" MaxHeight="240"
-					  CanUserSortColumns="True" GridLinesVisibility="None" RowHeight="40">
+					  CanUserSortColumns="True" GridLinesVisibility="None" RowHeight="40" Margin="10">
 				<DataGrid.Columns>
-					<DataGridTextColumn Header="Produkt" Binding="{Binding ProductName}" Width="*"/>
-					<DataGridTextColumn Header="OK" Binding="{Binding PassedCount}" Width="*"/>
-					<DataGridTextColumn Header="NOK" Binding="{Binding FailedCount}" Width="*"/>
-					<DataGridTextColumn Header="Operator" Binding="{Binding Operators}" Width="*"/>
+					<DataGridTextColumn Header="Produkt" Binding="{Binding ProductName, Mode=OneWay}" Width="*"/>
+					<DataGridTextColumn Header="OK" Binding="{Binding ShiftCounterPass, Mode=OneWay}" Width="*"/>
+					<DataGridTextColumn Header="NOK" Binding="{Binding ShiftCounterFail, Mode=OneWay}" Width="*"/>
+					<DataGridTextColumn Header="Operator" Binding="{Binding Operators, Mode=OneWay}" Width="*"/>
 				</DataGrid.Columns>
 			</DataGrid>
 		</StackPanel>

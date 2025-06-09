@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using ViSyncMaster.DataModel;
 using MsBox.Avalonia.Enums;
 using System.Linq;
+using Serilog;
 
 namespace ViSyncMaster.AuxiliaryClasses
 {
@@ -18,6 +19,7 @@ namespace ViSyncMaster.AuxiliaryClasses
     {
         private SerialPort serialPort;
         private StringBuilder dataBuffer;
+        private readonly object bufferLock = new object();
 
         public SerialPortListener()
         {
@@ -41,23 +43,27 @@ namespace ViSyncMaster.AuxiliaryClasses
             try
             {
                 serialPort.Open();
-                Console.WriteLine("Nasłuchiwanie na porcie " + serialPort.PortName + "...");
-                Console.WriteLine($"Prędkość: {serialPort.BaudRate}, Parzystość: {serialPort.Parity}, Bity danych: {serialPort.DataBits}, Bity stopu: {serialPort.StopBits}");
+                Log.Information("Otwarto port {PortName} z parametrami: BaudRate={BaudRate}, Parity={Parity}, DataBits={DataBits}, StopBits={StopBits}",
+                    serialPort.PortName, serialPort.BaudRate, serialPort.Parity, serialPort.DataBits, serialPort.StopBits);
             }
             catch (UnauthorizedAccessException)
             {
+                Log.Error("RS232 - Port {PortName} jest już używany lub brak uprawnień.", serialPort.PortName);
                 ShowError("BŁĄD WYSYŁANIA DANYCH", "RS232 - Port jest już używany lub brak uprawnień.");
             }
             catch (ArgumentException)
             {
-                ShowError("BŁĄD WYSYŁANIA DANYCH", "RS232 - Numeru portu jest nieprawidłowy.");
+                Log.Error("RS232 - Numer portu {PortName} jest nieprawidłowy (ArgumentException).", serialPort.PortName);
+                ShowError("BŁĄD WYSYŁANIA DANYCH", "RS232 - Numer portu jest nieprawidłowy.");
             }
             catch (IOException)
             {
-                ShowError("BŁĄD WYSYŁANIA DANYCH", "RS232 - Numeru portu jest nieprawidłowy.");
+                Log.Error("RS232 - Numer portu {PortName} jest nieprawidłowy (IOException).", serialPort.PortName);
+                ShowError("BŁĄD WYSYŁANIA DANYCH", "RS232 - Numer portu jest nieprawidłowy.");
             }
             catch (Exception ex)
             {
+                Log.Error(ex, "RS232 - Nie udało się połączyć z portem {PortName}.", serialPort.PortName);
                 ShowError("BŁĄD WYSYŁANIA DANYCH", $"RS232 - Nie udało się połączyć: {ex.Message}");
             }
         }
@@ -67,7 +73,7 @@ namespace ViSyncMaster.AuxiliaryClasses
             if (serialPort.IsOpen)
             {
                 serialPort.Close();
-                Console.WriteLine("Port został zamknięty.");
+                Log.Information("Zamknięto port {PortName}", serialPort.PortName);
             }
         }
 
@@ -75,40 +81,40 @@ namespace ViSyncMaster.AuxiliaryClasses
 
         private async void SerialPort_DataReceived(object sender, SerialDataReceivedEventArgs e)
         {
-            SerialPort sp = (SerialPort)sender;
-            string data = sp.ReadExisting();
+            string data = ((SerialPort)sender).ReadExisting();
 
-            // Dodaj otrzymane dane do bufora
-            dataBuffer.Append(data);
-
-
-            // Sprawdź, czy pełna ramka znajduje się w buforze
-            string bufferContent = dataBuffer.ToString();
-            if (bufferContent.Contains("Frame_start") && bufferContent.Contains("Frame_end"))
+            lock (bufferLock)
             {
-                int startIndex = bufferContent.IndexOf("Frame_start");
-                int endIndex = bufferContent.IndexOf("Frame_end") + "Frame_end".Length;
+                dataBuffer.Append(data);
 
-                // Wyciągnij pełną ramkę
-                string frame = bufferContent.Substring(startIndex, endIndex - startIndex);
-
-                // Wyczyść bufor do końca ramki
-                dataBuffer.Remove(0, endIndex);
-
-                if (!IsFrameValid(frame))
+                while (true)
                 {
-                    return; // Pomijamy dalsze przetwarzanie
+                    string bufferContent = dataBuffer.ToString();
+
+                    int startIndex = bufferContent.IndexOf("Frame_start");
+                    int endIndex = bufferContent.IndexOf("Frame_end");
+
+                    if (startIndex == -1 || endIndex == -1 || endIndex < startIndex)
+                        break;
+
+                    endIndex += "Frame_end".Length;
+                    string frame = bufferContent.Substring(startIndex, endIndex - startIndex);
+                    dataBuffer.Remove(0, endIndex);
+
+                    if (!IsFrameValid(frame))
+                    {
+                        Log.Warning("Odrzucono ramkę z powodu zakłóceń (zbyt wiele znaków '?'):\n{Frame}", frame);
+                        continue;
+                    }
+
+                    Log.Information("Odebrano ramkę RS232:\n{Frame}", frame);
+
+                    Task.Run(() =>
+                    {
+                        var testData = ParseData(frame);
+                        FrameReceived?.Invoke(this, testData);
+                    });
                 }
-
-
-                // Wyświetl otrzymaną ramkę
-                Console.WriteLine("Odebrano pełną ramkę: \n" + frame);
-
-                // Parsowanie ramki na obiekt Rs232Data asynchronicznie
-                Rs232Data testData = await Task.Run(() => ParseData(frame));
-
-                // Wyświetl wartości z obiektu Rs232Data
-                FrameReceived?.Invoke(this, testData);
             }
         }
 
@@ -117,7 +123,6 @@ namespace ViSyncMaster.AuxiliaryClasses
             Rs232Data testData = new Rs232Data();
             var lines = data.Split(new[] { "\n" }, StringSplitOptions.RemoveEmptyEntries);
 
-            // Mapowanie kluczy na ustawienia właściwości
             var propertyMap = new Dictionary<string, Action<string>>
             {
                 { "Device", value => testData.Device = value },
@@ -134,12 +139,11 @@ namespace ViSyncMaster.AuxiliaryClasses
                 { "GOOD_REL", value => testData.GoodRel = value },
                 { "RGOOD_REL", value => testData.RGoodRel = value },
                 { "FAULT_REL", value => testData.FaultRel = value },
-                { "S7.TestingPassed", value => testData.TestingPassed = value }, 
+                { "S7.TestingPassed", value => testData.TestingPassed = value },
                 { "S7.TestingFailed", value => testData.TestingFailed = value },
                 { "S7.OperatorId", value => testData.OperatorId = value },
                 { "S7.ProductName", value => testData.ProductName = value },
                 { "S1.Producing", value => testData.Producing = value }
-                // Dodaj kolejne mapowania według potrzeb
             };
 
             foreach (var line in lines)
@@ -150,7 +154,6 @@ namespace ViSyncMaster.AuxiliaryClasses
                 var key = parts[0].Trim();
                 var value = parts[1].Trim();
 
-                // Jeśli klucz istnieje w mapie, ustaw właściwość
                 if (propertyMap.ContainsKey(key))
                 {
                     propertyMap[key](value);
@@ -163,37 +166,31 @@ namespace ViSyncMaster.AuxiliaryClasses
         private bool IsFrameValid(string frame)
         {
             int questionMarkCount = frame.Count(c => c == '?');
-            if (questionMarkCount > 5) // Przykładowy próg
-            {
-                ShowError("Zakłócenia w transmisji", "Otrzymano ramkę zawierającą zbyt wiele znaków zapytania.");
-                return false;
-            }
-            return true;
+            return questionMarkCount <= 5;
         }
 
         private void ShowError(string title, string message)
         {
             Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
             {
-                var box = MessageBoxManager.GetMessageBoxCustom(
-                    new MessageBoxCustomParams
+                var box = MessageBoxManager.GetMessageBoxCustom(new MessageBoxCustomParams
+                {
+                    ButtonDefinitions = new List<ButtonDefinition>
                     {
-                        ButtonDefinitions = new List<ButtonDefinition>
-                        {
-                    new ButtonDefinition { Name = "OK" },
-                    new ButtonDefinition { Name = "Cancel" }
-                        },
-                        ContentTitle = title,
-                        ContentMessage = message,
-                        Icon = Icon.Error,
-                        WindowStartupLocation = WindowStartupLocation.CenterOwner,
-                        CanResize = false,
-                        MaxWidth = 500,
-                        MaxHeight = 800,
-                        SizeToContent = SizeToContent.WidthAndHeight,
-                        ShowInCenter = true,
-                        Topmost = true,
-                    });
+                        new ButtonDefinition { Name = "OK" },
+                        new ButtonDefinition { Name = "Cancel" }
+                    },
+                    ContentTitle = title,
+                    ContentMessage = message,
+                    Icon = Icon.Error,
+                    WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                    CanResize = false,
+                    MaxWidth = 500,
+                    MaxHeight = 800,
+                    SizeToContent = SizeToContent.WidthAndHeight,
+                    ShowInCenter = true,
+                    Topmost = true,
+                });
                 box.ShowAsync();
             });
         }

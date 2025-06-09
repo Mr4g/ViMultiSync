@@ -116,7 +116,7 @@
 			</Border>
 		</controls:AnimatedPopup>
 
-		<!-- Downtime Panel Popup Open -->
+       <!-- Downtime Panel Popup Open -->
 
 		<controls:AnimatedPopup
             Grid.Row="0"
@@ -150,7 +150,6 @@
 				</ItemsControl>
 			</Border>
 		</controls:AnimatedPopup>
-
 		<!-- Warrning Notice Panel Open -->
 
 		<controls:AnimatedPopup
@@ -690,6 +689,47 @@
 			</Border>
 		</controls:AnimatedPopup>
 
+		<!-- ProductionIssues Panel Popup Open-->
+
+		<controls:AnimatedPopup
+            Grid.Row="0"
+            Grid.RowSpan="3"
+            Grid.ColumnSpan="6"
+            Margin="20"
+            AnimationTime="0.3"
+            UnderlayOpacity="0.2"
+            Name="ProductionIssuesPanelPopup"
+            Background="#232228"
+            Open="{Binding ProductionIssuesPanelIsOpen, Mode=TwoWay}"
+            DuringOpening="{Binding ControlPanelVisible, Mode=TwoWay}">
+			<Border Background="#232228" Padding="20" CornerRadius="24">
+				<ItemsControl ItemsSource="{Binding ProductionIssuesStatusPanel}">
+					<ItemsControl.ItemTemplate>
+						<DataTemplate>
+							<ItemsControl ItemsSource="{Binding}">
+								<ItemsControl.ItemsPanel>
+									<ItemsPanelTemplate >
+										<UniformGrid Rows="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).RowForProductionIssuesPanel}" Columns="3" HorizontalAlignment="Center" VerticalAlignment="Center">
+										</UniformGrid>
+									</ItemsPanelTemplate>
+								</ItemsControl.ItemsPanel>
+								<ItemsControl.ItemTemplate>
+									<DataTemplate x:DataType="dataModel:ProductionIssuesPanelItem">
+										<Button
+                                            Classes="PopupButton"
+                                            Content="{Binding Status}"
+                                            Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).ReportMachineStatusCommand}"
+                                            CommandParameter="{Binding}">
+										</Button>
+									</DataTemplate>
+								</ItemsControl.ItemTemplate>
+							</ItemsControl>
+						</DataTemplate>
+					</ItemsControl.ItemTemplate>
+				</ItemsControl>
+			</Border>
+		</controls:AnimatedPopup>
+
 
 		<!--Splunk Panel Popup Open-->
 
@@ -1180,25 +1220,31 @@
 				<Button Classes="NavigationButton" Name="DowntimePanelButton" Command="{Binding #DowntimePanelPopup.BeginOpen}">
 					<StackPanel Orientation="Horizontal" Margin="5">
 						<Image HorizontalAlignment="Left" Source="{SvgImage /Assets/icons/emergencyColor.svg}"/>
-						<TextBlock Text="Downtime" />
+						<TextBlock Text="Przestoje" />
 					</StackPanel>
 				</Button>
 				<Button Classes="NavigationButton" Name="SettingPanelButton" Command="{Binding #SettingPanelPopup.BeginOpen}">
 					<StackPanel Orientation="Horizontal"  Margin="5">
 						<Image HorizontalAlignment="Left" Source="{SvgImage /Assets/icons/maintenance2.svg}"/>
-						<TextBlock Text="Setting" />
+						<TextBlock Text="Ustawienia" />
 					</StackPanel>
 				</Button>
 				<Button Classes="NavigationButton" Name="MaintenancePanelButton" Command="{Binding #MaintenancePanelPopup.BeginOpen}">
 					<StackPanel Orientation="Horizontal"  Margin="5">
 						<Image HorizontalAlignment="Left" Source="{SvgImage /Assets/icons/broom.svg}"/>
-						<TextBlock  Text="Maintenance" />
+						<TextBlock  Text="TPM" />
 					</StackPanel>
 				</Button>
 				<Button Classes="NavigationButton" Name="LogisticPanelButton" Command="{Binding #LogisticPanelPopup.BeginOpen}">
 					<StackPanel Orientation="Horizontal" HorizontalAlignment="Left"  Margin="5">
 						<Image HorizontalAlignment="Left" Source="{SvgImage /Assets/icons/logistic.svg}"/>
-						<TextBlock Text="Logistic"/>
+						<TextBlock Text="Logistyka"/>
+					</StackPanel>
+				</Button>
+				<Button Classes="NavigationButton" Name="ProductionIssuesPanelButton" Command="{Binding #ProductionIssuesPanelPopup.BeginOpen}">
+					<StackPanel Orientation="Horizontal" HorizontalAlignment="Left"  Margin="5">
+						<Image HorizontalAlignment="Left" Source="{SvgImage /Assets/icons/productionIssues.svg}"/>
+						<TextBlock Text="Produkcja"/>
 					</StackPanel>
 				</Button>
 			</StackPanel>
@@ -1242,19 +1288,24 @@
 
 
 			<!-- ControlPanel -->
-			<Border  Grid.Column="1">
-				<Grid>
-					<Image Grid.ColumnSpan="3" Source="/Assets/logoW16.png" Stretch="None"/>
-					<UserControl
-				IsVisible="{Binding !ControlPanelVisible}"
-                CornerRadius="20 "
-                Background="#232228"
-                Content="{Binding ActivePage}"
-                HorizontalAlignment="Stretch"
-				Margin="10 20, 10, 0"
-                VerticalAlignment="Stretch">
-					</UserControl>
-				</Grid>
+			<Border  
+			    Grid.Column="1"
+				CornerRadius="10"
+			    BorderBrush="{Binding IsActiveStatus, Converter={StaticResource BoolToBrushConverter}}"
+			    BorderThickness="{Binding IsActiveStatus, Converter={StaticResource BoolToThicknessConverter}}">
+			
+			    <Grid>
+			        <Image Grid.ColumnSpan="3" Source="/Assets/logoW16.png" Stretch="None"/>
+			        
+			        <UserControl
+			            IsVisible="{Binding !ControlPanelVisible}"
+			            CornerRadius="20"
+			            Background="#232228"
+			            Content="{Binding ActivePage}"
+			            HorizontalAlignment="Stretch"
+			            Margin="10,20,10,0"
+			            VerticalAlignment="Stretch" />
+			    </Grid>
 			</Border>
 			<StackPanel Margin ="0,2,2,2" Grid.RowSpan="3" Grid.Column="2" VerticalAlignment="Center" Orientation="Horizontal" IsVisible="{Binding VacuumButtonIsVisible}">
 				<Grid VerticalAlignment="Center">

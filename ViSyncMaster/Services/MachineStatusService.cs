@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Serilog;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text.Json;
@@ -56,11 +57,10 @@ namespace ViSyncMaster.Services
             _database = database;
 
             Debug.WriteLine("Rejestracja subskrypcji CacheUpdated");
-            _repositoryMachineStatusQueue.CacheUpdated += HandleCacheUpdated;
-            _repositoryTestingResultQueue.CacheUpdated += HandleCacheUpdated;
-            _repositoryProductionEfficiency.CacheUpdated += HandleCacheUpdated;
-            _repositoryFirstPartQueue.CacheUpdated += HandleCacheUpdated;
-
+            _repositoryMachineStatusQueue.CacheUpdated += () => HandleCacheUpdated(_repositoryMachineStatusQueue);
+            _repositoryTestingResultQueue.CacheUpdated += () => HandleCacheUpdated(_repositoryTestingResultQueue);
+            _repositoryProductionEfficiency.CacheUpdated += () => HandleCacheUpdated(_repositoryProductionEfficiency);
+            _repositoryFirstPartQueue.CacheUpdated += () => HandleCacheUpdated(_repositoryFirstPartQueue);
         }
 
         // Rozpoczęcie nowego statusu
@@ -73,7 +73,7 @@ namespace ViSyncMaster.Services
             machineStatus.StartTime = DateTime.Now;
             machineStatus.SendTime = epochMilliseconds;
 
-            // Asynchronicznie dodaj status do repozytoriów
+            // Asynchronicznie dodawanie status do repozytoriów
             await _repositoryMachineStatusQueue.AddOrUpdate(machineStatus);
             await _repositoryMachineStatus.AddOrUpdate(machineStatus);
             var jsonMessage = JsonSerializer.Serialize(machineStatus.ToMqttFormat());
@@ -90,6 +90,7 @@ namespace ViSyncMaster.Services
             machineStatus.Id = uniqueId;
             await _repositoryTestingResultQueue.AddOrUpdate(machineStatus);
             await _repositoryTestingResult.AddOrUpdate(machineStatus);
+            Log.Information("Dodano/zmodyfikowano rekord w tabeli TestingResult: {Entity}", machineStatus);
             //var jsonMessage = JsonSerializer.Serialize(machineStatus.ToMqttFormatForTestingMessage());
             //await SendMessageMqtt(jsonMessage);
             return machineStatus;
@@ -103,6 +104,13 @@ namespace ViSyncMaster.Services
             productionEfficiency.Id = uniqueId;
             await _repositoryProductionEfficiency.AddOrUpdate(productionEfficiency);
             return productionEfficiency;
+        }
+
+        public async Task<MachineCounters> SendShiftCounterMqtt(MachineCounters machineCounters)
+        {
+            var jsonMessage = JsonSerializer.Serialize(machineCounters.ToMqttFormatForCuntersMessage());
+            await SendMessageMqtt(jsonMessage);
+            return machineCounters;
         }
 
         public async Task<FirstPartModel> SendFirstPartAsync(FirstPartModel firstPartModel)
@@ -139,8 +147,7 @@ namespace ViSyncMaster.Services
         public async Task<MessagePgToSplunk> SendPgMessage(MessagePgToSplunk machineStatus)
         {
             // Asynchronicznie dodaj status do repozytoriów
-            var jsonMessage = JsonSerializer.Serialize(machineStatus.ToMqttPgFormat());
-           
+            var jsonMessage = JsonSerializer.Serialize(machineStatus.ToMqttPgFormat());          
             await SendMessageMqtt(jsonMessage);
             return machineStatus;
         }
@@ -158,7 +165,7 @@ namespace ViSyncMaster.Services
         }
 
 
-        private async void HandleCacheUpdated()
+        private async void HandleCacheUpdated(object sender)
         {
             Debug.WriteLine("Wywołano HandleCacheUpdated");
 
@@ -178,7 +185,10 @@ namespace ViSyncMaster.Services
                 _lastTask = Task.Delay(3000, _cacheUpdatedCts.Token);
                 await _lastTask; // Poczekaj 2 sek, jeśli nie będzie kolejnych wywołań
 
-                TableResultTestUpdate?.Invoke();
+                if ((sender as GenericRepository<MachineStatus>)?.TableName == "TestingResultQueue")
+                {
+                    TableResultTestUpdate?.Invoke();
+                }
                 // Jeśli nie było anulowania, wysyłamy wiadomości
                 await _messageQueue.SendAllMessages(_messageSender);
             }

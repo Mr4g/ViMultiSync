@@ -18,6 +18,7 @@ namespace ViSyncMaster.Services
         Task<List<SettingPanelItem>> GetSettingPanelAsync();
         Task<List<MaintenancePanelItem>> GetMaintenancePanelAsync();
         Task<List<LogisticPanelItem>> GetLogisticPanelAsync();
+        Task<List<ProductionIssuesPanelItem>> GetProductionIssuesPanelAsync();
         Task<List<ReasonDowntimeMechanicalPanelItem>> GetReasonDowntimeMechanicalPanelAsync();
         Task<List<SplunkPanelItem>> GetSplunkPanelAsync();
         Task<List<CallForServicePanelItem>> GetCallForServicePanelAsync();

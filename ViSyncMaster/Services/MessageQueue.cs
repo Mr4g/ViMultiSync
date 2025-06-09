@@ -37,7 +37,7 @@ public class MessageQueue
 
     private void Initialize()
     {
-        //LoadMessagesFromDatabase();
+        LoadMessagesFromDatabase();
         LoadMessagesFromBackupDatabase();
     }
 
