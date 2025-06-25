@@ -20,6 +20,7 @@ namespace ViSyncMaster.DataModel
         public double? Efficiency { get; set; }
         public double? EfficiencyRequired { get; set;}
         public double? Target { get; set; } 
+        public int? Plan { get; set; }
         public int? PassedPiecesPerShift { get; set; }
         public int? FailedPiecesPerShift { get; set; }
         public long Id { get; set; }

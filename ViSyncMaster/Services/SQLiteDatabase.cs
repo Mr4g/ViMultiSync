@@ -256,11 +256,35 @@ namespace ViSyncMaster.Services
                 }
                 else if (prop.PropertyType == typeof(double))
                 {
-                    prop.SetValue(entity, Convert.ToDouble(value, CultureInfo.InvariantCulture));
+                    // Bezpieczne sprawdzenie wartości 'Inf', '-Inf', 'NaN'
+                    if (value.ToString() == "Inf")
+                    {
+                        prop.SetValue(entity, double.PositiveInfinity);
+                    }
+                    else if (value.ToString() == "-Inf")
+                    {
+                        prop.SetValue(entity, double.NegativeInfinity);
+                    }
+                    else if (value.ToString() == "NaN")
+                    {
+                        prop.SetValue(entity, double.NaN);
+                    }
+                    else
+                    {
+                        // Inne wartości przekonwertowane na double
+                        prop.SetValue(entity, Convert.ToDouble(value, CultureInfo.InvariantCulture));
+                    }
                 }
                 else if (prop.PropertyType == typeof(double?))
                 {
-                    prop.SetValue(entity, value == null ? (double?)null : Convert.ToDouble(value, CultureInfo.InvariantCulture));
+                    if (value == null || value.ToString() == "Inf" || value.ToString() == "-Inf" || value.ToString() == "NaN")
+                    {
+                        prop.SetValue(entity, null); // Ustawienie na null dla wartości nullable
+                    }
+                    else
+                    {
+                        prop.SetValue(entity, Convert.ToDouble(value, CultureInfo.InvariantCulture));
+                    }
                 }
                 else if (prop.PropertyType.IsGenericType && prop.PropertyType.GetGenericTypeDefinition() == typeof(Nullable<>))
                 {

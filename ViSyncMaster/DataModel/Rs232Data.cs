@@ -7,14 +7,14 @@ using System.Threading.Tasks;
 namespace ViSyncMaster.DataModel
 {
     public class Rs232Data
-    {               
+    {
         // General In?put
         public string? PrintoutHeader { get; set; }
         public string? Operator { get; set; }
-        public string? Device { get; set; }                 
-        public string? ST { get; set; }                    
+        public string? Device { get; set; }
+        public string? ST { get; set; }
 
-        public string? TestObject { get; set; } 
+        public string? TestObject { get; set; }
         public string? TestFault { get; set; } // Number of faults in test
         public string? TotalAbs { get; set; } // Total number of test samples
         public string? TGoodAbs { get; set; } // Number of passed test objects with retest
@@ -30,5 +30,7 @@ namespace ViSyncMaster.DataModel
         public string? GoodRel { get; set; } // Relative number of passed test objects (%)
         public string? RGoodRel { get; set; } // Relative number of passed test objects with retest (%)
         public string? FaultRel { get; set; } // Relative number of failed test objects (%)
+        public long Timestamp { get; set; } = DateTimeOffset.Now.ToUnixTimeMilliseconds();
+
     }
 }

@@ -195,7 +195,7 @@ namespace ViSyncMaster.Services
                         || property.PropertyName == "testFault" || property.PropertyName == "totalAbs" || property.PropertyName == "tGoodAbs"
                         || property.PropertyName == "operator" || property.PropertyName == "testObject" || property.PropertyName == "serialNumber"
                         || property.PropertyName == "id" || property.PropertyName == "callForService" || property.PropertyName == "startTime"
-                        || property.PropertyName == "callForServiceRunning" || property.PropertyName == "serviceArrival"
+                        || property.PropertyName == "callForServiceRunning" || property.PropertyName == "serviceArrival" || property.PropertyName == "plan"
                         || property.PropertyName == "serviceArrivalRunning" || property.PropertyName == "endTime" || property.PropertyName == "isActive"
                         || property.PropertyName == "durationStatus" || property.PropertyName == "durationService" || property.PropertyName == "durationWaitingForService"
                         || property.PropertyName == "stepOfStatus" || property.PropertyName == "efficiency" || property.PropertyName == "efficiencyRequired" 

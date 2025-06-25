@@ -37,6 +37,8 @@ using System.Data;
 using ViSyncMaster.DeepCopy;
 using ViSyncMaster.WiFi;
 using System.Text.Json;
+using ViSyncMaster.Services.Test;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 
 namespace ViSyncMaster.ViewModels
@@ -62,7 +64,7 @@ namespace ViSyncMaster.ViewModels
         private ConnectedMessage _messageToSplunkConnected;
         private Rs232DataProcessor _rs232Processor;
         private MessagePgToSplunk _messageToSplunkPg;
-        private int _machineStatusCounter = 6;
+        private int _machineStatusCounter = 7;
         private GenericSplunkLogger<IEntity> _splunkLogger;
         private WifiParameters _wifiParameters; 
 
@@ -1390,25 +1392,12 @@ namespace ViSyncMaster.ViewModels
 
         private async Task ReSendMessageToSplunk(object state)
         {
-            //_messageToSplunkFailed.SetValue("true");
-            //_messageToSplunkPassed.SetValue("true");
-            //_messageToSplunkPassed.OperatorId = "smbl"; 
-            //_messageToSplunkPassed.ProductName = "test2";
-            //_machineStatusService.ReportPartQuality(_messageToSplunkPassed);
-            //Task.Delay(1000).Wait();
-            //_machineStatusService.ReportPartQuality(_messageToSplunkPassed);
-            //Task.Delay(1000).Wait();
-            //_machineStatusService.ReportPartQuality(_messageToSplunkPassed);
-            //_machineStatusService.ReportPartQuality(_messageToSplunkFailed);
-
-
             Ssid = _wifiParameters.FetchWifiName();
             if (appConfig.AppMode == "VRSKT")
             {
                 var messagePgToSplunk = _splunkMessageHandler.PreparingPgMessageToSplunk(MachineStatuses, _machineStatusCounter);
                 await _machineStatusService.SendPgMessage((MessagePgToSplunk)messagePgToSplunk);
                 await SendMessageToSplunk(messagePgToSplunk);
-
             }
 
             if (MachineStatuses != null && MachineStatuses.Any())
@@ -1440,6 +1429,14 @@ namespace ViSyncMaster.ViewModels
         /// </summary>
         /// 
 
+        //private Rs232TestSimulator _testSimulator;
+
+        //private void StartFakeTest()
+        //{
+        //    _testSimulator = new Rs232TestSimulator(_rs232Processor);
+        //    _testSimulator.Start();
+        //}
+
         private async void StartListeningAsync()
         {
             await Task.Run(() => _serialPortListener.StartListening(appConfig.ComNumber));
@@ -1465,45 +1462,41 @@ namespace ViSyncMaster.ViewModels
 
             // Nowa logika – delegujemy analizę danych do Rs232DataProcessor
             _rs232Processor.Process(testData);
-
-            // Jeśli Device istnieje, to wysyłamy pełną ramkę do Splunk
-            if (testData.Device != null)
-            {
-                Log.Information("Sending full test data to Splunk: {Data}", testData);
-                SendMessageToSplunk(testData);
-            }
         }
 
-        private void HandleProducingStarted(object sender, Rs232Data message)
+        private void OnProducingStarted(object sender, Rs232Data data)
         {
-            _machineStatusCounter = 5;
+            Log.Information("Produkcja rozpoczęta: " + data.ProductName);
+            _machineStatusCounter = data.Producing == "true" ? 6 : 7;
+            // Ustaw wiadomość na podstawie licznika
             _messageToSplunkPg.SetByCounter(_machineStatusCounter);
             ReSendMessageToSplunk(_messageToSplunkPg);
-            _previousProducingState = "true";
-            Log.Information("Producing started → {Message}", message);
         }
 
-        private void HandleTestFinished(object sender, Rs232Data message)
+        private void OnProducingEnded(object sender, Rs232Data data)
         {
-            if (message.Status == "Failed")
+            Log.Information("Produkcja zakończona: " + data.ProductName);
+            _machineStatusCounter = data.Producing == "false" ? 7 : 6;
+            _messageToSplunkPg.SetByCounter(_machineStatusCounter);
+            ReSendMessageToSplunk(_messageToSplunkPg);
+            if (data.Device != null)
             {
-                _messageToSplunkFailed.SetValue("true");
-                _messageToSplunkFailed.ProductName = message.ProductName;
-                _messageToSplunkFailed.OperatorId = message.OperatorId;
-
-                Log.Information("Test failed → {Message}", message);
-                _machineStatusService.ReportPartQuality(_messageToSplunkFailed);
+                Log.Information("Sending full test data to Splunk: {Data}", data);
+                SendMessageToSplunk(data);
             }
-            else if (message.Status == "Passed")
-            {
-                _messageToSplunkPassed.SetValue("true");
-                _messageToSplunkPassed.ProductName = message.ProductName;
-                _messageToSplunkPassed.OperatorId = message.OperatorId;
+        }
 
-                _counterTest++;
-                Log.Information("Test passed → {Message}, Counter={Counter}", message, _counterTest);
-                _machineStatusService.ReportPartQuality(_messageToSplunkPassed);
-            }
+        private void OnProductionMetricsReady(object? sender, ProductionMetrics e)
+        {
+            Log.Information("ProductionMetrics, sztuk:", e);
+            SendMessageToSplunk(e);
+        }
+
+        private async void OnTestBatchReady(object sender, List<Rs232Data> batch)
+        {
+            Log.Information("Batch gotowy, sztuk: {Count}", batch.Count);
+
+            await _machineStatusService.ReportBatchPartQuality(batch);
         }
 
         private void TimerCallback(object state)
@@ -1638,8 +1631,10 @@ namespace ViSyncMaster.ViewModels
             // Inicjalizacja SerialPortListener tylko raz
             _serialPortListener = new SerialPortListener();
             _rs232Processor = new Rs232DataProcessor();
-            _rs232Processor.OnProducingStarted += HandleProducingStarted;
-            _rs232Processor.OnTestFinished += HandleTestFinished;
+            _rs232Processor.ProducingStarted += OnProducingStarted;
+            _rs232Processor.ProducingEnded += OnProducingEnded;
+            _rs232Processor.TestBatchReady += OnTestBatchReady;
+            _rs232Processor.ProductionMetricsReady += OnProductionMetricsReady;
             _serialPortListener.FrameReceived += OnFrameReceived;
             _machineStatusService.TableResultTestUpdate += LoadResultToTable;
             adaptronicUrl = appConfig.UrlAdaptronic;
@@ -1658,6 +1653,7 @@ namespace ViSyncMaster.ViewModels
             StartListeningAsync();
             LoadPageAdaptronic();
             LoadResultToTable();
+            //StartFakeTest();
         }
 
         private void EnableFuction(string appMode)
@@ -1727,8 +1723,8 @@ namespace ViSyncMaster.ViewModels
             _repositoryProductionEfficiency = new GenericRepository<ProductionEfficiency>(_database, "ProductionEfficiency");
             _repositoryFirstPartData = new GenericRepository<FirstPartModel>(_database, "FirstPartData");
             // Inicjalizacja widoku, który będzie używany przez DataContext
-            _messageQueue = new MessageQueue(_repositoryMachineStatusQueue, _repositoryTestingResultQueue, _repositoryProductionEfficiency, _repositoryFirstPartData);
             _messageSender = new MessageSender(this); // Na początku brak połączenia   
+            _messageQueue = new MessageQueue(_repositoryMachineStatusQueue, _repositoryTestingResultQueue, _repositoryProductionEfficiency, _repositoryFirstPartData, _messageSender);
             _splunkMessageHandler = new SplunkMessageHandler();
             _mqttSender = new MqttMessageSender(mqttConfig.brokerHost, mqttConfig.brokerPort, appConfig.Source, mqttConfig.username, mqttConfig.password);
 

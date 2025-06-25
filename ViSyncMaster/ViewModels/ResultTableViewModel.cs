@@ -375,6 +375,7 @@ namespace ViSyncMaster.ViewModels
             _productionEfficiency.Efficiency = CurrentEfficiency;
             _productionEfficiency.EfficiencyRequired = ExpectedEfficiency;
             _productionEfficiency.Target = Target;
+            _productionEfficiency.Plan = (int)Math.Round(ExpectedOutput);
             _productionEfficiency.PassedPiecesPerShift = (int)TotalUnitsProduced;
 
             await _machineStatusService.RaportProdcuctionEfficiency(_productionEfficiency);

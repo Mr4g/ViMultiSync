@@ -7,6 +7,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using ViSyncMaster.DataModel;
 using ViSyncMaster.DataModel.Extension;
+using ViSyncMaster.Entitys;
+using ViSyncMaster.Heleprs;
 using ViSyncMaster.Repositories;
 using ViSyncMaster.Services;
 using ViSyncMaster.ViewModels;
@@ -31,6 +33,9 @@ namespace ViSyncMaster.Services
         public event Action? TableResultTestUpdate;
         private AppConfigData _appConfig = MainWindowViewModel.appConfig;
         private ConfigMqtt _mqttConfig = MainWindowViewModel.mqttConfig;
+        private readonly Debouncer _queueDebouncer;
+        private bool _hasQueueEvent;
+        private string? _lastQueueTable;
 
 
         // Konstruktor przyjmuje repozytoria generyczne dla obu tabel
@@ -55,12 +60,14 @@ namespace ViSyncMaster.Services
             _messageSender = messageSender;
             _messageQueue = messageQueue;
             _database = database;
+            _queueDebouncer = new Debouncer(3000, FlushQueue);
 
             Debug.WriteLine("Rejestracja subskrypcji CacheUpdated");
-            _repositoryMachineStatusQueue.CacheUpdated += () => HandleCacheUpdated(_repositoryMachineStatusQueue);
-            _repositoryTestingResultQueue.CacheUpdated += () => HandleCacheUpdated(_repositoryTestingResultQueue);
-            _repositoryProductionEfficiency.CacheUpdated += () => HandleCacheUpdated(_repositoryProductionEfficiency);
-            _repositoryFirstPartQueue.CacheUpdated += () => HandleCacheUpdated(_repositoryFirstPartQueue);
+            _repositoryMachineStatusQueue.CacheUpdated += info => OnRepoUpdated(info);
+            _repositoryTestingResultQueue.CacheUpdated += info => OnRepoUpdated(info);
+            _repositoryProductionEfficiency.CacheUpdated += info => OnRepoUpdated(info);
+            _repositoryFirstPartQueue.CacheUpdated += info => OnRepoUpdated(info);
+
         }
 
         // Rozpoczęcie nowego statusu
@@ -80,20 +87,56 @@ namespace ViSyncMaster.Services
             await SendMessageMqtt(jsonMessage);
             return machineStatus;
         }
-        public async Task<MachineStatus> ReportPartQuality(MachineStatus machineStatus)
-        {
-            var epochMilliseconds = DateTimeOffset.Now.ToUnixTimeMilliseconds(); // Czas epoch w milisekundach
-            var uniqueId = epochMilliseconds;
 
-            machineStatus.StartTime = DateTime.Now;
-            machineStatus.SendTime = epochMilliseconds;
-            machineStatus.Id = uniqueId;
-            await _repositoryTestingResultQueue.AddOrUpdate(machineStatus);
-            await _repositoryTestingResult.AddOrUpdate(machineStatus);
-            Log.Information("Dodano/zmodyfikowano rekord w tabeli TestingResult: {Entity}", machineStatus);
-            //var jsonMessage = JsonSerializer.Serialize(machineStatus.ToMqttFormatForTestingMessage());
-            //await SendMessageMqtt(jsonMessage);
-            return machineStatus;
+        public async Task<List<MachineStatus>> ReportBatchPartQuality(List<Rs232Data> testBatch)
+        {
+            var results = new List<MachineStatus>();
+
+            // Pierwszy przebieg - Przetwarzanie TestingPassed
+            foreach (var data in testBatch)
+            {
+                // Jeżeli TestingPassed ma wartość, tworzy TestingPassedMessage
+                if (!string.IsNullOrEmpty(data.TestingPassed))
+                {
+                    var machineStatus = new TestingPassedMessage
+                    {
+                        ProductName = data.ProductName,
+                        OperatorId = data.OperatorId,
+                        StartTime = DateTime.Now,
+                        SendTime = data.Timestamp,
+                        Id = IdGenerator.GetNextId()
+                    };
+                    machineStatus.SetValue(data.TestingPassed); // Ustawienie wartości TestingPassed
+                    results.Add(machineStatus);
+                }
+            }
+
+            // Drugi przebieg - Przetwarzanie TestingFailed
+            foreach (var data in testBatch)
+            {
+                // Jeżeli TestingFailed ma wartość, tworzysz TestingFailedMessage
+                if (!string.IsNullOrEmpty(data.TestingFailed))
+                {
+                    var machineStatus = new TestingFailedMessage
+                    {
+                        ProductName = data.ProductName,
+                        OperatorId = data.OperatorId,
+                        StartTime = DateTime.Now,
+                        SendTime = data.Timestamp,
+                        Id = IdGenerator.GetNextId()
+                };
+                    machineStatus.SetValue(data.TestingFailed); // Ustawienie wartości TestingFailed
+                    results.Add(machineStatus);
+                }
+            }
+
+            // Jednorazowe zapisanie całej listy (np. do kolejki lub bazy)
+            await _repositoryTestingResultQueue.AddOrUpdateBatch(results);
+            await _repositoryTestingResult.AddOrUpdateBatch(results);
+
+            Log.Information("Batch zapisany ({Count} sztuk)", results.Count);
+
+            return results;
         }
 
         public async Task<ProductionEfficiency> RaportProdcuctionEfficiency(ProductionEfficiency productionEfficiency)
@@ -164,52 +207,34 @@ namespace ViSyncMaster.Services
             return machineStatus;
         }
 
-
-        private async void HandleCacheUpdated(object sender)
+        private void OnRepoUpdated(DatabaseOperationInfo info)
         {
-            Debug.WriteLine("Wywołano HandleCacheUpdated");
-
-            // Anulowanie poprzedniego zadania
-            _cacheUpdatedCts.Cancel();
-            _cacheUpdatedCts.Dispose(); // Zwolnienie zasobów
-            _cacheUpdatedCts = new CancellationTokenSource();
-
-            // Nie czekamy na anulowane zadania (zapobiega blokowaniu)
-            if (!_lastTask.IsCanceled && !_lastTask.IsFaulted)
+            if (info.TableName.Contains("Queue", StringComparison.OrdinalIgnoreCase))
             {
-                await _lastTask;
+                _hasQueueEvent = true;
+                _lastQueueTable = info.TableName;
             }
+            _queueDebouncer.Debounce();
+        }
+
+        private async void FlushQueue()
+        {
+            if (!_hasQueueEvent) return;
+
             try
             {
-                // Przechowujemy nowe zadanie
-                _lastTask = Task.Delay(3000, _cacheUpdatedCts.Token);
-                await _lastTask; // Poczekaj 2 sek, jeśli nie będzie kolejnych wywołań
-
-                if ((sender as GenericRepository<MachineStatus>)?.TableName == "TestingResultQueue")
-                {
-                    TableResultTestUpdate?.Invoke();
-                }
-                // Jeśli nie było anulowania, wysyłamy wiadomości
-                await _messageQueue.SendAllMessages(_messageSender);
-            }
-            catch (TaskCanceledException)
-            {
-                Debug.WriteLine("Anulowano wysyłanie – przyszły nowe dane");
+                await _messageQueue.SendAllMessages();
+                TableResultTestUpdate?.Invoke();
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Błąd podczas wysyłania wiadomości: {ex}");
+                Debug.WriteLine($"[FlushQueue] Błąd: {ex}");
             }
-        }
-
-        // Dodatkowa metoda do zarządzania kolejką statusów
-        public void QueueMachineStatus(MachineStatus machineStatus)
-        {
-            // Zapisz status do kolejki
-            _repositoryMachineStatusQueue.AddOrUpdate(machineStatus);
-
-            // Można dodać logikę do przetwarzania wiadomości w kolejce
-            _messageQueue.SendAllMessages(_messageSender);
+            finally
+            {
+                _hasQueueEvent = false;
+                _lastQueueTable = null;
+            }
         }
 
         public async Task SendMessageMqtt(string messageq)

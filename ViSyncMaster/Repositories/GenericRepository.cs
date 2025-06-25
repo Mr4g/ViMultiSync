@@ -1,79 +1,60 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Text.Json;
-using ViSyncMaster.DataModel;
 using System.IO;
+using System.Diagnostics;
+using Serilog;
+using ViSyncMaster.DataModel;
 using ViSyncMaster.Services;
 using ViSyncMaster.Entitys;
-using Serilog;
-using DynamicData;
-using System.Diagnostics;
-using Avalonia.Controls.Shapes;
-using Avalonia.Controls;
-using LiveChartsCore.Themes;
+using Path = System.IO.Path;
+using System.Threading.Tasks;
+using SharpDX.Direct3D11;
 
 namespace ViSyncMaster.Repositories
 {
-    public class GenericRepository<T> where T : IEntity, new()
+    public class GenericRepository<T> where T : class, IEntity, new()
     {
         private readonly SQLiteDatabase _db;
         private readonly string _tableName;
-        private readonly List<T> _cache = new List<T>();  // Przechowywanie danych w pamięci
-        private readonly List<T> _cacheTestResult = new List<T>();
-        private readonly QueueManager<T> _queueManager;
+        private readonly List<T> _cache = new();
+        private readonly List<T> _cacheTestResult = new();
         private bool _hasIsActive;
 
-        public event Action? CacheUpdated;
+        public event Action<DatabaseOperationInfo>? CacheUpdated;
 
-        public string TableName => _tableName;  // Właściwość do odczytu nazwy tabeli
+        public string TableName => _tableName;
 
         public GenericRepository(SQLiteDatabase db, string tableName)
         {
             _db = db;
             _tableName = tableName;
-            // Initialize the QueueManager with the processing function
-            _queueManager = new QueueManager<T>(AddOrUpdateInternalSync);  // Inicjalizacja instancji QueueManager
-            Debug.WriteLine($"Initialized QueueManager for {0} {tableName}", tableName);
             RestoreFromBackup();
             UpdateCacheAsync();
-            if(_tableName == "MachineStatus")
+            if (_tableName == "MachineStatus")
                 _hasIsActive = true;
         }
 
-        public async Task AddOrUpdate(T entity)
+        public Task AddOrUpdate(T entity)
         {
             if (entity.Id == 0)
-            {
-                entity.Id = DateTimeOffset.Now.ToUnixTimeMilliseconds(); // Ustawienie Id na podstawie czasu epoch w milisekundach
-            }
-            // Dodaj do kolejki zamiast bezpośrednio do bazy danych
-            await _queueManager.Enqueue(entity);  // Użycie instancji QueueManager
+                entity.Id = DateTimeOffset.Now.ToUnixTimeMilliseconds();
+
+            GlobalQueue.Instance.Enqueue(new SingleEntityTask<T>(entity, AddOrUpdateInternalSync));
+            return Task.CompletedTask;
         }
 
-        // Dodawanie/aktualizowanie rekordu w bazie danych
-        public async Task AddOrUpdateInternal(T entity)
+        public Task AddOrUpdateBatch(List<T> entities)
         {
-            try
+            entities.ForEach(e =>
             {
-                string query = $@"
-            INSERT INTO {_tableName} 
-            ({GetColumns(entity)}) 
-            VALUES 
-            ({GetColumnParameters(entity)})
-            ON CONFLICT(Id) DO UPDATE SET
-            {GetUpdateColumns(entity)}";
+                if (e.Id == 0)
+                    e.Id = DateTimeOffset.Now.ToUnixTimeMilliseconds();
+            });
 
-                await _db.ExecuteNonQuery(query, entity);
-                Log.Information("Dodano/zmodyfikowano rekord w tabeli {TableName}: {Entity}", _tableName, entity);
-            }
-            catch (Exception ex)
-            {
-                Log.Error(ex, "Błąd podczas zapisywania rekordu do tabeli {TableName}: {Entity}", _tableName, entity);
-                SaveToBackupFile(entity);
-            }
+            GlobalQueue.Instance.Enqueue(new BatchEntityTask<T>(entities, AddOrUpdateInternalBatchSync));
+            return Task.CompletedTask;
         }
 
         public async void AddOrUpdateInternalSync(T entity)
@@ -81,27 +62,67 @@ namespace ViSyncMaster.Repositories
             try
             {
                 string query = $@"
-            INSERT INTO {_tableName} 
-            ({GetColumns(entity)}) 
-            VALUES 
-            ({GetColumnParameters(entity)})
-            ON CONFLICT(Id) DO UPDATE SET
-            {GetUpdateColumns(entity)}";
+                     INSERT INTO {_tableName} 
+                     ({GetColumns(entity)}) 
+                     VALUES 
+                     ({GetColumnParameters(entity)}) 
+                     ON CONFLICT(Id) DO UPDATE SET
+                     {GetUpdateColumns(entity)}";
 
-                _db.ExecuteNonQuery(query, entity).Wait(); // Użyj .Wait() aby wykonać asynchronicznie metodę synchronicznie
-                Log.Information("Dodano/zmodyfikowano rekord w tabeli {TableName}: {Entity}", _tableName, entity);
+                _db.ExecuteNonQuery(query, entity).Wait();
+                Log.Debug("Zapisano rekord w tabeli {TableName}", _tableName);
+
+                // Wywołanie eventu CacheUpdated z obiektem DatabaseOperationInfo
+                CacheUpdated?.Invoke(new DatabaseOperationInfo(_tableName, DatabaseOperation.Insert, entity));
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Błąd podczas zapisywania rekordu do tabeli {TableName}: {Entity}", _tableName, entity);
+                Log.Error(ex, "Błąd zapisu do tabeli {TableName}", _tableName);
                 SaveToBackupFile(entity);
             }
+
             await UpdateCacheAsync();
-            Debug.WriteLine($"Wywołanie zdarzenia cacheUpdate");
-            CacheUpdated?.Invoke();
         }
 
-        // Metoda do aktualizacji cache
+        public async void AddOrUpdateInternalBatchSync(List<T> batch)
+        {
+            try
+            {
+                foreach (var entity in batch)
+                {
+                    if (entity.Id == 0)
+                        entity.Id = DateTimeOffset.Now.ToUnixTimeMilliseconds();
+
+                    string query = $@"
+                        INSERT INTO {_tableName} 
+                        ({GetColumns(entity)}) 
+                        VALUES 
+                        ({GetColumnParameters(entity)}) 
+                        ON CONFLICT(Id) DO UPDATE SET
+                        {GetUpdateColumns(entity)}";
+
+                    _db.ExecuteNonQuery(query, entity).Wait();
+                }
+
+                Log.Debug("Zapisano batch ({Count}) elementów do tabeli {TableName}", batch.Count, _tableName);
+
+                // Wywołanie eventu CacheUpdated dla każdego elementu w batchu
+                foreach (var entity in batch)
+                {
+                    CacheUpdated?.Invoke(new DatabaseOperationInfo(_tableName, DatabaseOperation.Update, entity));
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Błąd zapisu batcha do tabeli {TableName}", _tableName);
+                foreach (var entity in batch)
+                    SaveToBackupFile(entity);
+            }
+
+            await UpdateCacheAsync();
+        }
+
+
         public async Task UpdateCacheAsync()
         {
             var activeItems = await GetActiveAsync();
@@ -112,146 +133,134 @@ namespace ViSyncMaster.Repositories
             _cacheTestResult.AddRange(passedRecords);
             _cacheTestResult.AddRange(failedRecords);
             _cache.AddRange(activeItems);
+            Log.Debug("Zaktualizowano cache dla tabeli {TableName}", _tableName);
         }
 
-        // Odczyt danych z cache
-        public async Task<List<T>> GetFromCache()
-        {
-            return new List<T>(_cache);  // Zwracamy kopię listy, żeby uniknąć manipulacji z zewnątrz
-        }
+        public async Task<List<T>> GetFromCache() => new(_cache);
+        public async Task<List<T>> GetFromCacheTestResult() => new(_cacheTestResult);
 
-        public async Task<List<T>> GetFromCacheTestResult()
-        {
-            return new List<T>(_cacheTestResult);  // Zwracamy kopię listy, żeby uniknąć manipulacji z zewnątrz
-        }
-
-        // Pobieranie danych
         public async Task<List<T>> GetAllAsync(string whereClause = "")
         {
             string query = $"SELECT * FROM {_tableName} {whereClause} ORDER BY SendTime ASC";
             return await _db.ExecuteReaderAsync<T>(query);
         }
+
         public async Task<List<T>> GetActiveAsync()
         {
-            if(!_hasIsActive)
-            {
-                return new List<T>();
-            }
+            if (!_hasIsActive) return new();
+
             string query = $"SELECT * FROM {_tableName} WHERE IsActive = 1 ORDER BY SendTime ASC";
-            Log.Information("Wykonywanie zapytania: {Query}", query);
             var result = await _db.ExecuteReaderAsync<T>(query);
-            Log.Information("Znaleziono rekordy: {Count}", result.Count);
             return result;
         }
+
         public async Task<List<T>> GetFromLastWeekAsync(string name)
         {
             long oneWeekAgo = DateTimeOffset.UtcNow.AddDays(-7).ToUnixTimeMilliseconds();
-
             string query = $"SELECT * FROM {_tableName} WHERE SendTime >= @oneWeekAgo AND Name = @name ORDER BY SendTime ASC";
-
-            Log.Information("Wykonywanie zapytania: {Query} z parametrami Name = {Name}", query, name);
-
-            var parameters = new Dictionary<string, object>
-            {
-                { "@oneWeekAgo", oneWeekAgo },
-                { "@name", name }
-            };
-
-            var result = await _db.ExecuteReaderAsync<T>(query, parameters); // Przekazanie parametrów
-
-            Log.Information("Znaleziono rekordy: {Count}", result.Count);
-            return result;
+            var parameters = new Dictionary<string, object> { { "@oneWeekAgo", oneWeekAgo }, { "@name", name } };
+            return await _db.ExecuteReaderAsync<T>(query, parameters);
         }
 
         public async Task<List<T>> GetFromLastWeekAsync()
         {
             long oneWeekAgo = DateTimeOffset.UtcNow.AddDays(-7).ToUnixTimeMilliseconds();
-
             string query = $"SELECT * FROM {_tableName} WHERE SendTime >= {oneWeekAgo} ORDER BY SendTime ASC";
-
-            Log.Information("Wykonywanie zapytania: {Query}", query);
-            var result = await _db.ExecuteReaderAsync<T>(query);
-
-            Log.Information("Znaleziono rekordy: {Count}", result.Count);
-            return result;
+            return await _db.ExecuteReaderAsync<T>(query);
         }
 
         public async Task<List<T>> GetByStatusAsync()
         {
             string query = $"SELECT * FROM {_tableName} WHERE SendStatus = 'Pending' ORDER BY SendTime ASC";
-            Log.Information("Wykonywanie zapytania: {Query}", query);
-            var result = await _db.ExecuteReaderAsync<T>(query);
-            Log.Information("Znaleziono rekordy: {Count}", result?.Count ?? 0);
-            return result;
+            return await _db.ExecuteReaderAsync<T>(query);
         }
 
         public async Task<List<T>> GetByStatusInProgressAsync()
         {
             string query = $"SELECT * FROM {_tableName} WHERE SendStatus = 'InProgress' ORDER BY SendTime ASC";
-            Log.Information("Wykonywanie zapytania: {Query}", query);
-            var result = await _db.ExecuteReaderAsync<T>(query);
-            Log.Information("Znaleziono rekordy: {Count}", result?.Count ?? 0);
-            return result;
+            return await _db.ExecuteReaderAsync<T>(query);
         }
 
-        // Usuwanie rekordu
         public void Delete(long id)
         {
             string query = $"DELETE FROM {_tableName} WHERE Id = @Id";
             _db.ExecuteNonQuery(query, new { Id = id });
         }
 
-        // Pomocnicze metody do generowania kolumn i parametrów SQL
-        private string GetColumns(T entity)
-        {
-            return string.Join(", ", typeof(T).GetProperties().Select(p => p.Name));
-        }
-
-        private string GetColumnParameters(T entity)
-        {
-            return string.Join(", ", typeof(T).GetProperties().Select(p => $"@{p.Name}"));
-        }
-
-        private string GetUpdateColumns(T entity)
-        {
-            return string.Join(", ", typeof(T).GetProperties()
-                .Where(p => p.Name != "Id") // Pomijamy kolumnę Id
-                .Select(p => $"{p.Name} = excluded.{p.Name}"));
-        }
+        private string GetColumns(T entity) => string.Join(", ", typeof(T).GetProperties().Select(p => p.Name));
+        private string GetColumnParameters(T entity) => string.Join(", ", typeof(T).GetProperties().Select(p => $"@{p.Name}"));
+        private string GetUpdateColumns(T entity) => string.Join(", ", typeof(T).GetProperties().Where(p => p.Name != "Id").Select(p => $"{p.Name} = excluded.{p.Name}"));
 
         private void SaveToBackupFile(T entity)
         {
-            string backupFilePath = $"backup_{_tableName}.json";
+            // 1) Poprawna ścieżka bez podwójnych backslashy
+            string backupDirectory = @"C:\ViSM\App\backupDB";
+            Directory.CreateDirectory(backupDirectory);
 
+            // 2) Pełna ścieżka pliku
+            string backupFilePath = Path.Combine(backupDirectory, $"backup_{_tableName}.json");
 
-            var allEntities = File.Exists(backupFilePath)
-                ? JsonSerializer.Deserialize<List<T>>(File.ReadAllText(backupFilePath)) ?? new List<T>()
-                : new List<T>();
+            List<T> allEntities;
 
+            if (File.Exists(backupFilePath))
+            {
+                // 3) Wczytaj zawartość
+                string json = File.ReadAllText(backupFilePath);
+
+                if (string.IsNullOrWhiteSpace(json))
+                {
+                    // plik jest pusty -> nowa lista
+                    allEntities = new List<T>();
+                }
+                else
+                {
+                    try
+                    {
+                        allEntities = JsonSerializer.Deserialize<List<T>>(json)
+                                      ?? new List<T>();
+                    }
+                    catch (JsonException)
+                    {
+                        // plik ma niepoprawny JSON -> nadpisz go jako nowy
+                        allEntities = new List<T>();
+                    }
+                }
+            }
+            else
+            {
+                allEntities = new List<T>();
+            }
+
+            // 4) Dodaj nowy rekord i zapisz
             allEntities.Add(entity);
 
-            File.WriteAllText(backupFilePath, JsonSerializer.Serialize(allEntities));
+            var options = new JsonSerializerOptions { WriteIndented = true };
+            string output = JsonSerializer.Serialize(allEntities, options);
+            File.WriteAllText(backupFilePath, output);
+
+            Log.Warning("Zapisano backup rekordu do pliku {BackupFile}", backupFilePath);
         }
+
 
         public void RestoreFromBackup()
         {
-            string backupFilePath = $"backup_{_tableName}.json";
+            string backupDirectory = @"C:\\ViSM\\App\\backupDB";
+            string backupFilePath = Path.Combine(backupDirectory, $"backup_{_tableName}.json");
             if (!File.Exists(backupFilePath)) return;
 
             try
             {
                 var allEntities = JsonSerializer.Deserialize<List<T>>(File.ReadAllText(backupFilePath)) ?? new List<T>();
-
                 foreach (var entity in allEntities)
                 {
-                    AddOrUpdateInternal(entity).Wait();
+                    AddOrUpdate(entity).Wait();
                 }
-
                 File.Delete(backupFilePath);
+                Log.Information("Przywrócono dane z backupu do tabeli {TableName}", _tableName);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error restoring backup: {ex.Message}");
+                Log.Error(ex, "Błąd przywracania backupu z pliku {BackupFile}", backupFilePath);
             }
         }
     }

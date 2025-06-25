@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Serilog;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text.Json;
@@ -10,217 +11,184 @@ using ViSyncMaster.Services;
 
 public class MessageQueue
 {
-    private readonly Queue<MachineStatus> _machineStatusQueue = new Queue<MachineStatus>();
-    private readonly Queue<MachineStatus> _testingResultQueue = new Queue<MachineStatus>();
-    private readonly Queue<ProductionEfficiency> _productionEfficiencyQueue = new Queue<ProductionEfficiency>();
-    private readonly Queue<FirstPartModel> _firstPartDataQueue = new Queue<FirstPartModel>();
+    // In-memory queues
+    private readonly Queue<MachineStatus> _machineStatusQueue = new();
+    private readonly Queue<MachineStatus> _testingResultQueue = new();
+    private readonly Queue<ProductionEfficiency> _productionEfficiencyQueue = new();
+    private readonly Queue<FirstPartModel> _firstPartDataQueue = new();
+
+    // ID tracking for TestingResult deduplication
+    private readonly HashSet<long> _testingResultSeen = new();
+
+    // Repositories and sender
     private readonly GenericRepository<MachineStatus> _repositoryMachineStatusQueue;
     private readonly GenericRepository<MachineStatus> _repositoryTestingResultQueue;
     private readonly GenericRepository<ProductionEfficiency> _repositoryProductionEfficiency;
-    private readonly GenericRepository<FirstPartModel> _reposiotryFirstPartDataQueue;
+    private readonly GenericRepository<FirstPartModel> _repositoryFirstPartQueue;
+    private readonly MessageSender _messageSender;            // ← dodajemy
+
     private DateTime _lastSendTime = DateTime.MinValue;
     private readonly TimeSpan _minInterval = TimeSpan.FromSeconds(2);
     private bool _isSending = false;
+    private bool _isInitialized = false;
 
-
-    public MessageQueue(GenericRepository<MachineStatus> repositoryMachineStatusQueue, 
-                        GenericRepository<MachineStatus> repositoryTestingResultQueue,
-                        GenericRepository<ProductionEfficiency> repositoryProductionEfficiency, 
-                        GenericRepository<FirstPartModel> repositoryFirstPartDataQueue)
+    public MessageQueue(
+        GenericRepository<MachineStatus> repositoryMachineStatusQueue,
+        GenericRepository<MachineStatus> repositoryTestingResultQueue,
+        GenericRepository<ProductionEfficiency> repositoryProductionEfficiency,
+        GenericRepository<FirstPartModel> repositoryFirstPartQueue,
+        MessageSender messageSender)                        // ← wstrzykujemy
     {
         _repositoryMachineStatusQueue = repositoryMachineStatusQueue;
         _repositoryTestingResultQueue = repositoryTestingResultQueue;
         _repositoryProductionEfficiency = repositoryProductionEfficiency;
-        _reposiotryFirstPartDataQueue = repositoryFirstPartDataQueue;
-        Initialize();
+        _repositoryFirstPartQueue = repositoryFirstPartQueue;
+        _messageSender = messageSender;
+
+        // Asynchroniczna inicjalizacja
+        _ = EnsureInitializedAsync();
     }
 
-    private void Initialize()
+    private async Task EnsureInitializedAsync()
     {
-        LoadMessagesFromDatabase();
-        LoadMessagesFromBackupDatabase();
+        if (_isInitialized) return;
+        await LoadInProgressMessagesAsync();
+        await LoadPendingMessagesAsync();
+        _isInitialized = true;
+        await SendAllMessages();
     }
 
-    private async Task LoadMessagesFromBackupDatabase()
+    private async Task LoadPendingMessagesAsync()
     {
         try
         {
-            var pendingMachineStatusMessages = await _repositoryMachineStatusQueue.GetByStatusInProgressAsync();
-            foreach (var message in pendingMachineStatusMessages)
+            // MachineStatus Pending
+            var m1 = await _repositoryMachineStatusQueue.GetByStatusAsync();
+            EnqueueAndMark(m1, _repositoryMachineStatusQueue, _machineStatusQueue);
+
+            // TestingResult Pending - dedupe by ID
+            var m2 = await _repositoryTestingResultQueue.GetByStatusAsync();
+            foreach (var m in m2)
             {
-                message.SendStatus = "InProgress";
-                await _repositoryMachineStatusQueue.AddOrUpdate(message);
-                _machineStatusQueue.Enqueue(message);
+                if (_testingResultSeen.Add(m.Id))
+                    EnqueueAndMark(new[] { m }, _repositoryTestingResultQueue, _testingResultQueue);
+                else
+                    Log.Debug("Skipping duplicate TestingResult ID={Id}", m.Id);
             }
 
-            var pendingTestingResultMessages = await _repositoryTestingResultQueue.GetByStatusInProgressAsync();
-            foreach (var message in pendingTestingResultMessages)
-            {
-                message.SendStatus = "InProgress";
-                await _repositoryTestingResultQueue.AddOrUpdate(message);
-                _testingResultQueue.Enqueue(message);
-            }
+            // ProductionEfficiency Pending
+            var m3 = await _repositoryProductionEfficiency.GetByStatusAsync();
+            EnqueueAndMark(m3, _repositoryProductionEfficiency, _productionEfficiencyQueue);
 
-            var pendingProductionEfficiency = await _repositoryProductionEfficiency.GetByStatusInProgressAsync();
-            foreach (var message in pendingProductionEfficiency)
-            {
-                message.SendStatus = "InProgress";
-                await _repositoryProductionEfficiency.AddOrUpdate(message);
-                _productionEfficiencyQueue.Enqueue(message);
-            }
+            // FirstPartData Pending
+            var m4 = await _repositoryFirstPartQueue.GetByStatusAsync();
+            EnqueueAndMark(m4, _repositoryFirstPartQueue, _firstPartDataQueue);
 
-            var pendingFirstPartData = await _reposiotryFirstPartDataQueue.GetByStatusInProgressAsync();
-            foreach (var message in pendingFirstPartData)
-            {
-                message.SendStatus = "InProgress";
-                await _reposiotryFirstPartDataQueue.AddOrUpdate(message);
-                _firstPartDataQueue.Enqueue(message);
-            }
+            Log.Information($"[LoadPending] Queues: MS={_machineStatusQueue.Count}, TR={_testingResultQueue.Count}, PE={_productionEfficiencyQueue.Count}, FP={_firstPartDataQueue.Count}");
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"Błąd {ex} ładowania danych z bazy danych");
+            Log.Error(ex, "Błąd ładowania Pending");
         }
     }
 
-    public async Task LoadMessagesFromDatabase()
+    private async Task LoadInProgressMessagesAsync()
     {
         try
         {
-            var pendingMachineStatusMessages = await _repositoryMachineStatusQueue.GetByStatusAsync();
-            foreach (var message in pendingMachineStatusMessages)
-            {
-            message.SendStatus = "InProgress";
-            await _repositoryMachineStatusQueue.AddOrUpdate(message);
-            _machineStatusQueue.Enqueue(message);
-            }
+            var i1 = await _repositoryMachineStatusQueue.GetByStatusInProgressAsync();
+            EnqueueOnly(i1, _machineStatusQueue);
 
-            var pendingTestingResultMessages = await _repositoryTestingResultQueue.GetByStatusAsync();
-            foreach (var message in pendingTestingResultMessages)
-            {
-            message.SendStatus = "InProgress";
-            await _repositoryTestingResultQueue.AddOrUpdate(message);
-            _testingResultQueue.Enqueue(message);
-            }
+            var i2 = await _repositoryTestingResultQueue.GetByStatusInProgressAsync();
+            EnqueueOnly(i2, _testingResultQueue);
 
-            var pendingProductionEfficiency = await _repositoryProductionEfficiency.GetByStatusAsync();
-            Debug.WriteLine($"Załadowano {pendingProductionEfficiency.Count} wiadomości z bazy danych.");
-            foreach (var message in pendingProductionEfficiency)
-            {
-                message.SendStatus = "InProgress";
-                await _repositoryProductionEfficiency.AddOrUpdate(message);
-                _productionEfficiencyQueue.Enqueue(message);
-            }
+            var i3 = await _repositoryProductionEfficiency.GetByStatusInProgressAsync();
+            EnqueueOnly(i3, _productionEfficiencyQueue);
 
-            var pendingFirstPartData = await _reposiotryFirstPartDataQueue.GetByStatusAsync();
-            foreach (var message in pendingFirstPartData)
-            {
-                message.SendStatus = "InProgress";
-                await _reposiotryFirstPartDataQueue.AddOrUpdate(message);
-                _firstPartDataQueue.Enqueue(message);
-            }
+            var i4 = await _repositoryFirstPartQueue.GetByStatusInProgressAsync();
+            EnqueueOnly(i4, _firstPartDataQueue);
+
+            Log.Information($"[LoadInProgress] Queues: MS={_machineStatusQueue.Count}, TR={_testingResultQueue.Count}, PE={_productionEfficiencyQueue.Count}, FP={_firstPartDataQueue.Count}");
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
-            Debug.WriteLine($"Błąd {ex} ładowania danych z bazy danych");
+            Log.Error(ex, "Błąd ładowania InProgress");
         }
     }
 
-    // Dodawanie wiadomości do kolejki i zapisywanie w bazie danych
-    public void EnqueueMachineStatusMessage(MachineStatus machineStatus)
+    private static void EnqueueAndMark<T>(IEnumerable<T> msgs, GenericRepository<T> repo, Queue<T> q)
+        where T : class, IEntity, new()
     {
-        _machineStatusQueue.Enqueue(machineStatus); // Dodaj do kolejki
-    }
-
-    public void EnqueueTestingResultMessage(MachineStatus machineStatus)
-    {
-        _testingResultQueue.Enqueue(machineStatus); // Dodaj do kolejki
-    }
-
-    public void EnqueueProductionEfficiencyMessage(ProductionEfficiency productionEfficiency)
-    {
-        _productionEfficiencyQueue.Enqueue(productionEfficiency); // Dodaj do kolejki
-    }
-
-    // Pobieranie wiadomości z kolejki
-    public MachineStatus? DequeueMachineStatusMessage()
-    {
-        return _machineStatusQueue.Count > 0 ? _machineStatusQueue.Dequeue() : null;
-    }
-
-    public MachineStatus? DequeueTestingResultMessage()
-    {
-        return _testingResultQueue.Count > 0 ? _testingResultQueue.Dequeue() : null;
-    }
-
-
-    // Sprawdzanie, czy kolejka jest pusta
-    public bool IsMachineStatusQueueEmpty()
-    {
-        return _machineStatusQueue.Count == 0;
-    }
-
-    public bool IsTestingResultQueueEmpty()
-    {
-        return _testingResultQueue.Count == 0;
-    }
-
-
-    public async Task SendAllMessages(MessageSender messageSender)
-    {
-        if (DateTime.Now - _lastSendTime < _minInterval)
+        foreach (var m in msgs)
         {
-            Debug.WriteLine("Za wcześnie na ponowną wysyłkę, pomijam.");
-            return;
+            m.SendStatus = "InProgress";
+            repo.AddOrUpdate(m).Wait();
+            q.Enqueue(m);
         }
+    }
 
+    private static void EnqueueOnly<T>(IEnumerable<T> msgs, Queue<T> q)
+    {
+        foreach (var m in msgs) q.Enqueue(m);
+    }
+
+    /// <summary>
+    /// Wysyła wszystkie dostępne wiadomości z każdej kolejki.
+    /// </summary>
+    public async Task SendAllMessages()
+    {
+        await EnsureInitializedAsync();
+        // throttle
+        if (DateTime.Now - _lastSendTime < _minInterval) return;
         _lastSendTime = DateTime.Now;
 
-        if (_machineStatusQueue.Count == 0 && _testingResultQueue.Count == 0)
+        // jeśli wszystkie kolejki są puste, próbuj jeszcze raz z bazy
+        if (_machineStatusQueue.Count == 0
+         && _testingResultQueue.Count == 0
+         && _productionEfficiencyQueue.Count == 0
+         && _firstPartDataQueue.Count == 0)
         {
-            await LoadMessagesFromDatabase();
+            await LoadPendingMessagesAsync();
         }
 
-        if (!_isSending) // Jeśli już nie wysyłamy, rozpocznij proces wysyłania
+        if (!_isSending)
         {
-            _ = SendMessagesFromQueue(_machineStatusQueue, _repositoryMachineStatusQueue, messageSender);
-            _ = SendMessagesFromQueue(_testingResultQueue, _repositoryTestingResultQueue, messageSender);
-            _ = SendMessagesFromQueue(_productionEfficiencyQueue, _repositoryProductionEfficiency, messageSender);
-            _ = SendMessagesFromQueue(_firstPartDataQueue, _reposiotryFirstPartDataQueue, messageSender);   
+            _ = SendMessagesFromQueue(_machineStatusQueue, _repositoryMachineStatusQueue);
+            _ = SendMessagesFromQueue(_testingResultQueue, _repositoryTestingResultQueue);
+            _ = SendMessagesFromQueue(_productionEfficiencyQueue, _repositoryProductionEfficiency);
+            _ = SendMessagesFromQueue(_firstPartDataQueue, _repositoryFirstPartQueue);
         }
     }
 
-
-    private async Task SendMessagesFromQueue<T>(Queue<T> queue, GenericRepository<T> repository, MessageSender messageSender)
-        where T : IEntity, new()
+    private async Task SendMessagesFromQueue<T>(Queue<T> queue, GenericRepository<T> repo)
+        where T : class, IEntity, new()
     {
-        if (_isSending) return;
         _isSending = true;
         try
         {
             while (queue.Count > 0)
             {
-                T message = queue.Peek();
+                var msg = queue.Peek();
+                bool ok;
                 try
                 {
-                    bool success = await messageSender.SendMessageAsync(message);
-                    if (success)
-                    {
-                        repository.Delete(message.Id);
-                        queue.Dequeue();
-                    }
-                    else
-                    {
-                        message.SendStatus = "Pending";
-                        await repository.AddOrUpdate(message);
-                        await Task.Delay(500);
-                    }
+                    ok = await _messageSender.SendMessageAsync(msg);
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Błąd wysyłania: {ex.Message}");
-                    message.SendStatus = "Pending";
-                    await repository.AddOrUpdate(message);
+                    Debug.WriteLine($"Błąd wysyłania: {ex.Message}");
+                    ok = false;
+                }
+
+                if (ok)
+                {
+                    repo.Delete(msg.Id);
+                    queue.Dequeue();
+                }
+                else
+                {
+                    msg.SendStatus = "Pending";
+                    await repo.AddOrUpdate(msg);
                     await Task.Delay(500);
                 }
             }
@@ -231,7 +199,28 @@ public class MessageQueue
         }
     }
 
+    // ** Zwróć uwagę: każda metoda Enqueue teraz wywołuje SendAllMessages() **
+    public void EnqueueMachineStatusMessage(MachineStatus m)
+    {
+        _machineStatusQueue.Enqueue(m);
+        _ = SendAllMessages();
+    }
 
+    public void EnqueueTestingResultMessage(MachineStatus m)
+    {
+        _testingResultQueue.Enqueue(m);
+        _ = SendAllMessages();
+    }
 
+    public void EnqueueProductionEfficiencyMessage(ProductionEfficiency m)
+    {
+        _productionEfficiencyQueue.Enqueue(m);
+        _ = SendAllMessages();
+    }
+
+    public void EnqueueFirstPartDataMessage(FirstPartModel m)
+    {
+        _firstPartDataQueue.Enqueue(m);
+        _ = SendAllMessages();
+    }
 }
-

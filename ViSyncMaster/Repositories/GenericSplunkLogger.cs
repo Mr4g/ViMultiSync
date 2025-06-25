@@ -200,11 +200,18 @@ namespace ViSyncMaster.Repositories
 
                 if (propertyValue != null && propertyName != "time" && propertyValue != "")
                 {
-                    if (propertyName == "name" || propertyName == "value" || propertyName == "status" 
+                    if (propertyName == "name" || propertyName == "value" || propertyName == "status"
                         || propertyName == "timeEpoch" || propertyName == "reason" || propertyName == "device"
                         || propertyName == "testFault" || propertyName == "totalAbs" || propertyName == "tGoodAbs"
+                        || propertyName == "rGoodAbs" || propertyName == "testWithRetest"
                         || propertyName == "operator" || propertyName == "testObject" || propertyName == "serialNumber"
-                        || propertyName == "timeOfAllStatus" || propertyName == "timeOfAllRepairs")
+                        || propertyName == "timeOfAllStatus" || propertyName == "timeOfAllRepairs"
+                        || propertyName == "productionTime" || propertyName == "preparationTime" || propertyName == "taktTime"
+                        || propertyName == "unitsProduced" || propertyName == "passedUnits" || propertyName == "failedUnits"
+                        || propertyName == "productNumber" || propertyName == "operatorId" || propertyName == "efficiency"
+                        || propertyName == "efficiencyRequired" || propertyName == "target" || propertyName == "plan"
+                        || propertyName == "passedPiecesPerShift" || propertyName == "failedPiecesPerShift"
+                        || propertyName == "sendTime" || propertyName == "sendStatus")
                     {
                         eventFields[propertyName] = propertyValue.ToString();
                     }
