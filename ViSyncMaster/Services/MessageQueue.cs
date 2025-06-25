@@ -151,34 +151,43 @@ public class MessageQueue
             await LoadPendingMessagesAsync();
         }
 
-        if (!_isSending)
+        if (_isSending) return;
+
+        _isSending = true;
+        try
         {
-            _ = SendMessagesFromQueue(_machineStatusQueue, _repositoryMachineStatusQueue);
-            _ = SendMessagesFromQueue(_testingResultQueue, _repositoryTestingResultQueue);
-            _ = SendMessagesFromQueue(_productionEfficiencyQueue, _repositoryProductionEfficiency);
-            _ = SendMessagesFromQueue(_firstPartDataQueue, _repositoryFirstPartQueue);
+            var tasks = new[]
+            {
+                SendMessagesFromQueue(_machineStatusQueue, _repositoryMachineStatusQueue),
+                SendMessagesFromQueue(_testingResultQueue, _repositoryTestingResultQueue),
+                SendMessagesFromQueue(_productionEfficiencyQueue, _repositoryProductionEfficiency),
+                SendMessagesFromQueue(_firstPartDataQueue, _repositoryFirstPartQueue)
+            };
+
+            await Task.WhenAll(tasks);
+        }
+        finally
+        {
+            _isSending = false;
         }
     }
 
     private async Task SendMessagesFromQueue<T>(Queue<T> queue, GenericRepository<T> repo)
         where T : class, IEntity, new()
     {
-        _isSending = true;
-        try
+        while (queue.Count > 0)
         {
-            while (queue.Count > 0)
+            var msg = queue.Peek();
+            bool ok;
+            try
             {
-                var msg = queue.Peek();
-                bool ok;
-                try
-                {
-                    ok = await _messageSender.SendMessageAsync(msg);
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine($"Błąd wysyłania: {ex.Message}");
-                    ok = false;
-                }
+                ok = await _messageSender.SendMessageAsync(msg);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Błąd wysyłania: {ex.Message}");
+                ok = false;
+            }
 
                 if (ok)
                 {
@@ -192,11 +201,6 @@ public class MessageQueue
                     await Task.Delay(500);
                 }
             }
-        }
-        finally
-        {
-            _isSending = false;
-        }
     }
 
     // ** Zwróć uwagę: każda metoda Enqueue teraz wywołuje SendAllMessages() **
