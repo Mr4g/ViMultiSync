@@ -87,7 +87,9 @@ namespace ViSyncMaster.DataModel
         [ObservableProperty]
         [NotifyDataErrorInfo]
         [Required(ErrorMessage = "Podpis jest wymagany.")]
-        [RegularExpression(@"^(-|((?!0$)\d+([,/]\d+)*))?$", ErrorMessage = "Wartość nie może być 0 i musi zawierać tylko cyfry z ',' '/' lub '-' jeśli jest pusta.")]
+        [RegularExpression(
+        @"^(-|((?!0$)[A-Za-z0-9]+([,/][A-Za-z0-9]+)*))?$",
+        ErrorMessage = "Wartość nie może być 0 i może zawierać tylko litery, cyfry oraz ',' lub '/' jako separator.")]
         private string? _signature;
         public long Id { get; set; }
         public string? Name { get; set; }

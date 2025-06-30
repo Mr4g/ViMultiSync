@@ -309,7 +309,7 @@ namespace ViSyncMaster.Repositories
                 eventFields["S1.MachineDowntime_PG"] = data.MachineDowntime;
 
             if (!string.IsNullOrEmpty(data.LogisticMode))
-                eventFields["S1.MachineDowntime_PG"] = data.LogisticMode;
+                eventFields["S1.LogisticMode_PG"] = data.LogisticMode;
 
             string jsonPayload;
 

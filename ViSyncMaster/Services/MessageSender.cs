@@ -32,7 +32,7 @@ namespace ViSyncMaster.Services
             this.hecToken = _sharedDataService.AppConfig.TokenSplunk;
         }
 
-        public async Task<bool> SendMessageAsync<T>(T data)
+        public virtual async Task<bool> SendMessageAsync<T>(T data)
         {
             _viewModel.DataIsSendingToSplunk = true;
 

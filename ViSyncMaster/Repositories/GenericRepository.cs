@@ -181,10 +181,11 @@ namespace ViSyncMaster.Repositories
             return await _db.ExecuteReaderAsync<T>(query);
         }
 
-        public void Delete(long id)
+        public async Task DeleteAsync(long id)
         {
             string query = $"DELETE FROM {_tableName} WHERE Id = @Id";
-            _db.ExecuteNonQuery(query, new { Id = id });
+            await _db.ExecuteNonQuery(query, new { Id = id });
+            Log.Debug("Usunięto ({Id}) z tabeli {TableName}", id, _tableName);
         }
 
         private string GetColumns(T entity) => string.Join(", ", typeof(T).GetProperties().Select(p => p.Name));

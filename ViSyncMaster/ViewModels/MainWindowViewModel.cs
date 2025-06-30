@@ -46,7 +46,6 @@ namespace ViSyncMaster.ViewModels
     public partial class MainWindowViewModel : ObservableValidator
     {
         #region Private Memebers
-
         private readonly SQLiteDatabase _database;
 
         private IStatusInterfaceService mStatusInterfaceService;
@@ -64,7 +63,7 @@ namespace ViSyncMaster.ViewModels
         private ConnectedMessage _messageToSplunkConnected;
         private Rs232DataProcessor _rs232Processor;
         private MessagePgToSplunk _messageToSplunkPg;
-        private int _machineStatusCounter = 7;
+        private int _machineStatusCounter = 6;
         private GenericSplunkLogger<IEntity> _splunkLogger;
         private WifiParameters _wifiParameters; 
 
@@ -1467,7 +1466,7 @@ namespace ViSyncMaster.ViewModels
         private void OnProducingStarted(object sender, Rs232Data data)
         {
             Log.Information("Produkcja rozpoczęta: " + data.ProductName);
-            _machineStatusCounter = data.Producing == "true" ? 6 : 7;
+            _machineStatusCounter = data.Producing == "true" ? 5 : 6;
             // Ustaw wiadomość na podstawie licznika
             _messageToSplunkPg.SetByCounter(_machineStatusCounter);
             ReSendMessageToSplunk(_messageToSplunkPg);
@@ -1476,7 +1475,7 @@ namespace ViSyncMaster.ViewModels
         private void OnProducingEnded(object sender, Rs232Data data)
         {
             Log.Information("Produkcja zakończona: " + data.ProductName);
-            _machineStatusCounter = data.Producing == "false" ? 7 : 6;
+            _machineStatusCounter = data.Producing == "false" ? 6 : 5;
             _messageToSplunkPg.SetByCounter(_machineStatusCounter);
             ReSendMessageToSplunk(_messageToSplunkPg);
             if (data.Device != null)
