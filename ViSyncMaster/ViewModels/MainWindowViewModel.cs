@@ -782,7 +782,7 @@ namespace ViSyncMaster.ViewModels
                 return;
             }
             UpdateCallForServicePanel(machineStatus.StepOfStatus, machineStatus);
-            _pendingMachineStatus = machineStatus;
+            _pendingMachineStatus = machineStatus.DeepCopy();
             CallForServicePanelIsOpen = true;
             ControlPanelVisible = true;
         }
@@ -790,7 +790,7 @@ namespace ViSyncMaster.ViewModels
         private void HandleMappedStatus(MachineStatus machineStatus, string panelName)
         {
             // Zapisanie tymczasowego statusu, aby czekać na powód zakończenia
-            _pendingMachineStatus = machineStatus;
+            _pendingMachineStatus = machineStatus.DeepCopy();
 
             // Aktywacja odpowiedniego panelu
             var property = GetType().GetProperty(panelName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
@@ -808,7 +808,7 @@ namespace ViSyncMaster.ViewModels
         private async void HandleUnmappedStatus(MachineStatus machineStatus)
         {
             IsActiveStatus = false;
-            _machineStatusService.EndStatus(machineStatus); // Kończenie statusu bez powodu
+            await _machineStatusService.EndStatus(machineStatus); // Kończenie statusu bez powodu
             var messagePgToSplunk = _splunkMessageHandler.PreparingPgMessageToSplunk(MachineStatuses, machineStatus, _machineStatusCounter);
             await _machineStatusService.SendPgMessage((MessagePgToSplunk)messagePgToSplunk);
             ReasonDowntimeMechanicalPanelIsOpen = false;
@@ -848,7 +848,7 @@ namespace ViSyncMaster.ViewModels
             {
                 pendingStatus.CallForService = DateTime.Now;
                 pendingStatus.Status = $"{pendingStatus.Status} & {panelItem.Status}";
-                var updateStatus = _machineStatusService.StartStatus(pendingStatus);
+                await _machineStatusService.StartStatus(pendingStatus);
                 var messagePgToSplunk = _splunkMessageHandler.PreparingPgMessageToSplunk(MachineStatuses, pendingStatus, _machineStatusCounter);
                 await _machineStatusService.SendPgMessage((MessagePgToSplunk)messagePgToSplunk);
 
@@ -856,7 +856,7 @@ namespace ViSyncMaster.ViewModels
             if (panelItem.Name == "ServiceArrival")
             {
                 pendingStatus.ServiceArrival = DateTime.Now;
-                var updateStatus = _machineStatusService.UpdateStatus(pendingStatus);
+                await _machineStatusService.UpdateStatus(pendingStatus);
                 var messagePgToSplunk = _splunkMessageHandler.PreparingPgMessageToSplunk(MachineStatuses, pendingStatus, _machineStatusCounter);
                 await _machineStatusService.SendPgMessage((MessagePgToSplunk)messagePgToSplunk);
             }
