@@ -469,6 +469,709 @@
 			</Grid>
 		</controls:AnimatedPopup>
 
+		<!-- Downtime Reason SC200 Panel Popup Open-->
+
+		<controls:AnimatedPopup
+            Grid.Row="0"
+            Grid.RowSpan="3"
+            Grid.ColumnSpan="6"
+            Margin="20"
+            AnimationTime="0.3"
+			HorizontalAlignment="Center"
+			VerticalAlignment="Center"
+            UnderlayOpacity="0.2"
+            Name="DowntimeReasonSC200Panel"
+            Background="#232228"
+            Open="{Binding DowntimeReasonSC200PanelIsOpen, Mode=TwoWay}"
+            DuringOpening="{Binding ControlPanelVisible, Mode=TwoWay}">
+			<Grid
+                RowDefinitions="*,Auto">
+				<TextBlock
+                    Grid.Row="0"
+                    Text="Podaj powód przestoju"
+                    HorizontalAlignment="Center"
+                    FontSize="28"
+                    Foreground="WhiteSmoke"
+                    Margin="10"/>
+
+				<Border Grid.Row="1" Background="#232228" Padding="20" CornerRadius="24">
+					<ItemsControl ItemsSource="{Binding DowntimeReasonSC200Panel}">
+						<ItemsControl.ItemTemplate>
+							<DataTemplate>
+								<ItemsControl ItemsSource="{Binding}">
+									<ItemsControl.ItemsPanel>
+										<ItemsPanelTemplate >
+											<UniformGrid Rows="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).RowForDowntimeReasonSC200Panel}" Columns="3" HorizontalAlignment="Center" VerticalAlignment="Center">
+											</UniformGrid>
+										</ItemsPanelTemplate>
+									</ItemsControl.ItemsPanel>
+									<ItemsControl.ItemTemplate>
+										<DataTemplate x:DataType="dataModel:DowntimeReasonSC200PanelItem">
+											<Button
+												Classes="PopupButton"
+												Content="{Binding Reason}"
+												Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).ReportMachineStatusCommand}"
+												CommandParameter="{Binding}">
+											</Button>
+										</DataTemplate>
+									</ItemsControl.ItemTemplate>
+								</ItemsControl>
+							</DataTemplate>
+						</ItemsControl.ItemTemplate>
+					</ItemsControl>
+				</Border>
+			</Grid>
+		</controls:AnimatedPopup>
+
+		<!-- Downtime Reason Bindownica Panel Popup Open-->
+
+		<controls:AnimatedPopup
+            Grid.Row="0"
+            Grid.RowSpan="3"
+            Grid.ColumnSpan="6"
+            Margin="20"
+            AnimationTime="0.3"
+			HorizontalAlignment="Center"
+			VerticalAlignment="Center"
+            UnderlayOpacity="0.2"
+            Name="DowntimeReasonBindownicaPanel"
+            Background="#232228"
+            Open="{Binding DowntimeReasonBindownicaPanelIsOpen, Mode=TwoWay}"
+            DuringOpening="{Binding ControlPanelVisible, Mode=TwoWay}">
+			<Grid
+                RowDefinitions="*,Auto">
+				<TextBlock
+                    Grid.Row="0"
+                    Text="Podaj powód przestoju"
+                    HorizontalAlignment="Center"
+                    FontSize="28"
+                    Foreground="WhiteSmoke"
+                    Margin="10"/>
+
+				<Border Grid.Row="1" Background="#232228" Padding="20" CornerRadius="24">
+					<ItemsControl ItemsSource="{Binding DowntimeReasonBindownicaPanel}">
+						<ItemsControl.ItemTemplate>
+							<DataTemplate>
+								<ItemsControl ItemsSource="{Binding}">
+									<ItemsControl.ItemsPanel>
+										<ItemsPanelTemplate >
+											<UniformGrid Rows="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).RowForDowntimeReasonBindownicaPanel}" Columns="3" HorizontalAlignment="Center" VerticalAlignment="Center">
+											</UniformGrid>
+										</ItemsPanelTemplate>
+									</ItemsControl.ItemsPanel>
+									<ItemsControl.ItemTemplate>
+										<DataTemplate x:DataType="dataModel:DowntimeReasonBindownicaPanelItem">
+											<Button
+												Classes="PopupButton"
+												Content="{Binding Reason}"
+												Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).ReportMachineStatusCommand}"
+												CommandParameter="{Binding}">
+											</Button>
+										</DataTemplate>
+									</ItemsControl.ItemTemplate>
+								</ItemsControl>
+							</DataTemplate>
+						</ItemsControl.ItemTemplate>
+					</ItemsControl>
+				</Border>
+			</Grid>
+		</controls:AnimatedPopup>
+
+		<!-- Downtime Reason Zebra Panel Popup Open-->
+
+		<controls:AnimatedPopup
+            Grid.Row="0"
+            Grid.RowSpan="3"
+            Grid.ColumnSpan="6"
+            Margin="20"
+            AnimationTime="0.3"
+			HorizontalAlignment="Center"
+			VerticalAlignment="Center"
+            UnderlayOpacity="0.2"
+            Name="DowntimeReasonZebraPanel"
+            Background="#232228"
+            Open="{Binding DowntimeReasonZebraPanelIsOpen, Mode=TwoWay}"
+            DuringOpening="{Binding ControlPanelVisible, Mode=TwoWay}">
+			<Grid
+                RowDefinitions="*,Auto">
+				<TextBlock
+                    Grid.Row="0"
+                    Text="Podaj powód przestoju"
+                    HorizontalAlignment="Center"
+                    FontSize="28"
+                    Foreground="WhiteSmoke"
+                    Margin="10"/>
+
+				<Border Grid.Row="1" Background="#232228" Padding="20" CornerRadius="24">
+					<ItemsControl ItemsSource="{Binding DowntimeReasonZebraPanel}">
+						<ItemsControl.ItemTemplate>
+							<DataTemplate>
+								<ItemsControl ItemsSource="{Binding}">
+									<ItemsControl.ItemsPanel>
+										<ItemsPanelTemplate >
+											<UniformGrid Rows="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).RowForDowntimeReasonZebraPanel}" Columns="3" HorizontalAlignment="Center" VerticalAlignment="Center">
+											</UniformGrid>
+										</ItemsPanelTemplate>
+									</ItemsControl.ItemsPanel>
+									<ItemsControl.ItemTemplate>
+										<DataTemplate x:DataType="dataModel:DowntimeReasonZebraPanelItem">
+											<Button
+												Classes="PopupButton"
+												Content="{Binding Reason}"
+												Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).ReportMachineStatusCommand}"
+												CommandParameter="{Binding}">
+											</Button>
+										</DataTemplate>
+									</ItemsControl.ItemTemplate>
+								</ItemsControl>
+							</DataTemplate>
+						</ItemsControl.ItemTemplate>
+					</ItemsControl>
+				</Border>
+			</Grid>
+		</controls:AnimatedPopup>
+
+		<!-- Downtime Reason Wtryskarka Panel Popup Open-->
+
+		<controls:AnimatedPopup
+            Grid.Row="0"
+            Grid.RowSpan="3"
+            Grid.ColumnSpan="6"
+            Margin="20"
+            AnimationTime="0.3"
+			HorizontalAlignment="Center"
+			VerticalAlignment="Center"
+            UnderlayOpacity="0.2"
+            Name="DowntimeReasonWtryskarkaPanel"
+            Background="#232228"
+            Open="{Binding DowntimeReasonWtryskarkaPanelIsOpen, Mode=TwoWay}"
+            DuringOpening="{Binding ControlPanelVisible, Mode=TwoWay}">
+			<Grid
+                RowDefinitions="*,Auto">
+				<TextBlock
+                    Grid.Row="0"
+                    Text="Podaj powód przestoju"
+                    HorizontalAlignment="Center"
+                    FontSize="28"
+                    Foreground="WhiteSmoke"
+                    Margin="10"/>
+
+				<Border Grid.Row="1" Background="#232228" Padding="20" CornerRadius="24">
+					<ItemsControl ItemsSource="{Binding DowntimeReasonWtryskarkaPanel}">
+						<ItemsControl.ItemTemplate>
+							<DataTemplate>
+								<ItemsControl ItemsSource="{Binding}">
+									<ItemsControl.ItemsPanel>
+										<ItemsPanelTemplate >
+											<UniformGrid Rows="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).RowForDowntimeReasonWtryskarkaPanel}" Columns="3" HorizontalAlignment="Center" VerticalAlignment="Center">
+											</UniformGrid>
+										</ItemsPanelTemplate>
+									</ItemsControl.ItemsPanel>
+									<ItemsControl.ItemTemplate>
+										<DataTemplate x:DataType="dataModel:DowntimeReasonWtryskarkaPanelItem">
+											<Button
+												Classes="PopupButton"
+												Content="{Binding Reason}"
+												Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).ReportMachineStatusCommand}"
+												CommandParameter="{Binding}">
+											</Button>
+										</DataTemplate>
+									</ItemsControl.ItemTemplate>
+								</ItemsControl>
+							</DataTemplate>
+						</ItemsControl.ItemTemplate>
+					</ItemsControl>
+				</Border>
+			</Grid>
+		</controls:AnimatedPopup>
+
+		<!-- Downtime Reason Brady Panel Popup Open-->
+
+		<controls:AnimatedPopup
+            Grid.Row="0"
+            Grid.RowSpan="3"
+            Grid.ColumnSpan="6"
+            Margin="20"
+            AnimationTime="0.3"
+			HorizontalAlignment="Center"
+			VerticalAlignment="Center"
+            UnderlayOpacity="0.2"
+            Name="DowntimeReasonBradyPanel"
+            Background="#232228"
+            Open="{Binding DowntimeReasonBradyPanelIsOpen, Mode=TwoWay}"
+            DuringOpening="{Binding ControlPanelVisible, Mode=TwoWay}">
+			<Grid
+                RowDefinitions="*,Auto">
+				<TextBlock
+                    Grid.Row="0"
+                    Text="Podaj powód przestoju"
+                    HorizontalAlignment="Center"
+                    FontSize="28"
+                    Foreground="WhiteSmoke"
+                    Margin="10"/>
+
+				<Border Grid.Row="1" Background="#232228" Padding="20" CornerRadius="24">
+					<ItemsControl ItemsSource="{Binding DowntimeReasonBradyPanel}">
+						<ItemsControl.ItemTemplate>
+							<DataTemplate>
+								<ItemsControl ItemsSource="{Binding}">
+									<ItemsControl.ItemsPanel>
+										<ItemsPanelTemplate >
+											<UniformGrid Rows="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).RowForDowntimeReasonBradyPanel}" Columns="3" HorizontalAlignment="Center" VerticalAlignment="Center">
+											</UniformGrid>
+										</ItemsPanelTemplate>
+									</ItemsControl.ItemsPanel>
+									<ItemsControl.ItemTemplate>
+										<DataTemplate x:DataType="dataModel:DowntimeReasonBradyPanelItem">
+											<Button
+												Classes="PopupButton"
+												Content="{Binding Reason}"
+												Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).ReportMachineStatusCommand}"
+												CommandParameter="{Binding}">
+											</Button>
+										</DataTemplate>
+									</ItemsControl.ItemTemplate>
+								</ItemsControl>
+							</DataTemplate>
+						</ItemsControl.ItemTemplate>
+					</ItemsControl>
+				</Border>
+			</Grid>
+		</controls:AnimatedPopup>
+
+		<!-- Downtime Wiazarka Brady Panel Popup Open-->
+
+		<controls:AnimatedPopup
+            Grid.Row="0"
+            Grid.RowSpan="3"
+            Grid.ColumnSpan="6"
+            Margin="20"
+            AnimationTime="0.3"
+			HorizontalAlignment="Center"
+			VerticalAlignment="Center"
+            UnderlayOpacity="0.2"
+            Name="DowntimeReasonWiazarkaPanel"
+            Background="#232228"
+            Open="{Binding DowntimeReasonWiazarkaPanelIsOpen, Mode=TwoWay}"
+            DuringOpening="{Binding ControlPanelVisible, Mode=TwoWay}">
+			<Grid
+                RowDefinitions="*,Auto">
+				<TextBlock
+                    Grid.Row="0"
+                    Text="Podaj powód przestoju"
+                    HorizontalAlignment="Center"
+                    FontSize="28"
+                    Foreground="WhiteSmoke"
+                    Margin="10"/>
+
+				<Border Grid.Row="1" Background="#232228" Padding="20" CornerRadius="24">
+					<ItemsControl ItemsSource="{Binding DowntimeReasonWiazarkaPanel}">
+						<ItemsControl.ItemTemplate>
+							<DataTemplate>
+								<ItemsControl ItemsSource="{Binding}">
+									<ItemsControl.ItemsPanel>
+										<ItemsPanelTemplate >
+											<UniformGrid Rows="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).RowForDowntimeReasonWiazarkaPanel}" Columns="3" HorizontalAlignment="Center" VerticalAlignment="Center">
+											</UniformGrid>
+										</ItemsPanelTemplate>
+									</ItemsControl.ItemsPanel>
+									<ItemsControl.ItemTemplate>
+										<DataTemplate x:DataType="dataModel:DowntimeReasonWiazarkaPanelItem">
+											<Button
+												Classes="PopupButton"
+												Content="{Binding Reason}"
+												Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).ReportMachineStatusCommand}"
+												CommandParameter="{Binding}">
+											</Button>
+										</DataTemplate>
+									</ItemsControl.ItemTemplate>
+								</ItemsControl>
+							</DataTemplate>
+						</ItemsControl.ItemTemplate>
+					</ItemsControl>
+				</Border>
+			</Grid>
+		</controls:AnimatedPopup>
+
+		<!-- Downtime Komax Brady Panel Popup Open-->
+
+		<controls:AnimatedPopup
+            Grid.Row="0"
+            Grid.RowSpan="3"
+            Grid.ColumnSpan="6"
+            Margin="20"
+            AnimationTime="0.3"
+			HorizontalAlignment="Center"
+			VerticalAlignment="Center"
+            UnderlayOpacity="0.2"
+            Name="DowntimeReasonKomaxPanel"
+            Background="#232228"
+            Open="{Binding DowntimeReasonKomaxPanelIsOpen, Mode=TwoWay}"
+            DuringOpening="{Binding ControlPanelVisible, Mode=TwoWay}">
+			<Grid
+                RowDefinitions="*,Auto">
+				<TextBlock
+                    Grid.Row="0"
+                    Text="Podaj powód przestoju"
+                    HorizontalAlignment="Center"
+                    FontSize="28"
+                    Foreground="WhiteSmoke"
+                    Margin="10"/>
+
+				<Border Grid.Row="1" Background="#232228" Padding="20" CornerRadius="24">
+					<ItemsControl ItemsSource="{Binding DowntimeReasonKomaxPanel}">
+						<ItemsControl.ItemTemplate>
+							<DataTemplate>
+								<ItemsControl ItemsSource="{Binding}">
+									<ItemsControl.ItemsPanel>
+										<ItemsPanelTemplate >
+											<UniformGrid Rows="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).RowForDowntimeReasonKomaxPanel}" Columns="3" HorizontalAlignment="Center" VerticalAlignment="Center">
+											</UniformGrid>
+										</ItemsPanelTemplate>
+									</ItemsControl.ItemsPanel>
+									<ItemsControl.ItemTemplate>
+										<DataTemplate x:DataType="dataModel:DowntimeReasonKomaxPanelItem">
+											<Button
+												Classes="PopupButton"
+												Content="{Binding Reason}"
+												Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).ReportMachineStatusCommand}"
+												CommandParameter="{Binding}">
+											</Button>
+										</DataTemplate>
+									</ItemsControl.ItemTemplate>
+								</ItemsControl>
+							</DataTemplate>
+						</ItemsControl.ItemTemplate>
+					</ItemsControl>
+				</Border>
+			</Grid>
+		</controls:AnimatedPopup>
+
+		<!-- Downtime UR Brady Panel Popup Open-->
+
+		<controls:AnimatedPopup
+            Grid.Row="0"
+            Grid.RowSpan="3"
+            Grid.ColumnSpan="6"
+            Margin="20"
+            AnimationTime="0.3"
+			HorizontalAlignment="Center"
+			VerticalAlignment="Center"
+            UnderlayOpacity="0.2"
+            Name="DowntimeReasonURPanel"
+            Background="#232228"
+            Open="{Binding DowntimeReasonURPanelIsOpen, Mode=TwoWay}"
+            DuringOpening="{Binding ControlPanelVisible, Mode=TwoWay}">
+			<Grid
+                RowDefinitions="*,Auto">
+				<TextBlock
+                    Grid.Row="0"
+                    Text="Podaj powód przestoju"
+                    HorizontalAlignment="Center"
+                    FontSize="28"
+                    Foreground="WhiteSmoke"
+                    Margin="10"/>
+
+				<Border Grid.Row="1" Background="#232228" Padding="20" CornerRadius="24">
+					<ItemsControl ItemsSource="{Binding DowntimeReasonURPanel}">
+						<ItemsControl.ItemTemplate>
+							<DataTemplate>
+								<ItemsControl ItemsSource="{Binding}">
+									<ItemsControl.ItemsPanel>
+										<ItemsPanelTemplate >
+											<UniformGrid Rows="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).RowForDowntimeReasonURPanel}" Columns="3" HorizontalAlignment="Center" VerticalAlignment="Center">
+											</UniformGrid>
+										</ItemsPanelTemplate>
+									</ItemsControl.ItemsPanel>
+									<ItemsControl.ItemTemplate>
+										<DataTemplate x:DataType="dataModel:DowntimeReasonURPanelItem">
+											<Button
+												Classes="PopupButton"
+												Content="{Binding Reason}"
+												Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).ReportMachineStatusCommand}"
+												CommandParameter="{Binding}">
+											</Button>
+										</DataTemplate>
+									</ItemsControl.ItemTemplate>
+								</ItemsControl>
+							</DataTemplate>
+						</ItemsControl.ItemTemplate>
+					</ItemsControl>
+				</Border>
+			</Grid>
+		</controls:AnimatedPopup>
+
+		<!-- Downtime Z+F Brady Panel Popup Open-->
+
+		<controls:AnimatedPopup
+            Grid.Row="0"
+            Grid.RowSpan="3"
+            Grid.ColumnSpan="6"
+            Margin="20"
+            AnimationTime="0.3"
+			HorizontalAlignment="Center"
+			VerticalAlignment="Center"
+            UnderlayOpacity="0.2"
+            Name="DowntimeReasonZFPanel"
+            Background="#232228"
+            Open="{Binding DowntimeReasonZFPanelIsOpen, Mode=TwoWay}"
+            DuringOpening="{Binding ControlPanelVisible, Mode=TwoWay}">
+			<Grid
+                RowDefinitions="*,Auto">
+				<TextBlock
+                    Grid.Row="0"
+                    Text="Podaj powód przestoju"
+                    HorizontalAlignment="Center"
+                    FontSize="28"
+                    Foreground="WhiteSmoke"
+                    Margin="10"/>
+
+				<Border Grid.Row="1" Background="#232228" Padding="20" CornerRadius="24">
+					<ItemsControl ItemsSource="{Binding DowntimeReasonZFPanel}">
+						<ItemsControl.ItemTemplate>
+							<DataTemplate>
+								<ItemsControl ItemsSource="{Binding}">
+									<ItemsControl.ItemsPanel>
+										<ItemsPanelTemplate >
+											<UniformGrid Rows="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).RowForDowntimeReasonZFPanel}" Columns="3" HorizontalAlignment="Center" VerticalAlignment="Center">
+											</UniformGrid>
+										</ItemsPanelTemplate>
+									</ItemsControl.ItemsPanel>
+									<ItemsControl.ItemTemplate>
+										<DataTemplate x:DataType="dataModel:DowntimeReasonZFPanelItem">
+											<Button
+												Classes="PopupButton"
+												Content="{Binding Reason}"
+												Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).ReportMachineStatusCommand}"
+												CommandParameter="{Binding}">
+											</Button>
+										</DataTemplate>
+									</ItemsControl.ItemTemplate>
+								</ItemsControl>
+							</DataTemplate>
+						</ItemsControl.ItemTemplate>
+					</ItemsControl>
+				</Border>
+			</Grid>
+		</controls:AnimatedPopup>
+
+		<!-- Downtime Tester Brady Panel Popup Open-->
+
+		<controls:AnimatedPopup
+            Grid.Row="0"
+            Grid.RowSpan="3"
+            Grid.ColumnSpan="6"
+            Margin="20"
+            AnimationTime="0.3"
+			HorizontalAlignment="Center"
+			VerticalAlignment="Center"
+            UnderlayOpacity="0.2"
+            Name="DowntimeReasonTesterPanel"
+            Background="#232228"
+            Open="{Binding DowntimeReasonTesterPanelIsOpen, Mode=TwoWay}"
+            DuringOpening="{Binding ControlPanelVisible, Mode=TwoWay}">
+			<Grid
+                RowDefinitions="*,Auto">
+				<TextBlock
+                    Grid.Row="0"
+                    Text="Podaj powód przestoju"
+                    HorizontalAlignment="Center"
+                    FontSize="28"
+                    Foreground="WhiteSmoke"
+                    Margin="10"/>
+
+				<Border Grid.Row="1" Background="#232228" Padding="20" CornerRadius="24">
+					<ItemsControl ItemsSource="{Binding DowntimeReasonTesterPanel}">
+						<ItemsControl.ItemTemplate>
+							<DataTemplate>
+								<ItemsControl ItemsSource="{Binding}">
+									<ItemsControl.ItemsPanel>
+										<ItemsPanelTemplate >
+											<UniformGrid Rows="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).RowForDowntimeReasonTesterPanel}" Columns="3" HorizontalAlignment="Center" VerticalAlignment="Center">
+											</UniformGrid>
+										</ItemsPanelTemplate>
+									</ItemsControl.ItemsPanel>
+									<ItemsControl.ItemTemplate>
+										<DataTemplate x:DataType="dataModel:DowntimeReasonTesterPanelItem">
+											<Button
+												Classes="PopupButton"
+												Content="{Binding Reason}"
+												Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).ReportMachineStatusCommand}"
+												CommandParameter="{Binding}">
+											</Button>
+										</DataTemplate>
+									</ItemsControl.ItemTemplate>
+								</ItemsControl>
+							</DataTemplate>
+						</ItemsControl.ItemTemplate>
+					</ItemsControl>
+				</Border>
+			</Grid>
+		</controls:AnimatedPopup>
+
+		<!-- Downtime Tester Dozownik Panel Popup Open-->
+
+		<controls:AnimatedPopup
+            Grid.Row="0"
+            Grid.RowSpan="3"
+            Grid.ColumnSpan="6"
+            Margin="20"
+            AnimationTime="0.3"
+			HorizontalAlignment="Center"
+			VerticalAlignment="Center"
+            UnderlayOpacity="0.2"
+            Name="DowntimeReasonDozownikPanel"
+            Background="#232228"
+            Open="{Binding DowntimeReasonDozownikPanelIsOpen, Mode=TwoWay}"
+            DuringOpening="{Binding ControlPanelVisible, Mode=TwoWay}">
+			<Grid
+                RowDefinitions="*,Auto">
+				<TextBlock
+                    Grid.Row="0"
+                    Text="Podaj powód przestoju"
+                    HorizontalAlignment="Center"
+                    FontSize="28"
+                    Foreground="WhiteSmoke"
+                    Margin="10"/>
+
+				<Border Grid.Row="1" Background="#232228" Padding="20" CornerRadius="24">
+					<ItemsControl ItemsSource="{Binding DowntimeReasonDozownikPanel}">
+						<ItemsControl.ItemTemplate>
+							<DataTemplate>
+								<ItemsControl ItemsSource="{Binding}">
+									<ItemsControl.ItemsPanel>
+										<ItemsPanelTemplate >
+											<UniformGrid Rows="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).RowForDowntimeReasonDozownikPanel}" Columns="3" HorizontalAlignment="Center" VerticalAlignment="Center">
+											</UniformGrid>
+										</ItemsPanelTemplate>
+									</ItemsControl.ItemsPanel>
+									<ItemsControl.ItemTemplate>
+										<DataTemplate x:DataType="dataModel:DowntimeReasonDozownikPanelItem">
+											<Button
+												Classes="PopupButton"
+												Content="{Binding Reason}"
+												Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).ReportMachineStatusCommand}"
+												CommandParameter="{Binding}">
+											</Button>
+										</DataTemplate>
+									</ItemsControl.ItemTemplate>
+								</ItemsControl>
+							</DataTemplate>
+						</ItemsControl.ItemTemplate>
+					</ItemsControl>
+				</Border>
+			</Grid>
+		</controls:AnimatedPopup>
+
+		<!-- Downtime Tester Walcarka Panel Popup Open-->
+
+		<controls:AnimatedPopup
+            Grid.Row="0"
+            Grid.RowSpan="3"
+            Grid.ColumnSpan="6"
+            Margin="20"
+            AnimationTime="0.3"
+			HorizontalAlignment="Center"
+			VerticalAlignment="Center"
+            UnderlayOpacity="0.2"
+            Name="DowntimeReasonWalcarkaPanel"
+            Background="#232228"
+            Open="{Binding DowntimeReasonWalcarkaPanelIsOpen, Mode=TwoWay}"
+            DuringOpening="{Binding ControlPanelVisible, Mode=TwoWay}">
+			<Grid
+                RowDefinitions="*,Auto">
+				<TextBlock
+                    Grid.Row="0"
+                    Text="Podaj powód przestoju"
+                    HorizontalAlignment="Center"
+                    FontSize="28"
+                    Foreground="WhiteSmoke"
+                    Margin="10"/>
+
+				<Border Grid.Row="1" Background="#232228" Padding="20" CornerRadius="24">
+					<ItemsControl ItemsSource="{Binding DowntimeReasonWalcarkaPanel}">
+						<ItemsControl.ItemTemplate>
+							<DataTemplate>
+								<ItemsControl ItemsSource="{Binding}">
+									<ItemsControl.ItemsPanel>
+										<ItemsPanelTemplate >
+											<UniformGrid Rows="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).RowForDowntimeReasonWalcarkaPanel}" Columns="3" HorizontalAlignment="Center" VerticalAlignment="Center">
+											</UniformGrid>
+										</ItemsPanelTemplate>
+									</ItemsControl.ItemsPanel>
+									<ItemsControl.ItemTemplate>
+										<DataTemplate x:DataType="dataModel:DowntimeReasonWalcarkaPanelItem">
+											<Button
+												Classes="PopupButton"
+												Content="{Binding Reason}"
+												Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).ReportMachineStatusCommand}"
+												CommandParameter="{Binding}">
+											</Button>
+										</DataTemplate>
+									</ItemsControl.ItemTemplate>
+								</ItemsControl>
+							</DataTemplate>
+						</ItemsControl.ItemTemplate>
+					</ItemsControl>
+				</Border>
+			</Grid>
+		</controls:AnimatedPopup>
+
+		<!-- Downtime Tester Tester Wodny Panel Popup Open-->
+
+		<controls:AnimatedPopup
+            Grid.Row="0"
+            Grid.RowSpan="3"
+            Grid.ColumnSpan="6"
+            Margin="20"
+            AnimationTime="0.3"
+			HorizontalAlignment="Center"
+			VerticalAlignment="Center"
+            UnderlayOpacity="0.2"
+            Name="DowntimeReasonTesterWodnyPanel"
+            Background="#232228"
+            Open="{Binding DowntimeReasonWalcarkaPanelIsOpen, Mode=TwoWay}"
+            DuringOpening="{Binding ControlPanelVisible, Mode=TwoWay}">
+			<Grid
+                RowDefinitions="*,Auto">
+				<TextBlock
+                    Grid.Row="0"
+                    Text="Podaj powód przestoju"
+                    HorizontalAlignment="Center"
+                    FontSize="28"
+                    Foreground="WhiteSmoke"
+                    Margin="10"/>
+
+				<Border Grid.Row="1" Background="#232228" Padding="20" CornerRadius="24">
+					<ItemsControl ItemsSource="{Binding DowntimeReasonTesterWodnyPanel}">
+						<ItemsControl.ItemTemplate>
+							<DataTemplate>
+								<ItemsControl ItemsSource="{Binding}">
+									<ItemsControl.ItemsPanel>
+										<ItemsPanelTemplate >
+											<UniformGrid Rows="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).RowForDowntimeReasonTesterWodnyPanel}" Columns="3" HorizontalAlignment="Center" VerticalAlignment="Center">
+											</UniformGrid>
+										</ItemsPanelTemplate>
+									</ItemsControl.ItemsPanel>
+									<ItemsControl.ItemTemplate>
+										<DataTemplate x:DataType="dataModel:DowntimeReasonTesterWodnyPanelItem">
+											<Button
+												Classes="PopupButton"
+												Content="{Binding Reason}"
+												Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).ReportMachineStatusCommand}"
+												CommandParameter="{Binding}">
+											</Button>
+										</DataTemplate>
+									</ItemsControl.ItemTemplate>
+								</ItemsControl>
+							</DataTemplate>
+						</ItemsControl.ItemTemplate>
+					</ItemsControl>
+				</Border>
+			</Grid>
+		</controls:AnimatedPopup>
+		
+
 		<!-- Call For Service Panel Popup Open-->
 
 		<controls:AnimatedPopup
@@ -500,7 +1203,7 @@
 								<ItemsControl ItemsSource="{Binding}">
 									<ItemsControl.ItemsPanel>
 										<ItemsPanelTemplate >
-											<UniformGrid Rows="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).RowForCallForServicePanel}" Columns="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+											<UniformGrid Rows="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).RowForCallForServicePanel}" Columns="3" HorizontalAlignment="Center" VerticalAlignment="Center">
 											</UniformGrid>
 										</ItemsPanelTemplate>
 									</ItemsControl.ItemsPanel>

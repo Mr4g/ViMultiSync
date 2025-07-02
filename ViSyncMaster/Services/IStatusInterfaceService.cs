@@ -29,6 +29,18 @@ namespace ViSyncMaster.Services
         Task<List<DowntimeReasonPlatePanelItem>> GetDowntimeReasonPlatePanelAsync();
         Task<List<ConfigMqtt>> GetConfigMqttAsync();
         Task<List<ConfigHardwareItem>> GetConfigHardwareAsync();
-
+        Task<List<DowntimeReasonBindownicaPanelItem>> GetDowntimeReasonBindownicaPanelAsync();   
+        Task<List<DowntimeReasonSC200PanelItem>> GetDowntimeReasonSC200PanelAsync();             
+        Task<List<DowntimeReasonZebraPanelItem>> GetDowntimeReasonZebraPanelAsync();             
+        Task<List<DowntimeReasonWtryskarkaPanelItem>> GetDowntimeReasonWtryskarkaPanelAsync();   
+        Task<List<DowntimeReasonBradyPanelItem>> GetDowntimeReasonBradyPanelAsync();             
+        Task<List<DowntimeReasonZFPanelItem>> GetDowntimeReasonZFPanelAsync();                   
+        Task<List<DowntimeReasonWiazarkaPanelItem>> GetDowntimeReasonWiazarkaPanelAsync();       
+        Task<List<DowntimeReasonKomaxPanelItem>> GetDowntimeReasonKomaxPanelAsync();             
+        Task<List<DowntimeReasonURPanelItem>> GetDowntimeReasonURPanelAsync();                   
+        Task<List<DowntimeReasonDozownikPanelItem>> GetDowntimeReasonDozownikPanelAsync();       
+        Task<List<DowntimeReasonWalcarkaPanelItem>> GetDowntimeReasonWalcarkaPanelAsync();       
+        Task<List<DowntimeReasonTesterWodnyPanelItem>> GetDowntimeReasonTesterWodnyPanelAsync(); 
+        Task<List<DowntimeReasonTesterPanelItem>> GetDowntimeReasonTesterPanelAsync();
     }
 }

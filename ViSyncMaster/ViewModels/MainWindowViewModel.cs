@@ -39,6 +39,8 @@ using ViSyncMaster.WiFi;
 using System.Text.Json;
 using ViSyncMaster.Services.Test;
 using static System.Runtime.InteropServices.JavaScript.JSType;
+using ViSyncMaster.Heleprs;
+using System.Runtime.InteropServices;
 
 
 namespace ViSyncMaster.ViewModels
@@ -212,6 +214,45 @@ namespace ViSyncMaster.ViewModels
         private int _rowForServiceArrivalPanel;
 
         [ObservableProperty]
+        private int _rowForDowntimeReasonBindownicaPanel;
+
+        [ObservableProperty]
+        private int _rowForDowntimeReasonSC200Panel;
+
+        [ObservableProperty]
+        private int _rowForDowntimeReasonZebraPanel;
+
+        [ObservableProperty] 
+        private int _rowForDowntimeReasonWtryskarkaPanel;
+
+        [ObservableProperty]
+        private int _rowForDowntimeReasonBradyPanel;
+
+        [ObservableProperty]
+        private int _rowForDowntimeReasonWiazarkaPanel;
+
+        [ObservableProperty]
+        private int _rowForDowntimeReasonKomaxPanel;
+
+        [ObservableProperty]
+        private int _rowForDowntimeReasonURPanel;
+
+        [ObservableProperty]
+        private int _rowForDowntimeReasonZFPanel;
+
+        [ObservableProperty]
+        private int _rowForDowntimeReasonTesterPanel;
+
+        [ObservableProperty]
+        private int _rowForDowntimeReasonDozownikPanel;
+
+        [ObservableProperty]
+        private int _rowForDowntimeReasonWalcarkaPanel;
+
+        [ObservableProperty]
+        private int _rowForDowntimeReasonTesterWodnyPanel;
+
+        [ObservableProperty]
         private bool _downtimePanelIsOpen = false;
 
         [ObservableProperty]
@@ -243,8 +284,48 @@ namespace ViSyncMaster.ViewModels
 
         [ObservableProperty]
         private bool _downtimeReasonKptjPanelIsOpen = false;
+
         [ObservableProperty]
         private bool _downtimeReasonPlatePanelIsOpen = false;
+
+        [ObservableProperty]
+        private bool _downtimeReasonBindownicaPanelIsOpen = false;
+
+        [ObservableProperty]
+        private bool _downtimeReasonSC200PanelIsOpen = false;
+
+        [ObservableProperty]
+        private bool _downtimeReasonZebraPanelIsOpen = false;
+
+        [ObservableProperty]
+        private bool _downtimeReasonWtryskarkaPanelIsOpen = false;
+
+        [ObservableProperty]
+        private bool _downtimeReasonBradyPanelIsOpen = false;
+
+        [ObservableProperty]
+        private bool _downtimeReasonWiazarkaPanelIsOpen = false;
+
+        [ObservableProperty]
+        private bool _downtimeReasonKomaxPanelIsOpen = false;
+
+        [ObservableProperty]
+        private bool _downtimeReasonURPanelIsOpen = false;
+
+        [ObservableProperty]
+        private bool _downtimeReasonZFPanelIsOpen = false;
+
+        [ObservableProperty]
+        private bool _downtimeReasonTesterPanelIsOpen = false;
+
+        [ObservableProperty]
+        private bool _downtimeReasonDozownikPanelIsOpen = false;
+
+        [ObservableProperty]
+        private bool _downtimeReasonWalcarkaPanelIsOpen = false;
+
+        [ObservableProperty]
+        private bool _downtimeReasonTesterWodnyPanelIsOpen = false;
 
         [ObservableProperty]
         private bool _callForServicePanelIsOpen = false;
@@ -402,6 +483,45 @@ namespace ViSyncMaster.ViewModels
         [ObservableProperty]
         private ObservableGroupedCollection<string, ServiceArrivalPanelItem> _serviceArrivalPanel = default!;
 
+        [ObservableProperty]
+        private ObservableGroupedCollection<string, DowntimeReasonBindownicaPanelItem> _downtimeReasonBindownicaPanel = default!;
+
+        [ObservableProperty]
+        private ObservableGroupedCollection<string, DowntimeReasonSC200PanelItem> _downtimeReasonSC200Panel = default!;
+
+        [ObservableProperty]
+        private ObservableGroupedCollection<string, DowntimeReasonZebraPanelItem> _downtimeReasonZebraPanel = default!;
+
+        [ObservableProperty]
+        private ObservableGroupedCollection<string, DowntimeReasonWtryskarkaPanelItem> _downtimeReasonWtryskarkaPanel = default!;
+
+        [ObservableProperty]
+        private ObservableGroupedCollection<string, DowntimeReasonBradyPanelItem> _downtimeReasonBradyPanel = default!;
+
+        [ObservableProperty]
+        private ObservableGroupedCollection<string, DowntimeReasonWiazarkaPanelItem> _downtimeReasonWiazarkaPanel = default!;
+
+        [ObservableProperty]
+        private ObservableGroupedCollection<string, DowntimeReasonKomaxPanelItem> _downtimeReasonKomaxPanel = default!;
+
+        [ObservableProperty]
+        private ObservableGroupedCollection<string, DowntimeReasonURPanelItem> _downtimeReasonURPanel = default!;
+
+        [ObservableProperty]
+        private ObservableGroupedCollection<string, DowntimeReasonZFPanelItem> _downtimeReasonZFPanel = default!;
+
+        [ObservableProperty]
+        private ObservableGroupedCollection<string, DowntimeReasonTesterPanelItem> _downtimeReasonTesterPanel = default!;
+
+        [ObservableProperty]
+        private ObservableGroupedCollection<string, DowntimeReasonDozownikPanelItem> _downtimeReasonDozownikPanel = default!;
+
+        [ObservableProperty]
+        private ObservableGroupedCollection<string, DowntimeReasonWalcarkaPanelItem> _downtimeReasonWalcarkaPanel = default!;
+
+        [ObservableProperty]
+        private ObservableGroupedCollection<string, DowntimeReasonTesterWodnyPanelItem> _downtimeReasonTesterWodnyPanel = default!;
+
         #endregion
 
         #region ProportyChangedFor
@@ -551,27 +671,28 @@ namespace ViSyncMaster.ViewModels
             // Filtrowanie danych na podstawie StepOfStatus
             var filteredItems = _allCallForServicePanelData // Upewnij się, że przechowujesz dane źródłowe w tej zmiennej
                 .Where(item =>
-                    (stepOfStatus == 0 && (item.Name == "CallForService" || item.Name == "Exit")) ||
+                    (stepOfStatus == 0 && (item.Name.Contains("CallForService") || item.Name == "Exit")) ||
                     (stepOfStatus == 1 && (item.Name == "ServiceArrival" || item.Name == "DowntimeReason" || item.Name == "Exit")) ||
                     (stepOfStatus == 2 && (item.Name == "DowntimeReason" || item.Name == "Exit")))
                 .ToList();
 
             // Zmiana statusu elementów na status przychodzący z machineStatus
 
-            foreach (var item in filteredItems)
-            {
-                if (item.Name == "CallForService")
-                {
-                    item.SetStatusBasedOnRole(machineStatus.Status);
-                }
-            }
+            //foreach (var item in filteredItems)
+            //{
+            //    if (item.Name == "CallForService")
+            //    {
+            //        item.SetStatusBasedOnRole(machineStatus.Status);
+            //    }
+            //}
             // Grupowanie zaktualizowanych elementów
-            var groupedItems = filteredItems.GroupBy(item => item.Name);
-            
-
-            // Aktualizacja CallForServicePanel
+            var groupedItems = filteredItems.GroupBy(item => item.Value);
+            //
+            //
+            //// Aktualizacja CallForServicePanel
             CallForServicePanel = new ObservableGroupedCollection<string, CallForServicePanelItem>(groupedItems);
-           
+            RowForCallForServicePanel = LoadSizeOfGrid(filteredItems.Count);
+            //Debug.WriteLine($"CallForServicePanel updated with {filteredItems.Count} items.");
         }
 
         [RelayCommand]
@@ -602,7 +723,22 @@ namespace ViSyncMaster.ViewModels
             MaintenancePanelIsOpen = false;
             LogisticPanelIsOpen = false;
             ProductionIssuesPanelIsOpen = false;
+            DowntimeReasonLiderPanelIsOpen = false;
+            DowntimeReasonSC200PanelIsOpen = false;
+            DowntimeReasonZebraPanelIsOpen = false;
+            DowntimeReasonWtryskarkaPanelIsOpen = false;
+            DowntimeReasonBradyPanelIsOpen = false;
+            DowntimeReasonWiazarkaPanelIsOpen = false;
+            DowntimeReasonKomaxPanelIsOpen = false;
+            DowntimeReasonURPanelIsOpen = false;
+            DowntimeReasonZFPanelIsOpen = false;
+            DowntimeReasonTesterPanelIsOpen = false;
+            DowntimeReasonDozownikPanelIsOpen = false;
+            DowntimeReasonWalcarkaPanelIsOpen = false;
+            DowntimeReasonTesterWodnyPanelIsOpen = false;
+            DowntimeReasonBindownicaPanelIsOpen = false;
         }
+
 
         [RelayCommand]
         private async Task ReportMachineStatus(MachineStatus item)
@@ -627,7 +763,6 @@ namespace ViSyncMaster.ViewModels
                 var messagePgToSplunk = _splunkMessageHandler.PreparingPgMessageToSplunk(MachineStatuses, item, _machineStatusCounter);
                 await _machineStatusService.SendPgMessage((MessagePgToSplunk)messagePgToSplunk);
             }
-            _pendingMachineStatus = item;
             LoadStatuses(this); // Zaktualizuj listę statusów
             SettingPanelIsOpen = false;
             DowntimePanelIsOpen = false;
@@ -672,7 +807,6 @@ namespace ViSyncMaster.ViewModels
 
         private async void HandleUnmappedStatus(MachineStatus machineStatus)
         {
-            Console.WriteLine($"Brak zdefiniowanego panelu dla statusu: {machineStatus.Status}");
             IsActiveStatus = false;
             _machineStatusService.EndStatus(machineStatus); // Kończenie statusu bez powodu
             var messagePgToSplunk = _splunkMessageHandler.PreparingPgMessageToSplunk(MachineStatuses, machineStatus, _machineStatusCounter);
@@ -702,6 +836,9 @@ namespace ViSyncMaster.ViewModels
         }
         private async void MergePendingMachineStatusWithPanelItem(MachineStatus pendingStatus, CallForServicePanelItem panelItem)
         {
+            string panelKey = "";
+            panelKey = StatusParser.GetPanelKey(pendingStatus.Status);
+
             if (pendingStatus == null || panelItem == null || panelItem.Name == "Exit")
             {
                 CallForServicePanelIsOpen = false;
@@ -710,6 +847,7 @@ namespace ViSyncMaster.ViewModels
             if (panelItem.Name == "CallForService")
             {
                 pendingStatus.CallForService = DateTime.Now;
+                pendingStatus.Status = $"{pendingStatus.Status} & {panelItem.Status}";
                 var updateStatus = _machineStatusService.StartStatus(pendingStatus);
                 var messagePgToSplunk = _splunkMessageHandler.PreparingPgMessageToSplunk(MachineStatuses, pendingStatus, _machineStatusCounter);
                 await _machineStatusService.SendPgMessage((MessagePgToSplunk)messagePgToSplunk);
@@ -729,7 +867,7 @@ namespace ViSyncMaster.ViewModels
                     return; // Zatrzymanie dalszego przetwarzania, jeśli status lub mapowanie jest puste
                 }
 
-                if (PanelActionMapping.TryGetValue(pendingStatus.Status.ToUpperInvariant(), out var panelName))
+                if (PanelActionMapping.TryGetValue(panelKey, out var panelName))
                 {
                     HandleMappedStatus(pendingStatus, panelName);
                 }
@@ -1121,6 +1259,19 @@ namespace ViSyncMaster.ViewModels
             var downtimeReasonLiderPanel = await mStatusInterfaceService.GetDowntimeReasonLiderPanelAsync();
             var downtimeReasonKptjPanel = await mStatusInterfaceService.GetDowntimeReasonKptjPanelAsync();
             var downtimeReasonPlatePanel = await mStatusInterfaceService.GetDowntimeReasonPlatePanelAsync();
+            var downtimeReasonBindownicaPanel = await mStatusInterfaceService.GetDowntimeReasonBindownicaPanelAsync();
+            var downtimeReasonSC200Panel = await mStatusInterfaceService.GetDowntimeReasonSC200PanelAsync();
+            var downtimeReasonZebraPanel = await mStatusInterfaceService.GetDowntimeReasonZebraPanelAsync();
+            var downtimeReasonWtryskarkaPanel = await mStatusInterfaceService.GetDowntimeReasonWtryskarkaPanelAsync();
+            var downtimeReasonBradyPanel = await mStatusInterfaceService.GetDowntimeReasonBradyPanelAsync();
+            var downtimeReasonWiazarkaPanel = await mStatusInterfaceService.GetDowntimeReasonWiazarkaPanelAsync();
+            var downtimeReasonKomaxPanel = await mStatusInterfaceService.GetDowntimeReasonKomaxPanelAsync();
+            var downtimeReasonURPanel = await mStatusInterfaceService.GetDowntimeReasonURPanelAsync();
+            var downtimeReasonZFPanel = await mStatusInterfaceService.GetDowntimeReasonZFPanelAsync();
+            var downtimeReasonTesterPanel = await mStatusInterfaceService.GetDowntimeReasonTesterPanelAsync();
+            var downtimeReasonDozownikPanel = await mStatusInterfaceService.GetDowntimeReasonDozownikPanelAsync();
+            var downtimeReasonWalcarkaPanel = await mStatusInterfaceService.GetDowntimeReasonWalcarkaPanelAsync();
+            var downtimeReasonTesterWodnyPanel = await mStatusInterfaceService.GetDowntimeReasonTesterWodnyPanelAsync();
 
 
             // Create a grouping from the flat data
@@ -1193,9 +1344,9 @@ namespace ViSyncMaster.ViewModels
 
             CallForServicePanel = 
                 new ObservableGroupedCollection<string, CallForServicePanelItem>(
-                callForServicePanel.GroupBy(item => item.Name));
+                callForServicePanel.GroupBy(item => item.Value));
 
-            RowForCallForServicePanel = 1;
+            RowForCallForServicePanel = LoadSizeOfGrid(callForServicePanel.Count);
 
             ServiceArrivalPanel =
                 new ObservableGroupedCollection<string, ServiceArrivalPanelItem>(
@@ -1204,6 +1355,72 @@ namespace ViSyncMaster.ViewModels
             RowForServiceArrivalPanel = LoadSizeOfGrid(serviceArrivalPanel.Count);
 
             _allCallForServicePanelData = callForServicePanel;
+
+            //new
+            DowntimeReasonBindownicaPanel =
+                new ObservableGroupedCollection<string, DowntimeReasonBindownicaPanelItem>(
+                downtimeReasonBindownicaPanel.GroupBy(item => item.Name));
+            RowForDowntimeReasonBindownicaPanel = LoadSizeOfGrid(downtimeReasonBindownicaPanel.Count);
+
+            DowntimeReasonSC200Panel =
+                new ObservableGroupedCollection<string, DowntimeReasonSC200PanelItem>(
+                downtimeReasonSC200Panel.GroupBy(item => item.Name));
+            RowForDowntimeReasonSC200Panel = LoadSizeOfGrid(downtimeReasonSC200Panel.Count);
+
+            DowntimeReasonZebraPanel =
+                new ObservableGroupedCollection<string, DowntimeReasonZebraPanelItem>(
+                downtimeReasonZebraPanel.GroupBy(item => item.Name));
+            RowForDowntimeReasonZebraPanel = LoadSizeOfGrid(downtimeReasonZebraPanel.Count);
+
+            DowntimeReasonWtryskarkaPanel =
+                new ObservableGroupedCollection<string, DowntimeReasonWtryskarkaPanelItem>(
+                downtimeReasonWtryskarkaPanel.GroupBy(item => item.Name));
+            RowForDowntimeReasonWtryskarkaPanel = LoadSizeOfGrid(downtimeReasonWtryskarkaPanel.Count);
+
+            DowntimeReasonBradyPanel =
+                new ObservableGroupedCollection<string, DowntimeReasonBradyPanelItem>(
+                downtimeReasonBradyPanel.GroupBy(item => item.Name));
+            RowForDowntimeReasonBradyPanel = LoadSizeOfGrid(downtimeReasonBradyPanel.Count);
+
+            DowntimeReasonWiazarkaPanel =
+                new ObservableGroupedCollection<string, DowntimeReasonWiazarkaPanelItem>(
+                downtimeReasonWiazarkaPanel.GroupBy(item => item.Name));
+            RowForDowntimeReasonWiazarkaPanel = LoadSizeOfGrid(downtimeReasonWiazarkaPanel.Count);
+
+            DowntimeReasonKomaxPanel =
+                new ObservableGroupedCollection<string, DowntimeReasonKomaxPanelItem>(
+                downtimeReasonKomaxPanel.GroupBy(item => item.Name));
+            RowForDowntimeReasonKomaxPanel = LoadSizeOfGrid(downtimeReasonKomaxPanel.Count);
+
+            DowntimeReasonURPanel =
+                new ObservableGroupedCollection<string, DowntimeReasonURPanelItem>(
+                downtimeReasonURPanel.GroupBy(item => item.Name));
+            RowForDowntimeReasonURPanel = LoadSizeOfGrid(downtimeReasonURPanel.Count);
+
+            DowntimeReasonZFPanel =
+                new ObservableGroupedCollection<string, DowntimeReasonZFPanelItem>(
+                downtimeReasonZFPanel.GroupBy(item => item.Name));
+            RowForDowntimeReasonZFPanel = LoadSizeOfGrid(downtimeReasonZFPanel.Count);
+
+            DowntimeReasonTesterPanel =
+                new ObservableGroupedCollection<string, DowntimeReasonTesterPanelItem>(
+                downtimeReasonTesterPanel.GroupBy(item => item.Name));
+            RowForDowntimeReasonTesterPanel = LoadSizeOfGrid(downtimeReasonTesterPanel.Count);
+
+            DowntimeReasonDozownikPanel =
+                new ObservableGroupedCollection<string, DowntimeReasonDozownikPanelItem>(
+                downtimeReasonDozownikPanel.GroupBy(item => item.Name));
+            RowForDowntimeReasonDozownikPanel = LoadSizeOfGrid(downtimeReasonDozownikPanel.Count);
+
+            DowntimeReasonWalcarkaPanel =
+                new ObservableGroupedCollection<string, DowntimeReasonWalcarkaPanelItem>(
+                downtimeReasonWalcarkaPanel.GroupBy(item => item.Name));
+            RowForDowntimeReasonWalcarkaPanel = LoadSizeOfGrid(downtimeReasonWalcarkaPanel.Count);
+
+            DowntimeReasonTesterWodnyPanel =
+                new ObservableGroupedCollection<string, DowntimeReasonTesterWodnyPanelItem>(
+                downtimeReasonTesterWodnyPanel.GroupBy(item => item.Name));
+            RowForDowntimeReasonTesterWodnyPanel = LoadSizeOfGrid(downtimeReasonTesterWodnyPanel.Count);
         }
 
         private int LoadSizeOfGrid(int numberOfElements)

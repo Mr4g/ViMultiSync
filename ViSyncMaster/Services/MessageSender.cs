@@ -274,22 +274,21 @@ namespace ViSyncMaster.Services
 
 
             // Tym wywołaniem metody usuwającej białe znaki i polskie znaki:
-            var jsonPayloadCleaned = RemoveDiacriticsAndWhitespace(jsonPayload);
+            var jsonPayloadCleaned = RemoveDiacriticsAndKeepSpaces(jsonPayload);
 
             return jsonPayloadCleaned;
         }
-        private string RemoveDiacriticsAndWhitespace(string input)
+        private string RemoveDiacriticsAndKeepSpaces(string input)
         {
-            // Usuń białe znaki (spacje, taby, nowe linie)
-            string noWhitespace = Regex.Replace(input, @"\s+", "");
+            // Usuń tabulatory, nowe linie itp., ale zostaw spacje
+            // [^\S ] – każdy whitespace, który NIE jest spacją
+            string noInvisibleWhitespace = Regex.Replace(input, @"[^\S ]+", "");
 
-            // Normalizacja - rozkłada znaki z diakrytykami (np. ą -> a + ˛)
-            string normalized = noWhitespace.Normalize(NormalizationForm.FormD);
-
-            // Usuń znaki diakrytyczne (kategoria Mn - NonSpacingMark)
+            // Normalizacja i usunięcie diakrytyków jak wcześniej
+            string normalized = noInvisibleWhitespace.Normalize(NormalizationForm.FormD);
             string noDiacritics = Regex.Replace(normalized, @"\p{Mn}+", "");
 
-            // Zamień wyjątki (Ł, ł)
+            // Zamiana wyjątków Ł/ł
             return noDiacritics.Replace('Ł', 'L').Replace('ł', 'l');
         }
     }

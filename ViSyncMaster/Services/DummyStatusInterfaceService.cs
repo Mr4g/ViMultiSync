@@ -154,5 +154,58 @@ namespace ViSyncMaster.Services
         {
             return await ReadResourcesDataAsync<ConfigHardwareItem>("ConfigHardware.json");
         }
+
+        public async Task<List<DowntimeReasonBindownicaPanelItem>> GetDowntimeReasonBindownicaPanelAsync()
+        {
+            return await ReadPanelDataAsync<DowntimeReasonBindownicaPanelItem>("DowntimeReasonBindownicaPanelData");
+        }
+        public async Task<List<DowntimeReasonSC200PanelItem>> GetDowntimeReasonSC200PanelAsync()
+        {
+            return await ReadPanelDataAsync<DowntimeReasonSC200PanelItem>("DowntimeReasonSC200PanelData");
+        }
+        public async Task<List<DowntimeReasonZebraPanelItem>> GetDowntimeReasonZebraPanelAsync()
+        {
+            return await ReadPanelDataAsync<DowntimeReasonZebraPanelItem>("DowntimeReasonZebraPanelData");
+        }
+        public async Task<List<DowntimeReasonWtryskarkaPanelItem>> GetDowntimeReasonWtryskarkaPanelAsync()
+        {
+            return await ReadPanelDataAsync<DowntimeReasonWtryskarkaPanelItem>("DowntimeReasonWtryskarkaPanelData");
+        }
+        public async Task<List<DowntimeReasonBradyPanelItem>> GetDowntimeReasonBradyPanelAsync()
+        {
+            return await ReadPanelDataAsync<DowntimeReasonBradyPanelItem>("DowntimeReasonBradyPanelData");
+        }
+        public async Task<List<DowntimeReasonZFPanelItem>> GetDowntimeReasonZFPanelAsync()
+        {
+            return await ReadPanelDataAsync<DowntimeReasonZFPanelItem>("DowntimeReasonZFPanelData");
+        }
+        public async Task<List<DowntimeReasonWiazarkaPanelItem>> GetDowntimeReasonWiazarkaPanelAsync()
+        {
+            return await ReadPanelDataAsync<DowntimeReasonWiazarkaPanelItem>("DowntimeReasonWiazarkaPanelData");
+        }
+        public async Task<List<DowntimeReasonKomaxPanelItem>> GetDowntimeReasonKomaxPanelAsync()
+        {
+            return await ReadPanelDataAsync<DowntimeReasonKomaxPanelItem>("DowntimeReasonKomaxPanelData");
+        }
+        public async Task<List<DowntimeReasonURPanelItem>> GetDowntimeReasonURPanelAsync()
+        {
+            return await ReadPanelDataAsync<DowntimeReasonURPanelItem>("DowntimeReasonURPanelData");
+        }
+        public async Task<List<DowntimeReasonDozownikPanelItem>> GetDowntimeReasonDozownikPanelAsync()
+        {
+            return await ReadPanelDataAsync<DowntimeReasonDozownikPanelItem>("DowntimeReasonDozownikPanelData");
+        }
+        public async Task<List<DowntimeReasonWalcarkaPanelItem>> GetDowntimeReasonWalcarkaPanelAsync()
+        {
+            return await ReadPanelDataAsync<DowntimeReasonWalcarkaPanelItem>("DowntimeReasonWalcarkaPanelData");
+        }
+        public async Task<List<DowntimeReasonTesterWodnyPanelItem>> GetDowntimeReasonTesterWodnyPanelAsync()
+        {
+            return await ReadPanelDataAsync<DowntimeReasonTesterWodnyPanelItem>("DowntimeReasonTesterWodnyPanelData");
+        }
+        public async Task<List<DowntimeReasonTesterPanelItem>> GetDowntimeReasonTesterPanelAsync()
+        {
+            return await ReadPanelDataAsync<DowntimeReasonTesterPanelItem>("DowntimeReasonTesterPanelData");
+        }
     }
 }
