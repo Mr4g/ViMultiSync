@@ -54,8 +54,8 @@ namespace ViSyncMaster.AuxiliaryClasses
             var shutDown = GetDateTime(shiftStartDate, _shutDown);
             var current = now > shutDown ? shutDown : now;
 
-            var netShiftMinutes = NetMinutes(planStart, shutDown);
-            var elapsedPlanMinutes = NetMinutes(planStart, current);
+            var netShiftMinutes = NetMinutes(planStart, shutDown, shiftStartDate);
+            var elapsedPlanMinutes = NetMinutes(planStart, current, shiftStartDate);
 
             if (netShiftMinutes <= 0 || target <= 0)
             {
@@ -92,14 +92,14 @@ namespace ViSyncMaster.AuxiliaryClasses
             if (firstPieceTime < planStart)
                 firstPieceTime = planStart;
 
-            var elapsedFromFirstPiece = NetMinutes(firstPieceTime, current);
+            var elapsedFromFirstPiece = NetMinutes(firstPieceTime, current, shiftStartDate);
             var expectedFromFirstPiece = target * (elapsedFromFirstPiece / netShiftMinutes);
             humanEfficiency = expectedFromFirstPiece > 0
                 ? totalUnitsProduced / expectedFromFirstPiece * 100
                 : machineEfficiency;
 
 
-            var minutesFromFirstPieceToEnd = NetMinutes(firstPieceTime, shutDown);
+            var minutesFromFirstPieceToEnd = NetMinutes(firstPieceTime, shutDown, shiftStartDate);
             var expectedFromFirstPieceToEnd = target * (minutesFromFirstPieceToEnd / netShiftMinutes);
             humanEfficiencyTotal = expectedFromFirstPieceToEnd > 0
                 ? totalUnitsProduced / expectedFromFirstPieceToEnd * 100
@@ -114,14 +114,14 @@ namespace ViSyncMaster.AuxiliaryClasses
             return dt;
         }
 
-        private double NetMinutes(DateTime from, DateTime to)
+        private double NetMinutes(DateTime from, DateTime to, DateTime shiftStartDate)
         {
             if (to <= from) return 0;
             double minutes = (to - from).TotalMinutes;
             foreach (var br in _breaks)
             {
-                var bs = GetDateTime(from, br.Start);
-                var be = GetDateTime(from, br.End);
+                var bs = GetDateTime(shiftStartDate, br.Start);
+                var be = GetDateTime(shiftStartDate, br.End);
                 if (be <= from || bs >= to) continue;
                 var s = bs < from ? from : bs;
                 var e = be > to ? to : be;
