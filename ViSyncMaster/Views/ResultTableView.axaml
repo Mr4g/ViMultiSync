@@ -145,6 +145,17 @@
 			</Border>
 		</StackPanel>
 
+		<!-- Tabela planu -->
+		<DataGrid Grid.Row="3" Grid.Column="2" ItemsSource="{Binding HourlyPlan}" AutoGenerateColumns="False"
+				  IsReadOnly="True" GridLinesVisibility="None" Margin="10" Width="200">
+			<DataGrid.Columns>
+				<DataGridTextColumn Header="Czas" Binding="{Binding Time}" Width="*"/>
+				<DataGridTextColumn Header="Plan" Binding="{Binding ExpectedUnits}" Width="*"/>
+			</DataGrid.Columns>
+		</DataGrid>
+
+		<!-- Panel prawy: Wskaźniki kołowe -->
+
 		<!-- Panel prawy: Wskaźniki kołowe -->
 		<StackPanel Grid.Row="3" Grid.Column="3" Orientation="Vertical" HorizontalAlignment="Center" Margin="30" VerticalAlignment="Center">
 			<!-- Wiersz z dwoma wykresami kołowymi -->

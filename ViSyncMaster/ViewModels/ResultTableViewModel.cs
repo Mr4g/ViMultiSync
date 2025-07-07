@@ -46,6 +46,7 @@ namespace ViSyncMaster.ViewModels
         [ObservableProperty] private ObservableCollection<ISeries> _pieChartSeriesExpectedEfficiency = new();
         [ObservableProperty] private ObservableCollection<MachineStatus> _resultTestList;
         [ObservableProperty] private ObservableCollection<MachineStatusGrouped> _groupedResultList = new();
+        [ObservableProperty] private ObservableCollection<HourlyPlan> _hourlyPlan = new();
         [ObservableProperty] private int _target = -1;
         [ObservableProperty] private int _totalUnitsProduced;
         [ObservableProperty] private double _expectedEfficiency;
@@ -397,6 +398,7 @@ namespace ViSyncMaster.ViewModels
             TargetPartsChart.Value = Target;
             Needle.Value = Math.Clamp(HumanEfficiency, 0, 200);
             SeriesExpectedEfficiency[0].Values = new double[] { ExpectedEfficiency };
+            UpdateHourlyPlanData();
         }
 
         private static void SetStyle(double sectionsOuter, double sectionsWidth, PieSeries<ObservableValue> series, SKColor color)
@@ -535,6 +537,55 @@ namespace ViSyncMaster.ViewModels
             if (GroupedResultList.Remove(_totalRow))
                 GroupedResultList.Add(_totalRow);
             // jeśli masz dodatkowe pola
+        }
+        private void UpdateHourlyPlanData()
+        {
+            HourlyPlan.Clear();
+
+            if (Target <= 0) return;
+
+            var data = ResultTestList
+                .Where(x => x.StartTime.HasValue)
+                .Select(x => (x.StartTime!.Value, x.Name == "S7.TestingPassed" ? 1 : 0))
+                .ToList();
+
+            if (data.Count == 0) return;
+
+            var firstPiece = data.Min(x => x.Item1);
+
+            var plan = _currentShift switch
+            {
+                1 => ShiftPlan.CreateDefaultShift1(),
+                2 => ShiftPlan.CreateDefaultShift2(),
+                3 => ShiftPlan.CreateDefaultShift3(),
+                _ => ShiftPlan.CreateDefaultShift1()
+            };
+
+            var shiftStartDate = firstPiece.Date;
+            if (plan.ShiftEnd < plan.ShiftStart && firstPiece.TimeOfDay < plan.ShiftStart)
+                shiftStartDate = shiftStartDate.AddDays(-1);
+
+            var end = shiftStartDate.Add(plan.ShiftEnd);
+            if (plan.ShiftEnd < plan.ShiftStart)
+                end = end.AddDays(1);
+
+            var t = new DateTime(firstPiece.Year, firstPiece.Month, firstPiece.Day, firstPiece.Hour, 0, 0);
+            if (t < firstPiece) t = t.AddHours(1);
+
+            while (t <= end)
+            {
+                _efficiencyCalculator.CalculateEfficiency(Target, data, t,
+                    out _, out double expected, out _, out _, out _, out _);
+                HourlyPlan.Add(new HourlyPlan { Time = t.ToString("HH:mm"), ExpectedUnits = (int)Math.Round(expected) });
+                t = t.AddHours(1);
+            }
+
+            if (HourlyPlan.Count == 0 || HourlyPlan.Last().Time != end.ToString("HH:mm"))
+            {
+                _efficiencyCalculator.CalculateEfficiency(Target, data, end,
+                    out _, out double expected, out _, out _, out _, out _);
+                HourlyPlan.Add(new HourlyPlan { Time = end.ToString("HH:mm"), ExpectedUnits = (int)Math.Round(expected) });
+            }
         }
     }
 }
