@@ -115,7 +115,7 @@ namespace ViSyncMaster.ViewModels
                         TotalPartsProducedChart.Value = TotalUnitsProduced;
                         ExpectedPartsChart.Value = ExpectedOutput;
                         TargetPartsChart.Value = Target;
-                        Needle.Value = HumanEfficiency;
+                        Needle.Value = Math.Clamp(HumanEfficiency, 0, 200);
                         SeriesExpectedEfficiency[0].Values = new double[] { ExpectedEfficiency };
                     });
                 }
@@ -395,7 +395,7 @@ namespace ViSyncMaster.ViewModels
             TotalPartsProducedChart.Value = TotalUnitsProduced;
             ExpectedPartsChart.Value = ExpectedOutput;
             TargetPartsChart.Value = Target;
-            Needle.Value = HumanEfficiency;
+            Needle.Value = Math.Clamp(HumanEfficiency, 0, 200);
             SeriesExpectedEfficiency[0].Values = new double[] { ExpectedEfficiency };
         }
 
@@ -409,10 +409,34 @@ namespace ViSyncMaster.ViewModels
         private void StartHourlyTimer()
         {
             _hourlyTimer = new DispatcherTimer { Interval = TimeSpan.FromMinutes(5) };
-            _hourlyTimer.Tick += (sender, e) =>
+            _hourlyTimer.Tick += async (sender, e) =>
             {
-                // Funkcja, która jest wywoływana co 5 min
-                SendDataAsync();
+                var plan = _currentShift switch
+                {
+                    1 => ShiftPlan.CreateDefaultShift1(),
+                    2 => ShiftPlan.CreateDefaultShift2(),
+                    3 => ShiftPlan.CreateDefaultShift3(),
+                    _ => ShiftPlan.CreateDefaultShift1()
+                };
+
+                var now = DateTime.Now;
+                var crossMidnight = plan.ShiftEnd < plan.ShiftStart;
+                var shiftStartDate = now.Date;
+                if (crossMidnight && now.TimeOfDay < plan.ShiftStart)
+                    shiftStartDate = shiftStartDate.AddDays(-1);
+
+                var shutDown = shiftStartDate.Add(plan.ShutDown);
+                if (crossMidnight && plan.ShutDown < plan.ShiftStart)
+                    shutDown = shutDown.AddDays(1);
+
+                if (now >= shutDown)
+                {
+                    _hourlyTimer.Stop();
+                    return;
+                }
+
+                await UpdateChartData();
+                await SendDataAsync();
             };
             _hourlyTimer.Start();
         }

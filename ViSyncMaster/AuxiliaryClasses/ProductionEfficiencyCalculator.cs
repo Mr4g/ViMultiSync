@@ -74,10 +74,15 @@ namespace ViSyncMaster.AuxiliaryClasses
                 firstPieceTime = planStart;
 
             double elapsedFromFirstPiece = 0;
+            double minutesFromFirstPieceToEnd = 0;
             if (firstPieceTime.HasValue)
             {
                 elapsedFromFirstPiece = NetMinutes(firstPieceTime.Value, current, shiftStartDate);
-                expectedOutput = target * (elapsedFromFirstPiece / netShiftMinutes);
+                minutesFromFirstPieceToEnd = NetMinutes(firstPieceTime.Value, shutDown, shiftStartDate);
+
+                expectedOutput = minutesFromFirstPieceToEnd > 0
+                    ? target * (elapsedFromFirstPiece / minutesFromFirstPieceToEnd)
+                    : 0;
             }
             else
             {
@@ -102,16 +107,14 @@ namespace ViSyncMaster.AuxiliaryClasses
             }
 
             // elapsedFromFirstPiece already calculated above
-            var expectedFromFirstPiece = target * (elapsedFromFirstPiece / netShiftMinutes);
+            var expectedFromFirstPiece = minutesFromFirstPieceToEnd > 0
+                ? target * (elapsedFromFirstPiece / minutesFromFirstPieceToEnd)
+                : 0;
             humanEfficiency = expectedFromFirstPiece > 0
                 ? totalUnitsProduced / expectedFromFirstPiece * 100
                 : machineEfficiency;
 
-            var minutesFromFirstPieceToEnd = NetMinutes(firstPieceTime.Value, shutDown, shiftStartDate);
-            var expectedFromFirstPieceToEnd = target * (minutesFromFirstPieceToEnd / netShiftMinutes);
-            humanEfficiencyTotal = expectedFromFirstPieceToEnd > 0
-                ? totalUnitsProduced / expectedFromFirstPieceToEnd * 100
-                : machineEfficiencyTotal;
+            humanEfficiencyTotal = machineEfficiencyTotal;
         }
 
         private DateTime GetDateTime(DateTime shiftStartDate, TimeSpan ts)
