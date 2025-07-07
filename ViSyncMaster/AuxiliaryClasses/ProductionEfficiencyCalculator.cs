@@ -39,7 +39,9 @@ namespace ViSyncMaster.AuxiliaryClasses
             out int totalUnitsProduced,
             out double expectedOutput,
             out double machineEfficiency,
-            out double humanEfficiency)
+            out double humanEfficiency,
+            out double machineEfficiencyTotal,
+            out double humanEfficiencyTotal)
         {
             totalUnitsProduced = efficiencyDataList.Sum(x => x.PassedUnits);
 
@@ -60,6 +62,8 @@ namespace ViSyncMaster.AuxiliaryClasses
                 expectedOutput = 0;
                 machineEfficiency = 0;
                 humanEfficiency = 0;
+                machineEfficiencyTotal = 0;
+                humanEfficiencyTotal = 0;
                 return;
             }
 
@@ -71,10 +75,16 @@ namespace ViSyncMaster.AuxiliaryClasses
                 ? totalUnitsProduced / expectedFromShiftStart * 100
                 : 0;
 
+            // Total efficiency from plan start to shutdown
+            machineEfficiencyTotal = target > 0
+                ? totalUnitsProduced / (double)target * 100
+                : 0;
+
             // Human efficiency from first produced piece
             if (efficiencyDataList == null || efficiencyDataList.Count == 0)
             {
                 humanEfficiency = machineEfficiency; // preserve old behaviour
+                humanEfficiencyTotal = machineEfficiencyTotal;
                 return;
             }
 
@@ -87,6 +97,13 @@ namespace ViSyncMaster.AuxiliaryClasses
             humanEfficiency = expectedFromFirstPiece > 0
                 ? totalUnitsProduced / expectedFromFirstPiece * 100
                 : machineEfficiency;
+
+
+            var minutesFromFirstPieceToEnd = NetMinutes(firstPieceTime, shutDown);
+            var expectedFromFirstPieceToEnd = target * (minutesFromFirstPieceToEnd / netShiftMinutes);
+            humanEfficiencyTotal = expectedFromFirstPieceToEnd > 0
+                ? totalUnitsProduced / expectedFromFirstPieceToEnd * 100
+                : machineEfficiencyTotal;
         }
 
         private DateTime GetDateTime(DateTime shiftStartDate, TimeSpan ts)

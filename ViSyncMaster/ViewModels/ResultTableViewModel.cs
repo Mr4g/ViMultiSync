@@ -51,6 +51,8 @@ namespace ViSyncMaster.ViewModels
         [ObservableProperty] private double _expectedEfficiency;
         [ObservableProperty] private double _machineEfficiency;
         [ObservableProperty] private double _humanEfficiency;
+        [ObservableProperty] private double _machineEfficiencyTotal;
+        [ObservableProperty] private double _humanEfficiencyTotal;
         [ObservableProperty] private double _expectedOutput;
 
         [ObservableProperty] private int _totalCount;
@@ -372,12 +374,16 @@ namespace ViSyncMaster.ViewModels
                 out int produced,
                 out double expectedOut,
                 out double machineEff,
-                out double humanEff);
+                out double humanEff,
+                out double machineEffTotal,
+                out double humanEffTotal);
 
             TotalUnitsProduced = produced;
             ExpectedOutput = Math.Round(expectedOut, 0);
             MachineEfficiency = Math.Round(machineEff, 1);
             HumanEfficiency = Math.Round(humanEff, 1);
+            MachineEfficiencyTotal = Math.Round(machineEffTotal, 1);
+            HumanEfficiencyTotal = Math.Round(humanEffTotal, 1);
             ExpectedEfficiency = Target > 0 ? Math.Round(expectedOut / Target * 100, 1) : 0;
         }
 
