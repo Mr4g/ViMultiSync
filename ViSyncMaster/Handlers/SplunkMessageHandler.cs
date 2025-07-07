@@ -45,20 +45,26 @@ namespace ViSyncMaster.Handlers
         {
             int newStatus = machineStatusCounter; // Przechowujemy aktualny status
 
+            IEnumerable<MachineStatus> statusesForEvaluation = machineStatuses ?? Enumerable.Empty<MachineStatus>();
+
+            // Jeśli przekazany status został zakończony, kolekcja może nie być jeszcze odświeżona
+            if (machineStatus != null && !machineStatus.IsActive)
+                statusesForEvaluation = statusesForEvaluation.Where(ms => ms.Id != machineStatus.Id);
+
             // Priorytetizacja na podstawie kolekcji
-            if (machineStatuses != null && machineStatuses.Any())
+            if (statusesForEvaluation.Any())
             {
-                if (machineStatuses.Any(ms => ms.Name == "S1.MachineDowntime_IPC" && ms.IsActive))
+                if (statusesForEvaluation.Any(ms => ms.Name == "S1.MachineDowntime_IPC" && ms.IsActive))
                     newStatus = 1;
-                else if (machineStatuses.Any(ms => ms.Name == "S1.LogisticMode_IPC" && ms.IsActive))
+                else if (statusesForEvaluation.Any(ms => ms.Name == "S1.LogisticMode_IPC" && ms.IsActive))
                     newStatus = 2;
-                else if (machineStatuses.Any(ms => ms.Name == "S1.SettingMode_IPC" && ms.IsActive))
+                else if (statusesForEvaluation.Any(ms => ms.Name == "S1.SettingMode_IPC" && ms.IsActive))
                     newStatus = 3;
-                else if (machineStatuses.Any(ms => ms.Name == "S1.MaintenanceMode_IPC" && ms.IsActive))
+                else if (statusesForEvaluation.Any(ms => ms.Name == "S1.MaintenanceMode_IPC" && ms.IsActive))
                     newStatus = 4;
-                else if (machineStatuses.Any(ms => ms.Name == "S1.Producing_PG" && ms.IsActive))
+                else if (statusesForEvaluation.Any(ms => ms.Name == "S1.Producing_PG" && ms.IsActive))
                     newStatus = 5;
-                else if (machineStatuses.Any(ms => ms.Name == "S1.Waiting_PG" && ms.IsActive))
+                else if (statusesForEvaluation.Any(ms => ms.Name == "S1.Waiting_PG" && ms.IsActive))
                     newStatus = 6;
             }
 
@@ -86,7 +92,7 @@ namespace ViSyncMaster.Handlers
                     newStatus = singleStatus;
                 }
             }
-            bool anyStillActive = machineStatuses != null && machineStatuses.Any(ms => ms.IsActive);
+            bool anyStillActive = statusesForEvaluation.Any(ms => ms.IsActive);
             if (machineStatus != null && !machineStatus.IsActive && !anyStillActive)
             {
                 newStatus = 6;
