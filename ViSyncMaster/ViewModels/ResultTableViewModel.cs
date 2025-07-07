@@ -28,7 +28,8 @@ namespace ViSyncMaster.ViewModels
 
         private readonly MachineStatusService _machineStatusService;
         private ObservableCollection<MachineStatus> _originalResultTestList; // Full data list
-        private readonly ProductionEfficiencyCalculator _efficiencyCalculator;
+        private ProductionEfficiencyCalculator _efficiencyCalculator;
+
         private DispatcherTimer _hourlyTimer;
         private ProductionEfficiency _productionEfficiency;
         private MainWindowViewModel _mainWindowViewModel;
@@ -38,6 +39,7 @@ namespace ViSyncMaster.ViewModels
 
 
         // Observable properties for binding
+        [ObservableProperty] private int _currentShift;
         [ObservableProperty] private ObservableCollection<ISeries> _seriesExpectedEfficiency = new(); // Pozostaw tylko to z atrybutem ObservableProperty
         [ObservableProperty] private ObservableCollection<ISeries> _pieChartSeriesTotalUnitsPredicted = new();
         [ObservableProperty] private ObservableCollection<ISeries> _pieChartSeriesCurrentEfficiency = new();
@@ -88,7 +90,8 @@ namespace ViSyncMaster.ViewModels
             RefreshGroupedResultList();
             UpdateGroupedResultListWithTotal();
             // Initializing efficiency calculator
-            _efficiencyCalculator = new ProductionEfficiencyCalculator(true); // Assuming first shift
+            _currentShift = 1;
+            _efficiencyCalculator = new ProductionEfficiencyCalculator(ShiftPlan.CreateDefaultShift1());
             _mainWindowViewModel.ResultTableUpdate += async (s, e) =>
             {
                 if (_isUpdating) return;
@@ -215,16 +218,32 @@ namespace ViSyncMaster.ViewModels
 
         // I zmiana
         [RelayCommand]
-        public async Task FilterShift1Async() => await FilterByTimeRangeAsync(DateTime.Today, TimeSpan.Parse("05:40"), TimeSpan.Parse("13:40"));
+        public async Task FilterShift1Async()
+        {
+            CurrentShift = 1;
+            await FilterByTimeRangeAsync(DateTime.Today, TimeSpan.Parse("05:40"), TimeSpan.Parse("13:40"));
+        }
         // II zmiana
         [RelayCommand]
-        public async Task FilterShift2Async() => await FilterByTimeRangeAsync(DateTime.Today, TimeSpan.Parse("13:40"), TimeSpan.Parse("21:40"));
+        public async Task FilterShift2Async()
+        {
+            CurrentShift = 2;
+            await FilterByTimeRangeAsync(DateTime.Today, TimeSpan.Parse("13:40"), TimeSpan.Parse("21:40"));
+        }
         // III zmiana
         [RelayCommand]
-        public async Task FilterShift3Async() => await FilterByTimeRangeAsync(DateTime.Today, TimeSpan.Parse("21:40"), TimeSpan.Parse("05:40"));
+        public async Task FilterShift3Async()
+        {
+            CurrentShift = 3;
+            await FilterByTimeRangeAsync(DateTime.Today, TimeSpan.Parse("21:40"), TimeSpan.Parse("05:40"));
+        }
         // Zmiana III z wczoraj
         [RelayCommand]
-        public async Task FilterYesterdayShift3Async() => await FilterByTimeRangeAsync(DateTime.Today.AddDays(-1), TimeSpan.Parse("21:40"), TimeSpan.Parse("05:40"));
+        public async Task FilterYesterdayShift3Async()
+        {
+            CurrentShift = 3;
+            await FilterByTimeRangeAsync(DateTime.Today.AddDays(-1), TimeSpan.Parse("21:40"), TimeSpan.Parse("05:40"));
+        }
 
         [RelayCommand]
         public async Task FilterWholeWeekAsync()
@@ -263,6 +282,17 @@ namespace ViSyncMaster.ViewModels
         partial void OnTargetChanged(int value)
         {
             UpdateChartData();
+        }
+        partial void OnCurrentShiftChanged(int value)
+        {
+            var plan = value switch
+            {
+                1 => ShiftPlan.CreateDefaultShift1(),
+                2 => ShiftPlan.CreateDefaultShift2(),
+                3 => ShiftPlan.CreateDefaultShift3(),
+                _ => ShiftPlan.CreateDefaultShift1()
+            };
+            _efficiencyCalculator = new ProductionEfficiencyCalculator(plan);
         }
 
         private bool IsInShift(TimeSpan time, TimeSpan start, TimeSpan end)
