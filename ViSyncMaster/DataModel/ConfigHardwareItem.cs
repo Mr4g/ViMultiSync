@@ -12,6 +12,6 @@ namespace ViSyncMaster.DataModel
         public string? Hostname { get; set; }
         public string? AnyDeskId { get; set; }
         public string? LinkToManual { get; set; }
-        public string VersionApp { get; private set; } = "1.02";
+        public string VersionApp { get; private set; } = "1.03";
     }
 }

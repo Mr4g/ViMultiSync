@@ -180,9 +180,11 @@ namespace ViSyncMaster.Services
 
         public async Task<MachineStatus> UpdateStatus(MachineStatus machineStatus)
         {
+            var epochMilliseconds = DateTimeOffset.Now.ToUnixTimeMilliseconds(); 
+            machineStatus.SendTime = epochMilliseconds;
             // Asynchronicznie dodaj status do repozytoriów
             await _repositoryMachineStatusQueue.AddOrUpdate(machineStatus);
-            await _repositoryMachineStatus.AddOrUpdate(machineStatus);
+            await _repositoryMachineStatus.AddOrUpdate(machineStatus);         
             var jsonMessage = JsonSerializer.Serialize(machineStatus.ToMqttFormat());
             await SendMessageMqtt(jsonMessage);
             return machineStatus;
@@ -198,6 +200,8 @@ namespace ViSyncMaster.Services
         // Zakończenie statusu
         public async Task<MachineStatus> EndStatus(MachineStatus machineStatus)
         {
+            var epochMilliseconds = DateTimeOffset.Now.ToUnixTimeMilliseconds(); // Czas epoch w milisekundach
+            machineStatus.SendTime = epochMilliseconds;
             machineStatus.EndTime = DateTime.Now;  // Zaktualizowanie czasu zakończenia 
             // Zapisz zaktualizowany status w repozytorium MachineStatus
             await _repositoryMachineStatusQueue.AddOrUpdate(machineStatus);

@@ -207,5 +207,9 @@ namespace ViSyncMaster.Services
         {
             return await ReadPanelDataAsync<DowntimeReasonTesterPanelItem>("DowntimeReasonTesterPanelData");
         }
+        public async Task<List<DowntimeReasonLumbergPanelItem>> GetDowntimeReasonLumbergPanelAsync()
+        {
+            return await ReadPanelDataAsync<DowntimeReasonLumbergPanelItem>("DowntimeReasonLumbergPanelData");
+        }
     }
 }

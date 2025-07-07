@@ -67,7 +67,7 @@ namespace ViSyncMaster.ViewModels
         private MessagePgToSplunk _messageToSplunkPg;
         private int _machineStatusCounter = 6;
         private GenericSplunkLogger<IEntity> _splunkLogger;
-        private WifiParameters _wifiParameters; 
+        private WifiParameters _wifiParameters;
 
         private DispatcherTimer _timerScheduleForLogging;
         private TaskCompletionSource<bool> _dataIsSendingToSplunkCompletionSource = new TaskCompletionSource<bool>();
@@ -222,7 +222,7 @@ namespace ViSyncMaster.ViewModels
         [ObservableProperty]
         private int _rowForDowntimeReasonZebraPanel;
 
-        [ObservableProperty] 
+        [ObservableProperty]
         private int _rowForDowntimeReasonWtryskarkaPanel;
 
         [ObservableProperty]
@@ -251,6 +251,9 @@ namespace ViSyncMaster.ViewModels
 
         [ObservableProperty]
         private int _rowForDowntimeReasonTesterWodnyPanel;
+
+        [ObservableProperty]
+        private int _rowForDowntimeReasonLumbergPanel;
 
         [ObservableProperty]
         private bool _downtimePanelIsOpen = false;
@@ -326,6 +329,9 @@ namespace ViSyncMaster.ViewModels
 
         [ObservableProperty]
         private bool _downtimeReasonTesterWodnyPanelIsOpen = false;
+
+        [ObservableProperty]
+        private bool _downtimeReasonLumbergPanelIsOpen = false;
 
         [ObservableProperty]
         private bool _callForServicePanelIsOpen = false;
@@ -522,6 +528,8 @@ namespace ViSyncMaster.ViewModels
         [ObservableProperty]
         private ObservableGroupedCollection<string, DowntimeReasonTesterWodnyPanelItem> _downtimeReasonTesterWodnyPanel = default!;
 
+        [ObservableProperty]
+        private ObservableGroupedCollection<string, DowntimeReasonLumbergPanelItem> _downtimeReasonLumbergPanel = default!;
         #endregion
 
         #region ProportyChangedFor
@@ -668,56 +676,80 @@ namespace ViSyncMaster.ViewModels
 
         private void UpdateCallForServicePanel(int stepOfStatus, MachineStatus machineStatus)
         {
-            // Filtrowanie danych na podstawie StepOfStatus
-            var filteredItems = _allCallForServicePanelData // Upewnij się, że przechowujesz dane źródłowe w tej zmiennej
-                .Where(item =>
-                    (stepOfStatus == 0 && (item.Name.Contains("CallForService") || item.Name == "Exit")) ||
-                    (stepOfStatus == 1 && (item.Name == "ServiceArrival" || item.Name == "DowntimeReason" || item.Name == "Exit")) ||
-                    (stepOfStatus == 2 && (item.Name == "DowntimeReason" || item.Name == "Exit")))
-                .ToList();
+            List<CallForServicePanelItem> filteredItems;
 
-            // Zmiana statusu elementów na status przychodzący z machineStatus
+            // Krok 0 i status "PŁYTA" → tylko WEZWIJ SERWIS + EXIT
+            if (stepOfStatus == 0
+                && !string.IsNullOrEmpty(machineStatus.Status)
+                && machineStatus.Status.Equals("PŁYTA", StringComparison.InvariantCultureIgnoreCase))
+            {
+                filteredItems = _allCallForServicePanelData
+                    .Where(item =>
+                        item.Name == "CallForService" &&
+                        item.Status.Equals("WEZWIJ SERWIS", StringComparison.InvariantCultureIgnoreCase)
+                    )
+                    // doklejamy EXIT
+                    .Concat(_allCallForServicePanelData
+                        .Where(item => item.Name == "Exit"))
+                    .ToList();
+            }
+            else
+            {
+                // Normalne filtrowanie, ale bez CallForService o Statusie "WEZWIJ SERWIS"
+                filteredItems = _allCallForServicePanelData
+                    .Where(item =>
+                        // najpierw wykluczamy CallForService z status WEZWIJ SERWIS
+                        !(item.Name == "CallForService"
+                          && item.Status.Equals("WEZWIJ SERWIS", StringComparison.InvariantCultureIgnoreCase))
+                        &&
+                        // a potem oryginalne kryteria po kroku
+                        (
+                            (stepOfStatus == 0 && (item.Name == "CallForService" || item.Name == "Exit"))
+                         || (stepOfStatus == 1 && (item.Name == "ServiceArrival" || item.Name == "DowntimeReason" || item.Name == "Exit"))
+                         || (stepOfStatus == 2 && (item.Name == "DowntimeReason" || item.Name == "Exit"))
+                        )
+                    )
+                    .ToList();
+            }
 
-            //foreach (var item in filteredItems)
-            //{
-            //    if (item.Name == "CallForService")
-            //    {
-            //        item.SetStatusBasedOnRole(machineStatus.Status);
-            //    }
-            //}
-            // Grupowanie zaktualizowanych elementów
+            // Grupowanie i przypisanie do widoku
             var groupedItems = filteredItems.GroupBy(item => item.Value);
-            //
-            //
-            //// Aktualizacja CallForServicePanel
             CallForServicePanel = new ObservableGroupedCollection<string, CallForServicePanelItem>(groupedItems);
             RowForCallForServicePanel = LoadSizeOfGrid(filteredItems.Count);
-            //Debug.WriteLine($"CallForServicePanel updated with {filteredItems.Count} items.");
         }
 
         [RelayCommand]
         private async Task ReportMachineDowntime(MachineStatus item)
         {
             UpdateCallForServicePanel(0, item);
-            if (MachineStatuses.Any(status => status.Status == item.Status))
+            var itemWords = item.Status
+                .ToUpperInvariant()
+                .Split(new[] { ' ', '&' }, StringSplitOptions.RemoveEmptyEntries);
+
+            if (MachineStatuses.Any(s =>
+                itemWords.Any(w => s.Status.ToUpperInvariant().Contains(w))))
             {
-                // Powiadomienie, że status już istnieje.
                 ActualValueForWarrningNoticePopup(item);
                 return;
             }
             if (item.Name == "S7.DowntimeReason")
             {
                 _pendingMachineStatus.Reason = item.Reason;
-                HandleUnmappedStatus(_pendingMachineStatus);
+                await HandleUnmappedStatus(_pendingMachineStatus);
                 _pendingMachineStatus = null;
             }
             else
             {
                 CallForServicePanelIsOpen = true;
                 ControlPanelVisible = true;
-                _pendingMachineStatus = item;
-            }      
+                _pendingMachineStatus = item.DeepCopy();
+            }
             //LoadStatuses(this); // Zaktualizuj listę statusów
+            ControlPanelVisibility();
+        }
+
+        private void ControlPanelVisibility()
+        {
             SettingPanelIsOpen = false;
             DowntimePanelIsOpen = false;
             MaintenancePanelIsOpen = false;
@@ -737,6 +769,7 @@ namespace ViSyncMaster.ViewModels
             DowntimeReasonWalcarkaPanelIsOpen = false;
             DowntimeReasonTesterWodnyPanelIsOpen = false;
             DowntimeReasonBindownicaPanelIsOpen = false;
+            DowntimeReasonLumbergPanelIsOpen = false;
         }
 
 
@@ -745,7 +778,6 @@ namespace ViSyncMaster.ViewModels
         {
             if (MachineStatuses.Any(status => status.Status == item.Status))
             {
-                // Powiadomienie, że status już istnieje.
                 ActualValueForWarrningNoticePopup(item);
                 return;
             }
@@ -754,31 +786,26 @@ namespace ViSyncMaster.ViewModels
             if (item.Name == "S7.DowntimeReason")
             {
                 _pendingMachineStatus.Reason = item.Reason;
-                HandleUnmappedStatus(_pendingMachineStatus);
+                await HandleUnmappedStatus(_pendingMachineStatus);
                 _pendingMachineStatus = null;
             }
             else
             {
-                var newStatus = _machineStatusService.StartStatus(item);
-                var messagePgToSplunk = _splunkMessageHandler.PreparingPgMessageToSplunk(MachineStatuses, item, _machineStatusCounter);
+                var newStatus = item.DeepCopy();
+                await _machineStatusService.StartStatus(newStatus);
+                var messagePgToSplunk = _splunkMessageHandler.PreparingPgMessageToSplunk(MachineStatuses, newStatus, _machineStatusCounter);
                 await _machineStatusService.SendPgMessage((MessagePgToSplunk)messagePgToSplunk);
             }
             LoadStatuses(this); // Zaktualizuj listę statusów
-            SettingPanelIsOpen = false;
-            DowntimePanelIsOpen = false;
-            MaintenancePanelIsOpen = false;
-            LogisticPanelIsOpen = false;
-            ProductionIssuesPanelIsOpen = false;
-            DowntimeReasonLiderPanelIsOpen = false;
-            CallForServicePanelIsOpen = false;
+            ControlPanelVisibility();
             ControlPanelVisible = false;
         }
         [RelayCommand]
-        private void ActualStatusButtonPressed(MachineStatus machineStatus)
+        private async Task ActualStatusButtonPressed(MachineStatus machineStatus)
         {
             if (machineStatus.StepOfStatus == 0)
             {
-                HandleUnmappedStatus(machineStatus);
+                await HandleUnmappedStatus(machineStatus);
                 return;
             }
             UpdateCallForServicePanel(machineStatus.StepOfStatus, machineStatus);
@@ -805,7 +832,7 @@ namespace ViSyncMaster.ViewModels
             ControlPanelVisible = true;
         }
 
-        private async void HandleUnmappedStatus(MachineStatus machineStatus)
+        private async Task HandleUnmappedStatus(MachineStatus machineStatus)
         {
             IsActiveStatus = false;
             await _machineStatusService.EndStatus(machineStatus); // Kończenie statusu bez powodu
@@ -816,17 +843,15 @@ namespace ViSyncMaster.ViewModels
             DowntimeReasonKptjPanelIsOpen = false;
             DowntimeReasonPlatePanelIsOpen = false;
             ControlPanelVisible = false;
-
-            LoadStatuses(this);
         }
         [RelayCommand]
-        private void CallForServicePanelItemPressed(CallForServicePanelItem item)
+        private async Task CallForServicePanelItemPressed(CallForServicePanelItem item)
         {
             // Update the selected item 
             if (_pendingMachineStatus != null)
             {
                 // Scal brakujące dane z CallForServicePanelItem do _pendingMachineStatus
-                MergePendingMachineStatusWithPanelItem(_pendingMachineStatus, item);
+                await MergePendingMachineStatusWithPanelItem(_pendingMachineStatus, item);
 
                 // Rozpocznij nowy status
                 //var updatedStatus = _machineStatusService.StartStatus(_pendingMachineStatus);
@@ -834,7 +859,7 @@ namespace ViSyncMaster.ViewModels
                     _pendingMachineStatus = null; // Wyczyszczenie tymczasowego statusu po scaleniu
             }
         }
-        private async void MergePendingMachineStatusWithPanelItem(MachineStatus pendingStatus, CallForServicePanelItem panelItem)
+        private async Task MergePendingMachineStatusWithPanelItem(MachineStatus pendingStatus, CallForServicePanelItem panelItem)
         {
             string panelKey = "";
             panelKey = StatusParser.GetPanelKey(pendingStatus.Status);
@@ -847,7 +872,8 @@ namespace ViSyncMaster.ViewModels
             if (panelItem.Name == "CallForService")
             {
                 pendingStatus.CallForService = DateTime.Now;
-                pendingStatus.Status = $"{pendingStatus.Status} & {panelItem.Status}";
+                if (pendingStatus.Status != "PŁYTA")
+                    pendingStatus.Status = $"{pendingStatus.Status} & {panelItem.Status}";
                 await _machineStatusService.StartStatus(pendingStatus);
                 var messagePgToSplunk = _splunkMessageHandler.PreparingPgMessageToSplunk(MachineStatuses, pendingStatus, _machineStatusCounter);
                 await _machineStatusService.SendPgMessage((MessagePgToSplunk)messagePgToSplunk);
@@ -873,7 +899,7 @@ namespace ViSyncMaster.ViewModels
                 }
                 else
                 {
-                    HandleUnmappedStatus(pendingStatus);
+                    await HandleUnmappedStatus(pendingStatus);
                 }
                 CallForServicePanelIsOpen = false;
                 return;
@@ -1272,6 +1298,7 @@ namespace ViSyncMaster.ViewModels
             var downtimeReasonDozownikPanel = await mStatusInterfaceService.GetDowntimeReasonDozownikPanelAsync();
             var downtimeReasonWalcarkaPanel = await mStatusInterfaceService.GetDowntimeReasonWalcarkaPanelAsync();
             var downtimeReasonTesterWodnyPanel = await mStatusInterfaceService.GetDowntimeReasonTesterWodnyPanelAsync();
+            var downtimeReasonLumbergPanel = await mStatusInterfaceService.GetDowntimeReasonLumbergPanelAsync();
 
 
             // Create a grouping from the flat data
@@ -1342,7 +1369,7 @@ namespace ViSyncMaster.ViewModels
                 new ObservableGroupedCollection<string, SplunkPanelItem>(
                     splunkStatusPanel.GroupBy(item => item.Group));
 
-            CallForServicePanel = 
+            CallForServicePanel =
                 new ObservableGroupedCollection<string, CallForServicePanelItem>(
                 callForServicePanel.GroupBy(item => item.Value));
 
@@ -1421,6 +1448,11 @@ namespace ViSyncMaster.ViewModels
                 new ObservableGroupedCollection<string, DowntimeReasonTesterWodnyPanelItem>(
                 downtimeReasonTesterWodnyPanel.GroupBy(item => item.Name));
             RowForDowntimeReasonTesterWodnyPanel = LoadSizeOfGrid(downtimeReasonTesterWodnyPanel.Count);
+
+            DowntimeReasonLumbergPanel =
+                new ObservableGroupedCollection<string, DowntimeReasonLumbergPanelItem>(
+                downtimeReasonLumbergPanel.GroupBy(item => item.Name));
+            RowForDowntimeReasonLumbergPanel = LoadSizeOfGrid(downtimeReasonLumbergPanel.Count);
         }
 
         private int LoadSizeOfGrid(int numberOfElements)
@@ -1785,7 +1817,7 @@ namespace ViSyncMaster.ViewModels
             var activeMachineStatuses = await _repositoryMachineStatus.GetFromCache();
             var resultTestFromDb = await _repositoryTestingResult.GetFromCache();
             MachineStatuses = new ObservableCollection<MachineStatus>(activeMachineStatuses ?? new List<MachineStatus>());
-            ResultTest = new ObservableCollection<MachineStatus> (resultTestFromDb ?? new List<MachineStatus>());
+            ResultTest = new ObservableCollection<MachineStatus>(resultTestFromDb ?? new List<MachineStatus>());
         }
 
         private async Task InitializeAppFunctions()
@@ -1803,7 +1835,7 @@ namespace ViSyncMaster.ViewModels
             _timerForReSendMassage = new Timer(TimerCallback, null, TimeSpan.Zero, TimeSpan.FromSeconds(15));
             _timerForLoadStatuses = new Timer(LoadStatuses, null, TimeSpan.Zero, TimeSpan.FromSeconds(1));
 
-            _wifiParameters = new WifiParameters(); 
+            _wifiParameters = new WifiParameters();
 
             // Sprawdzenie trybu z pliku konfiguracyjnego
             if (appConfig.AppMode == "CUPP")
@@ -1883,7 +1915,7 @@ namespace ViSyncMaster.ViewModels
                     InstructionButtonIsVisible = true;
                     TargetPlanButtonIsVisible = true;
                     UserButtonIsVisible = false;
-                break;
+                    break;
 
                 case "CUPP":
                     OpenSerialPortButtonIsVisible = false;
@@ -1892,7 +1924,7 @@ namespace ViSyncMaster.ViewModels
                     InstructionButtonIsVisible = false;
                     TargetPlanButtonIsVisible = false;
                     UserButtonIsVisible = true;
-                break;
+                    break;
 
                 default:
                     OpenSerialPortButtonIsVisible = true;
@@ -1901,7 +1933,7 @@ namespace ViSyncMaster.ViewModels
                     InstructionButtonIsVisible = true;
                     TargetPlanButtonIsVisible = true;
                     UserButtonIsVisible = true;
-                break;
+                    break;
             }
         }
 
@@ -1944,14 +1976,14 @@ namespace ViSyncMaster.ViewModels
             _splunkMessageHandler = new SplunkMessageHandler();
             _mqttSender = new MqttMessageSender(mqttConfig.brokerHost, mqttConfig.brokerPort, appConfig.Source, mqttConfig.username, mqttConfig.password);
 
-            _machineStatusService = new MachineStatusService(_repositoryMachineStatus, _repositoryMachineStatusQueue, 
+            _machineStatusService = new MachineStatusService(_repositoryMachineStatus, _repositoryMachineStatusQueue,
                 _repositoryTestingResultQueue, _repositoryTestingResult, _repositoryProductionEfficiency, _repositoryFirstPartData, _messageSender, _messageQueue, _database, _mqttSender);
-            
+
 
             LoadStatuses(this);
             InitializeAsync();
 
-            
+
 
             if (appConfig.AppMode != null)
                 InitializeAppFunctions();

@@ -208,12 +208,22 @@ namespace ViSyncMaster.ViewModels
                 await FilterShift1Async();
             else if (now >= TimeSpan.Parse("13:40") && now < TimeSpan.Parse("21:40"))
                 await FilterShift2Async();
+            else if (now >= TimeSpan.Parse("13:40") && now < TimeSpan.Parse("5:40"))
+                await FilterShift3Async();
         }
 
-        // Command methods
-        [RelayCommand] public async Task FilterShift1Async() => await FilterByTimeRangeAsync(DateTime.Today, TimeSpan.Parse("05:40"), TimeSpan.Parse("13:40"));
-        [RelayCommand] public async Task FilterShift2Async() => await FilterByTimeRangeAsync(DateTime.Today, TimeSpan.Parse("13:40"), TimeSpan.Parse("21:40"));
-        [RelayCommand] public async Task FilterYesterdayShift2() => FilterByTimeRangeAsync(DateTime.Today.AddDays(-1), TimeSpan.Parse("13:40"), TimeSpan.Parse("21:40"));
+        // I zmiana
+        [RelayCommand]
+        public async Task FilterShift1Async() => await FilterByTimeRangeAsync(DateTime.Today, TimeSpan.Parse("05:40"), TimeSpan.Parse("13:40"));
+        // II zmiana
+        [RelayCommand]
+        public async Task FilterShift2Async() => await FilterByTimeRangeAsync(DateTime.Today, TimeSpan.Parse("13:40"), TimeSpan.Parse("21:40"));
+        // III zmiana
+        [RelayCommand]
+        public async Task FilterShift3Async() => await FilterByTimeRangeAsync(DateTime.Today, TimeSpan.Parse("21:40"), TimeSpan.Parse("05:40"));
+        // Zmiana III z wczoraj
+        [RelayCommand]
+        public async Task FilterYesterdayShift3Async() => await FilterByTimeRangeAsync(DateTime.Today.AddDays(-1), TimeSpan.Parse("21:40"), TimeSpan.Parse("05:40"));
 
         [RelayCommand]
         public async Task FilterWholeWeekAsync()
@@ -254,26 +264,23 @@ namespace ViSyncMaster.ViewModels
             UpdateChartData();
         }
 
+        private bool IsInShift(TimeSpan time, TimeSpan start, TimeSpan end)
+        {
+            return start <= end
+                ? time >= start && time < end
+                : time >= start || time < end;
+        }
+
         private async Task FilterByTimeRangeAsync(DateTime date, TimeSpan start, TimeSpan end)
         {
-            // 1) Filtrujemy oryginalne dane do listy
             var filtered = _originalResultTestList
                 .Where(x => x.StartTime.HasValue
                          && x.StartTime.Value.Date == date
-                         && x.StartTime.Value.TimeOfDay >= start
-                         && x.StartTime.Value.TimeOfDay <= end)
+                         && IsInShift(x.StartTime.Value.TimeOfDay, start, end))
                 .ToList();
 
-            // 2) Diff-update ResultTestList w miejscu (Add/Remove bez nowego obiektu)
             ResultTestList.SyncWith(filtered, x => x.Id);
-
-            // 3) Na UI-thread odświeżamy GroupedResultList in-place
-            await Dispatcher.UIThread.InvokeAsync(() =>
-            {
-                RefreshGroupedResultList();
-            });
-
-            // 4) (Opcjonalnie) Wylicz i wyślij liczniki pass/fail – czekamy na wynik
+            await Dispatcher.UIThread.InvokeAsync(RefreshGroupedResultList);
             await GroupByPassedFailedAndTotalCounterAsync(ResultTestList);
         }
 

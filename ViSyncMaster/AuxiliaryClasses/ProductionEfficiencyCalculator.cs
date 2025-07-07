@@ -99,10 +99,6 @@ namespace ViSyncMaster.AuxiliaryClasses
             // Oczekiwana wydajność w procentach (czyli ile % targetu powinno być zrobione do tej godziny)
             expectedEfficiency = (elapsedTime.TotalHours / totalShiftDuration.TotalHours) * 100;
         }
-
-
-
-
     }
 }
  

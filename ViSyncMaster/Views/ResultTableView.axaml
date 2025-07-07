@@ -87,7 +87,13 @@
 								FontSize="18"
 						        Margin="10, 5, 10, 5"
 								FontWeight="Bold"/>
-				<Button Content="ZM 2 WCZORAJ (13:40 - 21:40)" Command="{Binding FilterYesterdayShift2Command}"
+				<Button Content="ZM 3 (21:40 - 05:40)" Command="{Binding FilterShift3Command}"
+								Background="#0B0A0F"
+								Foreground="WhiteSmoke"
+								FontSize="18"
+								Margin="10, 5, 10, 5"
+								FontWeight="Bold"/>
+				<Button Content="ZM 3 WCZORAJ (21:40 - 05:40)" Command="{Binding FilterYesterdayShift3Command}"
 						        Background="#0B0A0F"
 								Foreground="WhiteSmoke"
 								FontSize="18"

@@ -42,5 +42,6 @@ namespace ViSyncMaster.Services
         Task<List<DowntimeReasonWalcarkaPanelItem>> GetDowntimeReasonWalcarkaPanelAsync();       
         Task<List<DowntimeReasonTesterWodnyPanelItem>> GetDowntimeReasonTesterWodnyPanelAsync(); 
         Task<List<DowntimeReasonTesterPanelItem>> GetDowntimeReasonTesterPanelAsync();
+        Task<List<DowntimeReasonLumbergPanelItem>> GetDowntimeReasonLumbergPanelAsync();
     }
 }

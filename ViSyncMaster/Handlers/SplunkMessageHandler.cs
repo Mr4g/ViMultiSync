@@ -11,6 +11,7 @@ namespace ViSyncMaster.Handlers
     public class SplunkMessageHandler
     {
         private MessagePgToSplunk _messageToSplunkPg;
+        private int _singleStatus;
         public object PreparingPgMessageToSplunk(ObservableCollection<MachineStatus> machineStatuses, int machineStatusCounter)
         {
 
@@ -84,6 +85,11 @@ namespace ViSyncMaster.Handlers
                 {
                     newStatus = singleStatus;
                 }
+            }
+            bool anyStillActive = machineStatuses != null && machineStatuses.Any(ms => ms.IsActive);
+            if (machineStatus != null && !machineStatus.IsActive && !anyStillActive)
+            {
+                newStatus = 6;
             }
 
             // Ustawienie statusu w obiekcie Splunk
