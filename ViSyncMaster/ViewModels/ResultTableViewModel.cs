@@ -47,7 +47,8 @@ namespace ViSyncMaster.ViewModels
         [ObservableProperty] private int _target = -1;
         [ObservableProperty] private int _totalUnitsProduced;
         [ObservableProperty] private double _expectedEfficiency;
-        [ObservableProperty] private double _currentEfficiency;
+        [ObservableProperty] private double _machineEfficiency;
+        [ObservableProperty] private double _humanEfficiency;
         [ObservableProperty] private double _expectedOutput;
 
         [ObservableProperty] private int _totalCount;
@@ -109,7 +110,7 @@ namespace ViSyncMaster.ViewModels
                         TotalPartsProducedChart.Value = TotalUnitsProduced;
                         ExpectedPartsChart.Value = ExpectedOutput;
                         TargetPartsChart.Value = Target;
-                        Needle.Value = CurrentEfficiency;
+                        Needle.Value = HumanEfficiency;
                         SeriesExpectedEfficiency[0].Values = new double[] { ExpectedEfficiency };
                     });
                 }
@@ -208,7 +209,7 @@ namespace ViSyncMaster.ViewModels
                 await FilterShift1Async();
             else if (now >= TimeSpan.Parse("13:40") && now < TimeSpan.Parse("21:40"))
                 await FilterShift2Async();
-            else if (now >= TimeSpan.Parse("13:40") && now < TimeSpan.Parse("5:40"))
+            else if (now >= TimeSpan.Parse("21:40") || now < TimeSpan.Parse("05:40"))
                 await FilterShift3Async();
         }
 
@@ -337,15 +338,17 @@ namespace ViSyncMaster.ViewModels
             _efficiencyCalculator.CalculateEfficiency(
                 Target,
                 data,
+                DateTime.Now,
                 out int produced,
                 out double expectedOut,
-                out double achievedEff,
-                out double expectedEff);
+                out double machineEff,
+                out double humanEff);
 
             TotalUnitsProduced = produced;
             ExpectedOutput = Math.Round(expectedOut, 0);
-            CurrentEfficiency = Math.Round(achievedEff, 1);
-            ExpectedEfficiency = Math.Round(expectedEff, 1);
+            MachineEfficiency = Math.Round(machineEff, 1);
+            HumanEfficiency = Math.Round(humanEff, 1);
+            ExpectedEfficiency = Target > 0 ? Math.Round(expectedOut / Target * 100, 1) : 0;
         }
 
         private async Task UpdateChartData()
@@ -356,7 +359,7 @@ namespace ViSyncMaster.ViewModels
             TotalPartsProducedChart.Value = TotalUnitsProduced;
             ExpectedPartsChart.Value = ExpectedOutput;
             TargetPartsChart.Value = Target;
-            Needle.Value = CurrentEfficiency;
+            Needle.Value = HumanEfficiency;
             SeriesExpectedEfficiency[0].Values = new double[] { ExpectedEfficiency };
         }
 
@@ -379,7 +382,7 @@ namespace ViSyncMaster.ViewModels
         }
         private async Task SendDataAsync()
         {
-            _productionEfficiency.Efficiency = CurrentEfficiency;
+            _productionEfficiency.Efficiency = HumanEfficiency;
             _productionEfficiency.EfficiencyRequired = ExpectedEfficiency;
             _productionEfficiency.Target = Target;
             _productionEfficiency.Plan = (int)Math.Round(ExpectedOutput);

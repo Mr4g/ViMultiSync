@@ -9,95 +9,108 @@ namespace ViSyncMaster.AuxiliaryClasses
     {
         private readonly TimeSpan _shiftStart;
         private readonly TimeSpan _shiftEnd;
-        private readonly TimeSpan _break1Start;
-        private readonly TimeSpan _break1End;
-        private readonly TimeSpan _break2Start;
-        private readonly TimeSpan _break2End;
-        private readonly TimeSpan _startUp;
         private readonly TimeSpan _shutDown;
+        private readonly TimeSpan _planStart;
+        private readonly bool _crossMidnight;
+        private readonly List<ShiftBreak> _breaks;
 
         public ProductionEfficiencyCalculator(bool isShift1)
+                : this(isShift1 ? ShiftPlan.CreateDefaultShift1()
+                                 : ShiftPlan.CreateDefaultShift2())
         {
-            if (isShift1)
-            {
-                _shiftStart = TimeSpan.Parse("05:40");
-                _shiftEnd = TimeSpan.Parse("13:40");
-                _break1Start = TimeSpan.Parse("09:40");
-                _break1End = TimeSpan.Parse("10:00");
-                _break2Start = TimeSpan.Parse("12:00");
-                _break2End = TimeSpan.Parse("12:10");
-                _startUp = TimeSpan.Parse("05:40");
-                _shutDown = TimeSpan.Parse("13:35");
-            }
-            else
-            {
-                _shiftStart = TimeSpan.Parse("13:40");
-                _shiftEnd = TimeSpan.Parse("05:40");
-                _break1Start = TimeSpan.Parse("21:40");
-                _break1End = TimeSpan.Parse("22:00");
-                _break2Start = TimeSpan.Parse("00:00");
-                _break2End = TimeSpan.Parse("00:10");
-                _startUp = TimeSpan.Parse("13:40");
-                _shutDown = TimeSpan.Parse("05:35");
-            }
         }
+
+        public ProductionEfficiencyCalculator(ShiftPlan plan)
+        {
+            _shiftStart = plan.ShiftStart;
+            _shiftEnd = plan.ShiftEnd;
+            _planStart = plan.PlanStart;
+            _shutDown = plan.ShutDown;
+            _breaks = plan.Breaks ?? new List<ShiftBreak>();
+            _crossMidnight = _shiftEnd < _shiftStart;
+        }
+
 
         // Metoda do obliczenia wydajności na podstawie targetu i liczby sztuk
         public void CalculateEfficiency(
             int target,
             List<(DateTime Time, int PassedUnits)> efficiencyDataList,
+            DateTime now,
             out int totalUnitsProduced,
             out double expectedOutput,
-            out double achievedEfficiency,
-            out double expectedEfficiency)
+            out double machineEfficiency,
+            out double humanEfficiency)
         {
-            // Określenie, która zmiana jest aktywna
-            TimeSpan shiftStart = TimeSpan.Zero;
-            TimeSpan shiftEnd = TimeSpan.Zero;
+            totalUnitsProduced = efficiencyDataList.Sum(x => x.PassedUnits);
 
-            if (DateTime.Now.TimeOfDay >= TimeSpan.Parse("05:40") && DateTime.Now.TimeOfDay < TimeSpan.Parse("13:40"))
+            // Determine key times
+            var shiftStartDate = now.Date.Add(_shiftStart);
+            if (now.TimeOfDay < _shiftStart)
+                shiftStartDate = shiftStartDate.AddDays(-1);
+
+            var planStart = GetDateTime(shiftStartDate, _planStart);
+            var shutDown = GetDateTime(shiftStartDate, _shutDown);
+            var current = now > shutDown ? shutDown : now;
+
+            var netShiftMinutes = NetMinutes(planStart, shutDown);
+            var elapsedPlanMinutes = NetMinutes(planStart, current);
+
+            if (netShiftMinutes <= 0 || target <= 0)
             {
-                // Zmiana 1: 05:40 - 13:40
-                shiftStart = TimeSpan.Parse("05:40");
-                shiftEnd = TimeSpan.Parse("13:40");
-            }
-            else if (DateTime.Now.TimeOfDay >= TimeSpan.Parse("13:40") && DateTime.Now.TimeOfDay < TimeSpan.Parse("21:40"))
-            {
-                // Zmiana 2: 13:40 - 21:40
-                shiftStart = TimeSpan.Parse("13:40");
-                shiftEnd = TimeSpan.Parse("21:40");
-            }
-            else
-            {
-                // Poza aktywnymi zmianami
-                totalUnitsProduced = 0;
                 expectedOutput = 0;
-                achievedEfficiency = 0;
-                expectedEfficiency = 0;
+                machineEfficiency = 0;
+                humanEfficiency = 0;
                 return;
             }
 
-            // Czas trwania zmiany
-            var totalShiftDuration = shiftEnd - shiftStart;
+            expectedOutput = target * (elapsedPlanMinutes / netShiftMinutes);
 
-            // Liczba wyprodukowanych jednostek
-            totalUnitsProduced = efficiencyDataList.Sum(x => x.PassedUnits);
+            var expectedFromShiftStart = expectedOutput;
 
-            // Czas, który upłynął od rozpoczęcia zmiany
-            var currentTime = DateTime.Now.TimeOfDay;
-            var elapsedTime = currentTime - shiftStart;
+            machineEfficiency = expectedFromShiftStart > 0
+                ? totalUnitsProduced / expectedFromShiftStart * 100
+                : 0;
 
-            // Obliczanie oczekiwanej liczby sztuk
-            expectedOutput = target * (elapsedTime.TotalHours / totalShiftDuration.TotalHours);
+            // Human efficiency from first produced piece
+            if (efficiencyDataList == null || efficiencyDataList.Count == 0)
+            {
+                humanEfficiency = machineEfficiency; // preserve old behaviour
+                return;
+            }
 
-            // Obliczanie targetu na godzinę
-            var targetPerHour = target / totalShiftDuration.TotalHours;
+            var firstPieceTime = efficiencyDataList.Min(x => x.Time);
+            if (firstPieceTime < planStart)
+                firstPieceTime = planStart;
 
-            // Osiągnięta wydajność jako procent produkcji względem oczekiwanej produkcji
-            achievedEfficiency = (totalUnitsProduced / expectedOutput) * 100;
+            var elapsedFromFirstPiece = NetMinutes(firstPieceTime, current);
+            var expectedFromFirstPiece = target * (elapsedFromFirstPiece / netShiftMinutes);
+            humanEfficiency = expectedFromFirstPiece > 0
+                ? totalUnitsProduced / expectedFromFirstPiece * 100
+                : machineEfficiency;
+        }
 
-            // Oczekiwana wydajność w procentach (czyli ile % targetu powinno być zrobione do tej godziny)
-            expectedEfficiency = (elapsedTime.TotalHours / totalShiftDuration.TotalHours) * 100;
+        private DateTime GetDateTime(DateTime shiftStartDate, TimeSpan ts)
+        {
+            var dt = shiftStartDate.Date.Add(ts);
+            if (_crossMidnight && ts < _shiftStart)
+                dt = dt.AddDays(1);
+            return dt;
+        }
+
+        private double NetMinutes(DateTime from, DateTime to)
+        {
+            if (to <= from) return 0;
+            double minutes = (to - from).TotalMinutes;
+            foreach (var br in _breaks)
+            {
+                var bs = GetDateTime(from, br.Start);
+                var be = GetDateTime(from, br.End);
+                if (be <= from || bs >= to) continue;
+                var s = bs < from ? from : bs;
+                var e = be > to ? to : be;
+                if (e > s) minutes -= (e - s).TotalMinutes;
+            }
+            return minutes;
         }
     }
 }
