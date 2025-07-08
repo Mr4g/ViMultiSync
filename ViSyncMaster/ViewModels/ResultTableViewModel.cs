@@ -118,6 +118,8 @@ namespace ViSyncMaster.ViewModels
                         TargetPartsChart.Value = Target;
                         Needle.Value = Math.Clamp(HumanEfficiency, 0, 200);
                         SeriesExpectedEfficiency[0].Values = new double[] { ExpectedEfficiency };
+                        // 6) Update Plan table
+                        UpdateHourlyPlanData();
                     });
                 }
                 finally
@@ -584,6 +586,8 @@ namespace ViSyncMaster.ViewModels
                 .ToList();
 
             var current = firstPiece;
+
+            // Obliczamy już raz dla pierwszego punktu
             _efficiencyCalculator.CalculateEfficiency(Target, data, current,
                 out _, out double expectedCurrent, out _, out _, out _, out _);
             int producedCurrent = data.Where(d => d.Item1 < current).Sum(d => d.Item2);
@@ -591,9 +595,18 @@ namespace ViSyncMaster.ViewModels
             int prevExpected = (int)Math.Round(expectedCurrent);
             int prevProduced = producedCurrent;
 
+            // Flaga oznaczająca pierwszą iterację
+            bool isFirst = true;
+
             while (current < end)
             {
-                var nextHour = current.AddHours(1);
+                // Dla pierwszej iteracji idziemy do najbliższej pełnej godziny,
+                // w kolejnych po prostu dodajemy 1 godzinę
+                DateTime nextHour = isFirst
+                    ? new DateTime(current.Year, current.Month, current.Day, current.Hour, 0, 0)
+                        .AddHours(1)
+                    : current.AddHours(1);
+
                 var nextBreak = breaks.FirstOrDefault(b => b.Start > current);
                 var nextBreakStart = nextBreak != default ? nextBreak.Start : DateTime.MaxValue;
 
@@ -615,10 +628,14 @@ namespace ViSyncMaster.ViewModels
                     IsBreakActive = false
                 });
 
+                // Po pierwszym fragmencie wyłączamy flagę
+                isFirst = false;
+
                 prevExpected += expectedDiff;
                 prevProduced += producedDiff;
                 current = nextBoundary;
 
+                // Jeśli w tym miejscu zaczyna się przerwa, dodajemy wpis o przerwie
                 if (nextBreak != default && nextBreak.Start == nextBoundary)
                 {
                     var breakEnd = nextBreak.End < end ? nextBreak.End : end;
@@ -635,6 +652,7 @@ namespace ViSyncMaster.ViewModels
 
                     current = breakEnd;
 
+                    // Po przerwie recalkulujemy oczekiwane i wyprodukowane
                     _efficiencyCalculator.CalculateEfficiency(Target, data, current,
                         out _, out double expectedAfterBreak, out _, out _, out _, out _);
                     prevExpected = (int)Math.Round(expectedAfterBreak);
@@ -643,6 +661,18 @@ namespace ViSyncMaster.ViewModels
                     breaks.Remove(nextBreak);
                 }
             }
+
+            // summary row
+            var summary = new HourlyPlan
+            {
+                Time = "TOTAL",
+                ExpectedUnits = HourlyPlan.Sum(p => p.ExpectedUnits),
+                ProducedUnits = HourlyPlan.Sum(p => p.ProducedUnits),
+                IsBreak = false,
+                IsBreakActive = false
+            };
+
+            HourlyPlan.Add(summary);
         }
     }
 }

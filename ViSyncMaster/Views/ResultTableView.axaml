@@ -171,7 +171,14 @@
 						<DataTemplate>
 							<Grid>
 								<Grid IsVisible="{Binding IsBreak, Converter={StaticResource InverseBoolConverter}}">
-									<ProgressBar Minimum="0" Maximum="{Binding ExpectedUnits}" Value="{Binding ProducedUnits}"/>
+									<ProgressBar Minimum="0"
+										 Maximum="{Binding ExpectedUnits}"
+										 Value="{Binding ProducedUnits}"
+										 HorizontalAlignment="Stretch"
+										 Height="20"
+										 Margin="0,2"
+										 Foreground="Green"
+										 Background="#1D1F27"/>
 									<TextBlock Text="{Binding ProducedUnits}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
 								</Grid>
 								<TextBlock Text="PRZERWA" HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding IsBreak}"/>
@@ -188,9 +195,9 @@
 		<StackPanel Grid.Row="3" Grid.Column="3" Orientation="Vertical" HorizontalAlignment="Center" Margin="30" VerticalAlignment="Center">
 			<!-- Wiersz z dwoma wykresami kołowymi -->
 			<Border CornerRadius="28" Background="#0B0A0F" HorizontalAlignment="Center">
-				<StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+				<StackPanel Orientation="Vertical" HorizontalAlignment="Center">
 					<!-- Pierwszy wykres kołowy -->
-					<StackPanel Orientation="Vertical" HorizontalAlignment="Center" Margin="10">
+					<StackPanel Orientation="Vertical" HorizontalAlignment="Center" Margin="5">
 						<lvc:PieChart
 							Series="{Binding SeriesEfficiency}"
 							VisualElements="{Binding VisualElements}"
@@ -202,6 +209,32 @@
 						</lvc:PieChart>
 						<TextBlock Text="Wydajność [%]" HorizontalAlignment="Center" FontSize="16" Foreground="White"/>
 					</StackPanel>
+					<!-- Panel sterowania (przyciski, textbox, targety) -->
+					<Border CornerRadius="10" Background="#0B0A0F" Margin="5" VerticalAlignment="Center" HorizontalAlignment="Center">
+						<StackPanel Orientation="Horizontal">
+
+							<!-- Tekstowe pole do wprowadzania targetu -->
+							<TextBox Width="100" Height="50" Margin="10"
+									 Text="{Binding Target, Mode=TwoWay}"
+									 Watermark="Wprowadź target"
+									 HorizontalAlignment="Center"
+									 FontSize="20"
+									 Padding="10"
+									 Background="DarkGray"
+									 Foreground="Black"
+									 BorderThickness="2"/>
+
+							<!-- Przycisk do zapisu targetu -->
+							<Button Content="Zapisz Target" MinWidth="100" MinHeight="40" HorizontalContentAlignment="Right" Margin="10"
+									Command="{Binding SaveTargetCommand}"
+									Background="OrangeRed"
+									Padding="10"
+									Foreground="WhiteSmoke"
+									FontSize="18"
+									FontWeight="Bold"
+									HorizontalAlignment="Right"/>
+						</StackPanel>
+					</Border>
 				</StackPanel>
 			</Border>
 		</StackPanel>
@@ -232,37 +265,6 @@
 			</Border>
 		</StackPanel>-->
 
-
-
-
-
-
-		<!-- Panel sterowania (przyciski, textbox, targety) -->
-		<Border Grid.Row="4" Grid.Column="2" Grid.ColumnSpan="1" CornerRadius="10" Background="#0B0A0F" Margin="10" VerticalAlignment="Center">
-			<StackPanel Orientation="Horizontal">
-
-				<!-- Tekstowe pole do wprowadzania targetu -->
-				<TextBox Width="100" Height="50" Margin="20"
-						 Text="{Binding Target, Mode=TwoWay}"
-						 Watermark="Wprowadź target"
-						 HorizontalAlignment="Center"
-						 FontSize="20"
-						 Padding="10"
-					     Background="DarkGray"
-					     Foreground="Black"
-					     BorderThickness="2"/>
-
-				<!-- Przycisk do zapisu targetu -->
-				<Button Content="Zapisz Target" MinWidth="100" MinHeight="40" HorizontalContentAlignment="Right" Margin="20"
-						Command="{Binding SaveTargetCommand}"
-						Background="OrangeRed"
-						Padding="10"
-						Foreground="WhiteSmoke"
-						FontSize="18"
-						FontWeight="Bold"
-						HorizontalAlignment="Right"/>
-			</StackPanel>
-		</Border>
 	</Grid>
 
 
