@@ -12,11 +12,12 @@
              RequestedThemeVariant="Default">
 
 
-    <Application.Resources>
+	<Application.Resources>
 		<converters:BoolToBrushConverter x:Key="BoolToBrushConverter"/>
 		<converters:BoolToThicknessConverter x:Key="BoolToThicknessConverter"/>
-        <SolidColorBrush x:Key="OrangeRedBrush" Color="OrangeRed" />
-        <SolidColorBrush x:Key="GrayBrush" Color="Gray" />
+		<converters:InverseBoolConverter x:Key="InverseBoolConverter"/>
+		<SolidColorBrush x:Key="OrangeRedBrush" Color="OrangeRed" />
+		<SolidColorBrush x:Key="GrayBrush" Color="Gray" />
 		<views:TimeSpanToStringConverter x:Key="TimeSpanToStringConverter" />
 		<views:NullToZeroConverter x:Key="NullToZeroConverter"/>
 	</Application.Resources>

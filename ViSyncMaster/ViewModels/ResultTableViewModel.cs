@@ -538,7 +538,7 @@ namespace ViSyncMaster.ViewModels
                 GroupedResultList.Add(_totalRow);
             // jeśli masz dodatkowe pola
         }
-         private void UpdateHourlyPlanData()
+        private void UpdateHourlyPlanData()
         {
             HourlyPlan.Clear();
 
@@ -547,6 +547,7 @@ namespace ViSyncMaster.ViewModels
             var data = ResultTestList
                 .Where(x => x.StartTime.HasValue)
                 .Select(x => (x.StartTime!.Value, x.Name == "S7.TestingPassed" ? 1 : 0))
+                .OrderBy(x => x.Item1)
                 .ToList();
 
             if (data.Count == 0) return;
@@ -562,40 +563,85 @@ namespace ViSyncMaster.ViewModels
             };
 
             var shiftStartDate = firstPiece.Date;
-            if (plan.ShiftEnd < plan.ShiftStart && firstPiece.TimeOfDay < plan.ShiftStart)
+            var crossMidnight = plan.ShiftEnd < plan.ShiftStart;
+            if (crossMidnight && firstPiece.TimeOfDay < plan.ShiftStart)
                 shiftStartDate = shiftStartDate.AddDays(-1);
 
-            var end = shiftStartDate.Add(plan.ShiftEnd);
-            if (plan.ShiftEnd < plan.ShiftStart)
-                end = end.AddDays(1);
-
-            var t = firstPiece;
-
-            while (t <= end)
+            DateTime GetDateTime(TimeSpan ts)
             {
-                _efficiencyCalculator.CalculateEfficiency(Target, data, t,
-                    out _, out double expected, out _, out _, out _, out _);
-                int produced = data.Where(d => d.Item1 <= t).Sum(d => d.Item2);
-                HourlyPlan.Add(new HourlyPlan
-                {
-                    Time = t.ToString("HH:mm"),
-                    ExpectedUnits = (int)Math.Round(expected),
-                    ProducedUnits = produced
-                });
-                t = t.AddHours(1);
+                var dt = shiftStartDate.Date.Add(ts);
+                if (crossMidnight && ts < plan.ShiftStart)
+                    dt = dt.AddDays(1);
+                return dt;
             }
 
-            if (HourlyPlan.Count == 0 || HourlyPlan.Last().Time != end.ToString("HH:mm"))
+            var end = GetDateTime(plan.ShutDown);
+
+            var breaks = plan.Breaks
+                .Select(b => (Start: GetDateTime(b.Start), End: GetDateTime(b.End)))
+                .Where(b => b.End > firstPiece && b.Start < end)
+                .OrderBy(b => b.Start)
+                .ToList();
+
+            var current = firstPiece;
+            _efficiencyCalculator.CalculateEfficiency(Target, data, current,
+                out _, out double expectedCurrent, out _, out _, out _, out _);
+            int producedCurrent = data.Where(d => d.Item1 < current).Sum(d => d.Item2);
+
+            int prevExpected = (int)Math.Round(expectedCurrent);
+            int prevProduced = producedCurrent;
+
+            while (current < end)
             {
-                _efficiencyCalculator.CalculateEfficiency(Target, data, end,
-                    out _, out double expected, out _, out _, out _, out _);
-                int produced = data.Where(d => d.Item1 <= end).Sum(d => d.Item2);
+                var nextHour = current.AddHours(1);
+                var nextBreak = breaks.FirstOrDefault(b => b.Start > current);
+                var nextBreakStart = nextBreak != default ? nextBreak.Start : DateTime.MaxValue;
+
+                var nextBoundary = new[] { nextHour, nextBreakStart, end }.Min();
+
+                _efficiencyCalculator.CalculateEfficiency(Target, data, nextBoundary,
+                    out _, out double expectedBoundary, out _, out _, out _, out _);
+                int producedBoundary = data.Where(d => d.Item1 < nextBoundary).Sum(d => d.Item2);
+
+                int expectedDiff = (int)Math.Round(expectedBoundary) - prevExpected;
+                int producedDiff = producedBoundary - prevProduced;
+
                 HourlyPlan.Add(new HourlyPlan
                 {
-                    Time = end.ToString("HH:mm"),
-                    ExpectedUnits = (int)Math.Round(expected),
-                    ProducedUnits = produced
+                    Time = $"{current:HH:mm}-{nextBoundary:HH:mm}",
+                    ExpectedUnits = expectedDiff,
+                    ProducedUnits = producedDiff,
+                    IsBreak = false,
+                    IsBreakActive = false
                 });
+
+                prevExpected += expectedDiff;
+                prevProduced += producedDiff;
+                current = nextBoundary;
+
+                if (nextBreak != default && nextBreak.Start == nextBoundary)
+                {
+                    var breakEnd = nextBreak.End < end ? nextBreak.End : end;
+                    bool isActive = DateTime.Now >= nextBreak.Start && DateTime.Now < breakEnd;
+
+                    HourlyPlan.Add(new HourlyPlan
+                    {
+                        Time = $"{nextBreak.Start:HH:mm}-{breakEnd:HH:mm}",
+                        ExpectedUnits = 0,
+                        ProducedUnits = 0,
+                        IsBreak = true,
+                        IsBreakActive = isActive
+                    });
+
+                    current = breakEnd;
+
+                    _efficiencyCalculator.CalculateEfficiency(Target, data, current,
+                        out _, out double expectedAfterBreak, out _, out _, out _, out _);
+                    prevExpected = (int)Math.Round(expectedAfterBreak);
+                    prevProduced = data.Where(d => d.Item1 < current).Sum(d => d.Item2);
+
+                    breaks.Remove(nextBreak);
+                }
             }
         }
     }
