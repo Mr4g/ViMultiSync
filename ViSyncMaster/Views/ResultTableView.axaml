@@ -263,9 +263,7 @@
 					</StackPanel>
 				</StackPanel>
 			</Border>
-		</StackPanel>-->
-
-	</Grid>
-
+                </StackPanel>-->
+		</Grid>
 
 </UserControl>

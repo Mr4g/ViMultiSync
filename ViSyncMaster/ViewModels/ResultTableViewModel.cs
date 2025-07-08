@@ -47,6 +47,9 @@ namespace ViSyncMaster.ViewModels
         [ObservableProperty] private ObservableCollection<MachineStatus> _resultTestList;
         [ObservableProperty] private ObservableCollection<MachineStatusGrouped> _groupedResultList = new();
         [ObservableProperty] private ObservableCollection<HourlyPlan> _hourlyPlan = new();
+        [ObservableProperty] private ObservableCollection<TimelineSegment> _timelineSegments = new();
+        [ObservableProperty] private double _currentTimeMarker;
+        [ObservableProperty] private double _timelineWidth = 600;
         [ObservableProperty] private int _target = -1;
         [ObservableProperty] private int _totalUnitsProduced;
         [ObservableProperty] private double _expectedEfficiency;
