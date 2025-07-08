@@ -11,5 +11,6 @@ namespace ViSyncMaster.DataModel
     {
         [ObservableProperty] private string _time;
         [ObservableProperty] private int _expectedUnits;
+        [ObservableProperty] private int _producedUnits;
     }
 }

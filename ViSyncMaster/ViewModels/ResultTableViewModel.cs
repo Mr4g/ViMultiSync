@@ -538,7 +538,7 @@ namespace ViSyncMaster.ViewModels
                 GroupedResultList.Add(_totalRow);
             // jeśli masz dodatkowe pola
         }
-        private void UpdateHourlyPlanData()
+         private void UpdateHourlyPlanData()
         {
             HourlyPlan.Clear();
 
@@ -576,7 +576,13 @@ namespace ViSyncMaster.ViewModels
             {
                 _efficiencyCalculator.CalculateEfficiency(Target, data, t,
                     out _, out double expected, out _, out _, out _, out _);
-                HourlyPlan.Add(new HourlyPlan { Time = t.ToString("HH:mm"), ExpectedUnits = (int)Math.Round(expected) });
+                int produced = data.Where(d => d.Item1 <= t).Sum(d => d.Item2);
+                HourlyPlan.Add(new HourlyPlan
+                {
+                    Time = t.ToString("HH:mm"),
+                    ExpectedUnits = (int)Math.Round(expected),
+                    ProducedUnits = produced
+                });
                 t = t.AddHours(1);
             }
 
@@ -584,7 +590,13 @@ namespace ViSyncMaster.ViewModels
             {
                 _efficiencyCalculator.CalculateEfficiency(Target, data, end,
                     out _, out double expected, out _, out _, out _, out _);
-                HourlyPlan.Add(new HourlyPlan { Time = end.ToString("HH:mm"), ExpectedUnits = (int)Math.Round(expected) });
+                int produced = data.Where(d => d.Item1 <= end).Sum(d => d.Item2);
+                HourlyPlan.Add(new HourlyPlan
+                {
+                    Time = end.ToString("HH:mm"),
+                    ExpectedUnits = (int)Math.Round(expected),
+                    ProducedUnits = produced
+                });
             }
         }
     }
