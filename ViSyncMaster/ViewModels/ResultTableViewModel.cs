@@ -569,8 +569,7 @@ namespace ViSyncMaster.ViewModels
             if (plan.ShiftEnd < plan.ShiftStart)
                 end = end.AddDays(1);
 
-            var t = new DateTime(firstPiece.Year, firstPiece.Month, firstPiece.Day, firstPiece.Hour, 0, 0);
-            if (t < firstPiece) t = t.AddHours(1);
+            var t = firstPiece;
 
             while (t <= end)
             {
