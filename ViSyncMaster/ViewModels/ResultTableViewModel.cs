@@ -675,13 +675,19 @@ namespace ViSyncMaster.ViewModels
                 }
             }
 
+            var expectedTotal = HourlyPlan.Sum(p => p.ExpectedUnits);
+            var producedTotal = HourlyPlan.Sum(p => p.ProducedUnits);
+            var downtimeTotal = HourlyPlan.Sum(p => p.DowntimeMinutes);
+            var lostDueToDowntime = Target > expectedTotal ? Target - expectedTotal : 0;
+
             // wiersz podsumowania
             var summary = new HourlyPlan
             {
                 Time = "TOTAL",
-                ExpectedUnits = HourlyPlan.Sum(p => p.ExpectedUnits),
-                ProducedUnits = HourlyPlan.Sum(p => p.ProducedUnits),
-                DowntimeMinutes = HourlyPlan.Sum(p => p.DowntimeMinutes),
+                ExpectedUnits = expectedTotal,
+                ProducedUnits = producedTotal,
+                DowntimeMinutes = downtimeTotal,
+                LostUnitsDueToDowntime = lostDueToDowntime,
                 IsBreak = false,
                 IsBreakActive = false
             };

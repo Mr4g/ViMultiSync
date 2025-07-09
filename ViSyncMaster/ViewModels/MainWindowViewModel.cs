@@ -1640,23 +1640,35 @@ namespace ViSyncMaster.ViewModels
 
         private async Task ReSendMessageToSplunk(object state)
         {
-            Ssid = _wifiParameters.FetchWifiName();
-            if (appConfig.AppMode == "VRSKT")
+            var piece = new Rs232Data
             {
-                var messagePgToSplunk = _splunkMessageHandler.PreparingPgMessageToSplunk(MachineStatuses, _machineStatusCounter);
-                await _machineStatusService.SendPgMessage((MessagePgToSplunk)messagePgToSplunk);
-                await SendMessageToSplunk(messagePgToSplunk);
-            }
+                ProductName = "1111111",
+                OperatorId = "smbl",
+                TestingPassed = "true",
+                Timestamp = DateTimeOffset.Now.ToUnixTimeMilliseconds()
+        };
 
-            if (MachineStatuses != null && MachineStatuses.Any())
-            {
-                // Tworzymy kopię listy MachineStatuses
-                var machineStatusesCopy = new List<MachineStatus>(MachineStatuses.Select(status => status.DeepCopy()));
-                foreach (var machineStatus in machineStatusesCopy)
-                {
-                    await _machineStatusService.ReSendMessageToSplunk(machineStatus);
-                }
-            }
+            var batch = new List<Rs232Data> { piece };
+
+            await _machineStatusService.ReportBatchPartQuality(batch);
+
+            //Ssid = _wifiParameters.FetchWifiName();
+            //if (appConfig.AppMode == "VRSKT")
+            //{
+            //    var messagePgToSplunk = _splunkMessageHandler.PreparingPgMessageToSplunk(MachineStatuses, _machineStatusCounter);
+            //    await _machineStatusService.SendPgMessage((MessagePgToSplunk)messagePgToSplunk);
+            //    await SendMessageToSplunk(messagePgToSplunk);
+            //}
+
+            //if (MachineStatuses != null && MachineStatuses.Any())
+            //{
+            //    // Tworzymy kopię listy MachineStatuses
+            //    var machineStatusesCopy = new List<MachineStatus>(MachineStatuses.Select(status => status.DeepCopy()));
+            //    foreach (var machineStatus in machineStatusesCopy)
+            //    {
+            //        await _machineStatusService.ReSendMessageToSplunk(machineStatus);
+            //    }
+            //}
         }
 
         private async void StatusPingService(object sender, bool isPing)
@@ -1681,7 +1693,7 @@ namespace ViSyncMaster.ViewModels
 
         //private void StartFakeTest()
         //{
-        //    _testSimulator = new Rs232TestSimulator(_rs232Processor);
+        //   _testSimulator = new Rs232TestSimulator(_rs232Processor);
         //    _testSimulator.Start();
         //}
 

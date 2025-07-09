@@ -162,7 +162,7 @@
 
 		<!-- Tabela planu -->
 		<DataGrid Grid.Row="3" Grid.Column="2" ItemsSource="{Binding HourlyPlan}" AutoGenerateColumns="False"
-                                  IsReadOnly="True" GridLinesVisibility="None" Margin="10" Width="600">
+                                  IsReadOnly="True" GridLinesVisibility="None" Margin="10" Width="800">
 			<DataGrid.Columns>
 				<DataGridTextColumn Header="Czas" Binding="{Binding Time}" Width="*"/>
 				<DataGridTextColumn Header="Plan" Binding="{Binding ExpectedDisplay}" Width="*"/>
