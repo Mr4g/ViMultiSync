@@ -635,11 +635,13 @@ namespace ViSyncMaster.ViewModels
                 // różnica exact
                 double diffExact = expectedBoundaryExact - prevExpectedExact;
                 double diffExactNoDt = expectedBoundaryExactNoDt - prevExpectedExactNoDt;
-                // zaokrąglij zawsze .5 w górę
-                int expectedDiff = (int)Math.Round(diffExact, 0, MidpointRounding.AwayFromZero);
-                int expectedDiffNoDt = (int)Math.Round(diffExactNoDt, 0, MidpointRounding.AwayFromZero);
-                int lostUnits = expectedDiffNoDt - expectedDiff;
-                if (lostUnits < 0) lostUnits = 0;
+                // zaokrąglij zawsze .5 w dół
+                int expectedDiff = (int)Math.Floor(diffExact);
+                int expectedDiffNoDt = (int)Math.Floor(diffExactNoDt);
+                // zahartuj: jeśli różnica jest ujemna, ustaw na 0
+                int lostUnits = expectedDiffNoDt > expectedDiff
+                    ? expectedDiffNoDt - expectedDiff
+                    : 0;
 
                 int producedBoundary = data.Where(d => d.Item1 < nextBoundary).Sum(d => d.Item2);
                 int producedDiff = producedBoundary - prevProduced;
@@ -701,7 +703,7 @@ namespace ViSyncMaster.ViewModels
             var summary = new HourlyPlan
             {
                 Time = "TOTAL",
-                ExpectedUnits = expectedTotal,
+                ExpectedUnits = Target - lostDueToDowntime,
                 ProducedUnits = producedTotal,
                 DowntimeMinutes = downtimeTotal,
                 LostUnitsDueToDowntime = lostDueToDowntime,
