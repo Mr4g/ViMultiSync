@@ -187,6 +187,7 @@
 					</DataGridTemplateColumn.CellTemplate>
 				</DataGridTemplateColumn>
 				<DataGridTextColumn Header="Przestoje [min]" Binding="{Binding DowntimeDisplay}" Width="*"/>
+				<DataGridTextColumn Header="Stracone [szt]" Binding="{Binding LostUnitsDisplay}" Width="*"/>
 			</DataGrid.Columns>
 		</DataGrid>
 

@@ -24,6 +24,7 @@ namespace ViSyncMaster.DataModel
                 : Time == "TOTAL" && LostUnitsDueToDowntime > 0
                     ? $"{DowntimeMinutes} / {LostUnitsDueToDowntime}"
                     : DowntimeMinutes.ToString();
+        public string LostUnitsDisplay => IsBreak ? "PRZERWA" : LostUnitsDueToDowntime.ToString();
 
 
 
@@ -31,6 +32,7 @@ namespace ViSyncMaster.DataModel
         {
             OnPropertyChanged(nameof(ExpectedDisplay));
             OnPropertyChanged(nameof(ProducedDisplay));
+            OnPropertyChanged(nameof(LostUnitsDisplay));
             OnPropertyChanged(nameof(DowntimeDisplay));
         }
 
@@ -40,7 +42,7 @@ namespace ViSyncMaster.DataModel
 
         partial void OnDowntimeMinutesChanged(int value) => OnPropertyChanged(nameof(DowntimeDisplay));
 
-        partial void OnLostUnitsDueToDowntimeChanged(int value) => OnPropertyChanged(nameof(DowntimeDisplay));
+        partial void OnLostUnitsDueToDowntimeChanged(int value) { OnPropertyChanged(nameof(DowntimeDisplay)); OnPropertyChanged(nameof(LostUnitsDisplay)); }
 
     }
 }

@@ -574,6 +574,7 @@ namespace ViSyncMaster.ViewModels
                 3 => ShiftPlan.CreateDefaultShift3(),
                 _ => ShiftPlan.CreateDefaultShift1()
             };
+            var calcNoDowntime = new ProductionEfficiencyCalculator(plan);
 
             var shiftStartDate = firstPiece.Date;
             var crossMidnight = plan.ShiftEnd < plan.ShiftStart;
@@ -601,9 +602,14 @@ namespace ViSyncMaster.ViewModels
             // pierwsza kalkulacja bez zaokrąglania
             _efficiencyCalculator.CalculateEfficiency(Target, data, current,
                 out _, out double expectedCurrent, out _, out _, out _, out _);
+
+            calcNoDowntime.CalculateEfficiency(Target, data, current,
+                out _, out double expectedCurrentNoDt, out _, out _, out _, out _);
+
             int producedCurrent = data.Where(d => d.Item1 < current).Sum(d => d.Item2);
 
             double prevExpectedExact = expectedCurrent;
+            double prevExpectedExactNoDt = expectedCurrentNoDt;
             int prevProduced = producedCurrent;
 
             bool isFirst = true;
@@ -623,10 +629,17 @@ namespace ViSyncMaster.ViewModels
                 _efficiencyCalculator.CalculateEfficiency(Target, data, nextBoundary,
                     out _, out double expectedBoundaryExact, out _, out _, out _, out _);
 
+                calcNoDowntime.CalculateEfficiency(Target, data, nextBoundary,
+                    out _, out double expectedBoundaryExactNoDt, out _, out _, out _, out _);
+
                 // różnica exact
                 double diffExact = expectedBoundaryExact - prevExpectedExact;
+                double diffExactNoDt = expectedBoundaryExactNoDt - prevExpectedExactNoDt;
                 // zaokrąglij zawsze .5 w górę
                 int expectedDiff = (int)Math.Round(diffExact, 0, MidpointRounding.AwayFromZero);
+                int expectedDiffNoDt = (int)Math.Round(diffExactNoDt, 0, MidpointRounding.AwayFromZero);
+                int lostUnits = expectedDiffNoDt - expectedDiff;
+                if (lostUnits < 0) lostUnits = 0;
 
                 int producedBoundary = data.Where(d => d.Item1 < nextBoundary).Sum(d => d.Item2);
                 int producedDiff = producedBoundary - prevProduced;
@@ -639,12 +652,14 @@ namespace ViSyncMaster.ViewModels
                     ExpectedUnits = expectedDiff,
                     ProducedUnits = producedDiff,
                     DowntimeMinutes = downtime,
+                    LostUnitsDueToDowntime = lostUnits,
                     IsBreak = false,
                     IsBreakActive = false
                 });
 
                 isFirst = false;
                 prevExpectedExact = expectedBoundaryExact;
+                prevExpectedExactNoDt = expectedBoundaryExactNoDt;
                 prevProduced = producedBoundary;
                 current = nextBoundary;
 
@@ -667,6 +682,8 @@ namespace ViSyncMaster.ViewModels
 
                     _efficiencyCalculator.CalculateEfficiency(Target, data, current,
                         out _, out double expectedAfterBreakExact, out _, out _, out _, out _);
+                    calcNoDowntime.CalculateEfficiency(Target, data, current,
+                        out _, out double expectedAfterBreakExactNoDt, out _, out _, out _, out _);
 
                     prevExpectedExact = expectedAfterBreakExact;
                     prevProduced = data.Where(d => d.Item1 < current).Sum(d => d.Item2);
@@ -678,7 +695,7 @@ namespace ViSyncMaster.ViewModels
             var expectedTotal = HourlyPlan.Sum(p => p.ExpectedUnits);
             var producedTotal = HourlyPlan.Sum(p => p.ProducedUnits);
             var downtimeTotal = HourlyPlan.Sum(p => p.DowntimeMinutes);
-            var lostDueToDowntime = Target > expectedTotal ? Target - expectedTotal : 0;
+            var lostDueToDowntime = HourlyPlan.Sum(p => p.LostUnitsDueToDowntime);
 
             // wiersz podsumowania
             var summary = new HourlyPlan
