@@ -16,11 +16,13 @@ namespace ViSyncMaster.DataModel
         [ObservableProperty] private bool _isBreak;
         [ObservableProperty] private bool _isBreakActive;
         [ObservableProperty] private int _lostUnitsDueToDowntime;
+        [ObservableProperty] private double _efficiency;
 
         public string ExpectedDisplay => IsBreak ? "PRZERWA" : ExpectedUnits.ToString();
         public string ProducedDisplay => IsBreak ? "PRZERWA" : ProducedUnits.ToString();
         public string DowntimeDisplay => IsBreak ? "PRZERWA" : DowntimeMinutes.ToString();
         public string LostUnitsDisplay => IsBreak ? "PRZERWA" : LostUnitsDueToDowntime.ToString();
+        public string EfficiencyDisplay =>IsBreak ? "PRZERWA" : $"{Efficiency:0.0} %";
 
 
 
@@ -30,6 +32,7 @@ namespace ViSyncMaster.DataModel
             OnPropertyChanged(nameof(ProducedDisplay));
             OnPropertyChanged(nameof(LostUnitsDisplay));
             OnPropertyChanged(nameof(DowntimeDisplay));
+            OnPropertyChanged(nameof(EfficiencyDisplay));
         }
 
         partial void OnExpectedUnitsChanged(int value) => OnPropertyChanged(nameof(ExpectedDisplay));
@@ -39,6 +42,7 @@ namespace ViSyncMaster.DataModel
         partial void OnDowntimeMinutesChanged(int value) => OnPropertyChanged(nameof(DowntimeDisplay));
 
         partial void OnLostUnitsDueToDowntimeChanged(int value) { OnPropertyChanged(nameof(DowntimeDisplay)); OnPropertyChanged(nameof(LostUnitsDisplay)); }
+        partial void OnEfficiencyChanged(double value) => OnPropertyChanged(nameof(EfficiencyDisplay));
 
     }
 }

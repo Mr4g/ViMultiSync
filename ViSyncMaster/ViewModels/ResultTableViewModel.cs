@@ -598,6 +598,7 @@ namespace ViSyncMaster.ViewModels
                 .ToList();
 
             var current = firstPiece;
+            double prevEfficiency = 0;
 
             // pierwsza kalkulacja bez zaokrąglania
             _efficiencyCalculator.CalculateEfficiency(Target, data, current,
@@ -647,6 +648,7 @@ namespace ViSyncMaster.ViewModels
                 int producedDiff = producedBoundary - prevProduced;
 
                 int downtime = (int)Math.Round(_machineStatusService.GetDowntimeMinutes(current, nextBoundary));
+                double efficiency = expectedDiff > 0 ? (double)producedDiff / expectedDiff * 100 : prevEfficiency;
 
                 HourlyPlan.Add(new HourlyPlan
                 {
@@ -656,8 +658,11 @@ namespace ViSyncMaster.ViewModels
                     DowntimeMinutes = downtime,
                     LostUnitsDueToDowntime = lostUnits,
                     IsBreak = false,
-                    IsBreakActive = false
+                    IsBreakActive = false,
+                    Efficiency = efficiency
                 });
+
+                prevEfficiency = efficiency;
 
                 isFirst = false;
                 prevExpectedExact = expectedBoundaryExact;
@@ -677,7 +682,8 @@ namespace ViSyncMaster.ViewModels
                         ProducedUnits = 0,
                         DowntimeMinutes = 0,
                         IsBreak = true,
-                        IsBreakActive = isActive
+                        IsBreakActive = isActive,
+                        Efficiency = prevEfficiency
                     });
 
                     current = breakEnd;
@@ -699,6 +705,9 @@ namespace ViSyncMaster.ViewModels
             var downtimeTotal = HourlyPlan.Sum(p => p.DowntimeMinutes);
             var lostDueToDowntime = HourlyPlan.Sum(p => p.LostUnitsDueToDowntime);
 
+            double totalEfficiency = expectedTotal > 0 ? (double)producedTotal / expectedTotal * 100 : 0;
+
+
             // wiersz podsumowania
             var summary = new HourlyPlan
             {
@@ -708,7 +717,8 @@ namespace ViSyncMaster.ViewModels
                 DowntimeMinutes = downtimeTotal,
                 LostUnitsDueToDowntime = lostDueToDowntime,
                 IsBreak = false,
-                IsBreakActive = false
+                IsBreakActive = false,
+                Efficiency = totalEfficiency
             };
 
             HourlyPlan.Add(summary);

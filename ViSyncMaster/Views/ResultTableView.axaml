@@ -162,7 +162,7 @@
 
 		<!-- Tabela planu -->
 		<DataGrid Grid.Row="3" Grid.Column="2" ItemsSource="{Binding HourlyPlan}" AutoGenerateColumns="False"
-                                  IsReadOnly="True" GridLinesVisibility="None" Margin="10" Width="800">
+                                  IsReadOnly="True" GridLinesVisibility="None" Margin="10" Width="1000">
 			<DataGrid.Columns>
 				<DataGridTextColumn Header="Czas" Binding="{Binding Time}" Width="*"/>
 				<DataGridTextColumn Header="Plan" Binding="{Binding ExpectedDisplay}" Width="*"/>
@@ -188,6 +188,9 @@
 				</DataGridTemplateColumn>
 				<DataGridTextColumn Header="Przestoje [min]" Binding="{Binding DowntimeDisplay}" Width="*"/>
 				<DataGridTextColumn Header="Stracone [szt]" Binding="{Binding LostUnitsDisplay}" Width="*"/>
+				<DataGridTextColumn Header="Efektywność [%]"
+									Binding="{Binding EfficiencyDisplay}"
+									Width="*"/>
 			</DataGrid.Columns>
 		</DataGrid>
 
