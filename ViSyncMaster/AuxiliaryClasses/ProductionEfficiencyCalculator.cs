@@ -13,14 +13,16 @@ namespace ViSyncMaster.AuxiliaryClasses
         private readonly TimeSpan _planStart;
         private readonly bool _crossMidnight;
         private readonly List<ShiftBreak> _breaks;
+        private readonly Func<DateTime, DateTime, double>? _downtimeProvider;
 
-        public ProductionEfficiencyCalculator(bool isShift1)
+
+        public ProductionEfficiencyCalculator(bool isShift1, Func<DateTime, DateTime, double>? downtimeProvider = null)
                 : this(isShift1 ? ShiftPlan.CreateDefaultShift1()
-                                 : ShiftPlan.CreateDefaultShift2())
+                                 : ShiftPlan.CreateDefaultShift2(), downtimeProvider)
         {
         }
 
-        public ProductionEfficiencyCalculator(ShiftPlan plan)
+        public ProductionEfficiencyCalculator(ShiftPlan plan, Func<DateTime, DateTime, double>? downtimeProvider = null)
         {
             _shiftStart = plan.ShiftStart;
             _shiftEnd = plan.ShiftEnd;
@@ -28,6 +30,7 @@ namespace ViSyncMaster.AuxiliaryClasses
             _shutDown = plan.ShutDown;
             _breaks = plan.Breaks ?? new List<ShiftBreak>();
             _crossMidnight = _shiftEnd < _shiftStart;
+            _downtimeProvider = downtimeProvider;
         }
 
 
@@ -138,6 +141,11 @@ namespace ViSyncMaster.AuxiliaryClasses
                 var e = be > to ? to : be;
                 if (e > s) minutes -= (e - s).TotalMinutes;
             }
+            if (_downtimeProvider != null)
+            {
+                minutes -= _downtimeProvider(from, to);
+            }
+            if (minutes < 0) minutes = 0;
             return minutes;
         }
     }

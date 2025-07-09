@@ -97,7 +97,7 @@ namespace ViSyncMaster.ViewModels
             UpdateGroupedResultListWithTotal();
             // Initializing efficiency calculator
             _currentShift = 1;
-            _efficiencyCalculator = new ProductionEfficiencyCalculator(ShiftPlan.CreateDefaultShift1());
+            _efficiencyCalculator = new ProductionEfficiencyCalculator(ShiftPlan.CreateDefaultShift1(), GetDowntimeMinutes);
             _mainWindowViewModel.ResultTableUpdate += async (s, e) =>
             {
                 if (_isUpdating) return;
@@ -122,7 +122,7 @@ namespace ViSyncMaster.ViewModels
                         Needle.Value = Math.Clamp(HumanEfficiency, 0, 200);
                         SeriesExpectedEfficiency[0].Values = new double[] { ExpectedEfficiency };
                         // 6) Update Plan table
-                        UpdateHourlyPlanData();
+                        await UpdateHourlyPlanDataAsync();
                     });
                 }
                 finally
@@ -300,7 +300,7 @@ namespace ViSyncMaster.ViewModels
                 3 => ShiftPlan.CreateDefaultShift3(),
                 _ => ShiftPlan.CreateDefaultShift1()
             };
-            _efficiencyCalculator = new ProductionEfficiencyCalculator(plan);
+            _efficiencyCalculator = new ProductionEfficiencyCalculator(plan, GetDowntimeMinutes);
         }
 
         private bool IsInShift(TimeSpan time, TimeSpan start, TimeSpan end)
@@ -395,7 +395,7 @@ namespace ViSyncMaster.ViewModels
 
         private async Task UpdateChartData()
         {
-            await AutoSelectCurrentShiftAsync(); 
+            await AutoSelectCurrentShiftAsync();
             await CalculateAndDisplayEfficiencyAsync();
 
             TotalPartsProducedChart.Value = TotalUnitsProduced;
@@ -403,7 +403,7 @@ namespace ViSyncMaster.ViewModels
             TargetPartsChart.Value = Target;
             Needle.Value = Math.Clamp(HumanEfficiency, 0, 200);
             SeriesExpectedEfficiency[0].Values = new double[] { ExpectedEfficiency };
-            UpdateHourlyPlanData();
+            await UpdateHourlyPlanDataAsync();
         }
 
         private static void SetStyle(double sectionsOuter, double sectionsWidth, PieSeries<ObservableValue> series, SKColor color)
@@ -456,6 +456,17 @@ namespace ViSyncMaster.ViewModels
             _productionEfficiency.PassedPiecesPerShift = (int)TotalUnitsProduced;
 
             await _machineStatusService.RaportProdcuctionEfficiency(_productionEfficiency);
+        }
+        private double GetDowntimeMinutes(DateTime from, DateTime to)
+        {
+            try
+            {
+                return _machineStatusService.GetDowntimeMinutes(from, to);
+            }
+            catch
+            {
+                return 0;
+            }
         }
 
         private async Task<ObservableCollection<MachineCounters>> GroupByPassedFailedAndTotalCounterAsync(ObservableCollection<MachineStatus> resultList)
@@ -543,10 +554,9 @@ namespace ViSyncMaster.ViewModels
                 GroupedResultList.Add(_totalRow);
             // jeśli masz dodatkowe pola
         }
-        private void UpdateHourlyPlanData()
+        private async Task UpdateHourlyPlanDataAsync()
         {
             HourlyPlan.Clear();
-
             if (Target <= 0) return;
 
             var data = ResultTestList
@@ -554,11 +564,9 @@ namespace ViSyncMaster.ViewModels
                 .Select(x => (x.StartTime!.Value, x.Name == "S7.TestingPassed" ? 1 : 0))
                 .OrderBy(x => x.Item1)
                 .ToList();
-
             if (data.Count == 0) return;
 
             var firstPiece = data.Min(x => x.Item1);
-
             var plan = _currentShift switch
             {
                 1 => ShiftPlan.CreateDefaultShift1(),
@@ -590,21 +598,18 @@ namespace ViSyncMaster.ViewModels
 
             var current = firstPiece;
 
-            // Obliczamy już raz dla pierwszego punktu
+            // pierwsza kalkulacja bez zaokrąglania
             _efficiencyCalculator.CalculateEfficiency(Target, data, current,
                 out _, out double expectedCurrent, out _, out _, out _, out _);
             int producedCurrent = data.Where(d => d.Item1 < current).Sum(d => d.Item2);
 
-            int prevExpected = (int)Math.Round(expectedCurrent);
+            double prevExpectedExact = expectedCurrent;
             int prevProduced = producedCurrent;
 
-            // Flaga oznaczająca pierwszą iterację
             bool isFirst = true;
 
             while (current < end)
             {
-                // Dla pierwszej iteracji idziemy do najbliższej pełnej godziny,
-                // w kolejnych po prostu dodajemy 1 godzinę
                 DateTime nextHour = isFirst
                     ? new DateTime(current.Year, current.Month, current.Day, current.Hour, 0, 0)
                         .AddHours(1)
@@ -612,33 +617,37 @@ namespace ViSyncMaster.ViewModels
 
                 var nextBreak = breaks.FirstOrDefault(b => b.Start > current);
                 var nextBreakStart = nextBreak != default ? nextBreak.Start : DateTime.MaxValue;
-
                 var nextBoundary = new[] { nextHour, nextBreakStart, end }.Min();
 
+                // oblicz wartość exact dla granicy
                 _efficiencyCalculator.CalculateEfficiency(Target, data, nextBoundary,
-                    out _, out double expectedBoundary, out _, out _, out _, out _);
-                int producedBoundary = data.Where(d => d.Item1 < nextBoundary).Sum(d => d.Item2);
+                    out _, out double expectedBoundaryExact, out _, out _, out _, out _);
 
-                int expectedDiff = (int)Math.Round(expectedBoundary) - prevExpected;
+                // różnica exact
+                double diffExact = expectedBoundaryExact - prevExpectedExact;
+                // zaokrąglij zawsze .5 w górę
+                int expectedDiff = (int)Math.Round(diffExact, 0, MidpointRounding.AwayFromZero);
+
+                int producedBoundary = data.Where(d => d.Item1 < nextBoundary).Sum(d => d.Item2);
                 int producedDiff = producedBoundary - prevProduced;
+
+                int downtime = (int)Math.Round(_machineStatusService.GetDowntimeMinutes(current, nextBoundary));
 
                 HourlyPlan.Add(new HourlyPlan
                 {
                     Time = $"{current:HH:mm}-{nextBoundary:HH:mm}",
                     ExpectedUnits = expectedDiff,
                     ProducedUnits = producedDiff,
+                    DowntimeMinutes = downtime,
                     IsBreak = false,
                     IsBreakActive = false
                 });
 
-                // Po pierwszym fragmencie wyłączamy flagę
                 isFirst = false;
-
-                prevExpected += expectedDiff;
-                prevProduced += producedDiff;
+                prevExpectedExact = expectedBoundaryExact;
+                prevProduced = producedBoundary;
                 current = nextBoundary;
 
-                // Jeśli w tym miejscu zaczyna się przerwa, dodajemy wpis o przerwie
                 if (nextBreak != default && nextBreak.Start == nextBoundary)
                 {
                     var breakEnd = nextBreak.End < end ? nextBreak.End : end;
@@ -649,28 +658,30 @@ namespace ViSyncMaster.ViewModels
                         Time = $"{nextBreak.Start:HH:mm}-{breakEnd:HH:mm}",
                         ExpectedUnits = 0,
                         ProducedUnits = 0,
+                        DowntimeMinutes = 0,
                         IsBreak = true,
                         IsBreakActive = isActive
                     });
 
                     current = breakEnd;
 
-                    // Po przerwie recalkulujemy oczekiwane i wyprodukowane
                     _efficiencyCalculator.CalculateEfficiency(Target, data, current,
-                        out _, out double expectedAfterBreak, out _, out _, out _, out _);
-                    prevExpected = (int)Math.Round(expectedAfterBreak);
+                        out _, out double expectedAfterBreakExact, out _, out _, out _, out _);
+
+                    prevExpectedExact = expectedAfterBreakExact;
                     prevProduced = data.Where(d => d.Item1 < current).Sum(d => d.Item2);
 
                     breaks.Remove(nextBreak);
                 }
             }
 
-            // summary row
+            // wiersz podsumowania
             var summary = new HourlyPlan
             {
                 Time = "TOTAL",
                 ExpectedUnits = HourlyPlan.Sum(p => p.ExpectedUnits),
                 ProducedUnits = HourlyPlan.Sum(p => p.ProducedUnits),
+                DowntimeMinutes = HourlyPlan.Sum(p => p.DowntimeMinutes),
                 IsBreak = false,
                 IsBreakActive = false
             };
@@ -679,3 +690,4 @@ namespace ViSyncMaster.ViewModels
         }
     }
 }
+

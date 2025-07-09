@@ -255,5 +255,32 @@ namespace ViSyncMaster.Services
                 Console.WriteLine(ex.ToString());
             }
         }
+
+        public async Task<double> GetDowntimeMinutesAsync(DateTime start, DateTime end)
+        {
+            const string query = @"SELECT * FROM MachineStatus WHERE Name = @name AND StartTime <= @end AND (EndTime >= @start OR EndTime IS NULL)";
+            var parameters = new Dictionary<string, object>
+            {
+                ["@name"] = "S1.MachineDowntime_IPC",
+                ["@start"] = start,
+                ["@end"] = end
+            };
+
+            var records = await _database.ExecuteReaderAsync<MachineStatus>(query, parameters);
+            double total = 0;
+            foreach (var r in records)
+            {
+                var s = r.StartTime ?? start;
+                var e = r.EndTime ?? DateTime.Now;
+                if (e <= start || s >= end) continue;
+                if (s < start) s = start;
+                if (e > end) e = end;
+                total += (e - s).TotalMinutes;
+            }
+            return total;
+        }
+
+        public double GetDowntimeMinutes(DateTime start, DateTime end) => GetDowntimeMinutesAsync(start, end).GetAwaiter().GetResult();
     }
 }
+

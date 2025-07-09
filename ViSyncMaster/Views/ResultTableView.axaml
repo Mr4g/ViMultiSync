@@ -186,6 +186,7 @@
 						</DataTemplate>
 					</DataGridTemplateColumn.CellTemplate>
 				</DataGridTemplateColumn>
+				<DataGridTextColumn Header="Przestoje [min]" Binding="{Binding DowntimeDisplay}" Width="*"/>
 			</DataGrid.Columns>
 		</DataGrid>
 
