@@ -19,11 +19,7 @@ namespace ViSyncMaster.DataModel
 
         public string ExpectedDisplay => IsBreak ? "PRZERWA" : ExpectedUnits.ToString();
         public string ProducedDisplay => IsBreak ? "PRZERWA" : ProducedUnits.ToString();
-        public string DowntimeDisplay
-            => IsBreak ? "PRZERWA"
-                : Time == "TOTAL" && LostUnitsDueToDowntime > 0
-                    ? $"{DowntimeMinutes} / {LostUnitsDueToDowntime}"
-                    : DowntimeMinutes.ToString();
+        public string DowntimeDisplay => IsBreak ? "PRZERWA" : DowntimeMinutes.ToString();
         public string LostUnitsDisplay => IsBreak ? "PRZERWA" : LostUnitsDueToDowntime.ToString();
 
 
