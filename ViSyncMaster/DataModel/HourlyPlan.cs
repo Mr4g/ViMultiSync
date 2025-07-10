@@ -19,7 +19,7 @@ namespace ViSyncMaster.DataModel
         [ObservableProperty] private double _efficiency;
 
         public string ExpectedDisplay => IsBreak ? "PRZERWA" : ExpectedUnits.ToString();
-        public string ProducedDisplay => IsBreak ? "PRZERWA" : ProducedUnits.ToString();
+        public string ProducedDisplay => $"{ProducedUnits: 0}";
         public string DowntimeDisplay => IsBreak ? "PRZERWA" : DowntimeMinutes.ToString();
         public string LostUnitsDisplay => IsBreak ? "PRZERWA" : LostUnitsDueToDowntime.ToString();
         public string EfficiencyDisplay =>IsBreak ? "PRZERWA" : $"{Efficiency:0.0} %";

@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -36,6 +37,13 @@ namespace ViSyncMaster.Services
         private readonly Debouncer _queueDebouncer;
         private bool _hasQueueEvent;
         private string? _lastQueueTable;
+
+        // cache for downtime queries
+        private List<MachineStatus> _downtimeCache = new();
+        private DateTime _downtimeCacheStart;
+        private DateTime _downtimeCacheEnd;
+        private DateTime _lastDowntimeRefresh = DateTime.MinValue;
+        private readonly TimeSpan _downtimeCacheDuration = TimeSpan.FromMinutes(1);
 
 
         // Konstruktor przyjmuje repozytoria generyczne dla obu tabel
@@ -218,6 +226,10 @@ namespace ViSyncMaster.Services
                 _hasQueueEvent = true;
                 _lastQueueTable = info.TableName;
             }
+            if (info.TableName.Contains("MachineStatus", StringComparison.OrdinalIgnoreCase))
+            {
+                _downtimeCache.Clear();
+            }
             _queueDebouncer.Debounce();
         }
 
@@ -258,15 +270,7 @@ namespace ViSyncMaster.Services
 
         public async Task<double> GetDowntimeMinutesAsync(DateTime start, DateTime end)
         {
-            const string query = @"SELECT * FROM MachineStatus WHERE Name = @name AND StartTime <= @end AND (EndTime >= @start OR EndTime IS NULL)";
-            var parameters = new Dictionary<string, object>
-            {
-                ["@name"] = "S1.MachineDowntime_IPC",
-                ["@start"] = start,
-                ["@end"] = end
-            };
-
-            var records = await _database.ExecuteReaderAsync<MachineStatus>(query, parameters);
+            var records = await GetDowntimeRecordsAsync(start, end);
             double total = 0;
             foreach (var r in records)
             {
@@ -278,6 +282,32 @@ namespace ViSyncMaster.Services
                 total += (e - s).TotalMinutes;
             }
             return total;
+        }
+
+        private async Task<List<MachineStatus>> GetDowntimeRecordsAsync(DateTime start, DateTime end)
+        {
+            bool refresh = _downtimeCache.Count == 0 ||
+                           start < _downtimeCacheStart ||
+                           end > _downtimeCacheEnd ||
+                           (DateTime.Now - _lastDowntimeRefresh) > _downtimeCacheDuration;
+
+            if (refresh)
+            {
+                const string query = @"SELECT * FROM MachineStatus WHERE Name = @name AND StartTime <= @end AND (EndTime >= @start OR EndTime IS NULL)";
+                var parameters = new Dictionary<string, object>
+                {
+                    ["@name"] = "S1.MachineDowntime_IPC",
+                    ["@start"] = start,
+                    ["@end"] = end
+                };
+
+                _downtimeCache = await _database.ExecuteReaderAsync<MachineStatus>(query, parameters);
+                _downtimeCacheStart = start;
+                _downtimeCacheEnd = end;
+                _lastDowntimeRefresh = DateTime.Now;
+            }
+
+            return _downtimeCache.Where(r => (r.StartTime ?? start) <= end && (r.EndTime ?? DateTime.Now) >= start).ToList();
         }
 
         public double GetDowntimeMinutes(DateTime start, DateTime end) => GetDowntimeMinutesAsync(start, end).GetAwaiter().GetResult();
