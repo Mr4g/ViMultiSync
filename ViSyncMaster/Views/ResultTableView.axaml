@@ -182,7 +182,6 @@
 									<TextBlock Text="{Binding ProducedUnits}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
 								</Grid>
 								<StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding IsBreak}">
-									<TextBlock Text="PRZERWA"/>
 									<TextBlock Text="{Binding ProducedUnits}" Margin="5,0,0,0"/>
 								</StackPanel>
 							</Grid>
