@@ -676,11 +676,15 @@ namespace ViSyncMaster.ViewModels
                     var breakEnd = nextBreak.End < end ? nextBreak.End : end;
                     bool isActive = DateTime.Now >= nextBreak.Start && DateTime.Now < breakEnd;
 
+                    var producedDuringBreak = data
+                         .Where(d => d.Item1 >= nextBreak.Start && d.Item1 < breakEnd)
+                         .Sum(d => d.Item2);
+
                     HourlyPlan.Add(new HourlyPlan
                     {
                         Time = $"{nextBreak.Start:HH:mm}-{breakEnd:HH:mm}",
                         ExpectedUnits = 0,
-                        ProducedUnits = 0,
+                        ProducedUnits = producedDuringBreak,
                         DowntimeMinutes = 0,
                         IsBreak = true,
                         IsBreakActive = isActive,
