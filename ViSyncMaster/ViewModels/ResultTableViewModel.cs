@@ -647,7 +647,8 @@ namespace ViSyncMaster.ViewModels
                 int producedBoundary = data.Where(d => d.Item1 < nextBoundary).Sum(d => d.Item2);
                 int producedDiff = producedBoundary - prevProduced;
 
-                int downtime = (int)Math.Round(_machineStatusService.GetDowntimeMinutes(current, nextBoundary));
+                int downtime = (int)Math.Round(await _machineStatusService.GetDowntimeMinutesAsync(current, nextBoundary));
+
                 double efficiency = expectedDiff > 0 ? (double)producedDiff / expectedDiff * 100 : prevEfficiency;
 
                 HourlyPlan.Add(new HourlyPlan
