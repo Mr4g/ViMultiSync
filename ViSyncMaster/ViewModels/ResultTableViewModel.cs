@@ -35,6 +35,7 @@ namespace ViSyncMaster.ViewModels
         private ProductionEfficiency _productionEfficiency;
         private MainWindowViewModel _mainWindowViewModel;
         private bool _isUpdating = false;
+        private bool _pendingUpdate = false;
         private MachineStatusGrouped _totalRow;
 
 
@@ -99,38 +100,7 @@ namespace ViSyncMaster.ViewModels
             // Initializing efficiency calculator
             _currentShift = 1;
             _efficiencyCalculator = new ProductionEfficiencyCalculator(ShiftPlan.CreateDefaultShift1(), GetDowntimeMinutes);
-            _mainWindowViewModel.ResultTableUpdate += async (s, e) =>
-            {
-                if (_isUpdating) return;
-                _isUpdating = true;
-                try
-                {
-                    // All updates in single UI-thread batch
-                    await Dispatcher.UIThread.InvokeAsync(async () =>
-                    {
-                        // 1) Apply shift filter
-                        await AutoSelectCurrentShiftAsync();
-                        // 2) Rebuild grouped list (inside Filter methods)
-                        RefreshGroupedResultList();
-                        // 3) Update total row
-                        UpdateGroupedResultListWithTotal();
-                        // 4) Calculate efficiency
-                        await CalculateAndDisplayEfficiencyAsync();
-                        // 5) Update charts
-                        TotalPartsProducedChart.Value = TotalUnitsProduced;
-                        ExpectedPartsChart.Value = ExpectedOutput;
-                        TargetPartsChart.Value = Target;
-                        //Needle.Value = Math.Clamp(HumanEfficiency, 0, 200);
-                        SeriesExpectedEfficiency[0].Values = new double[] { ExpectedEfficiency };
-                        // 6) Update Plan table
-                        await UpdateHourlyPlanDataAsync();
-                    });
-                }
-                finally
-                {
-                    _isUpdating = false;
-                }
-            };
+            _mainWindowViewModel.ResultTableUpdate += async (s, e) => await QueueUpdateAsync();
             StartHourlyTimer();
         }
         private void InicializeChart()
@@ -405,6 +375,41 @@ namespace ViSyncMaster.ViewModels
             //Needle.Value = Math.Clamp(HumanEfficiency, 0, 200);
             SeriesExpectedEfficiency[0].Values = new double[] { ExpectedEfficiency };
             await UpdateHourlyPlanDataAsync();
+        }
+
+        private async Task QueueUpdateAsync()
+        {
+            if (_isUpdating)
+            {
+                _pendingUpdate = true;
+                return;
+            }
+
+            _isUpdating = true;
+            try
+            {
+                do
+                {
+                    _pendingUpdate = false;
+                    await Dispatcher.UIThread.InvokeAsync(async () =>
+                    {
+                        await AutoSelectCurrentShiftAsync();
+                        RefreshGroupedResultList();
+                        UpdateGroupedResultListWithTotal();
+                        await CalculateAndDisplayEfficiencyAsync();
+                        TotalPartsProducedChart.Value = TotalUnitsProduced;
+                        ExpectedPartsChart.Value = ExpectedOutput;
+                        TargetPartsChart.Value = Target;
+                        SeriesExpectedEfficiency[0].Values = new double[] { ExpectedEfficiency };
+                        await UpdateHourlyPlanDataAsync();
+                    });
+                }
+                while (_pendingUpdate);
+            }
+            finally
+            {
+                _isUpdating = false;
+            }
         }
 
         private static void SetStyle(double sectionsOuter, double sectionsWidth, PieSeries<ObservableValue> series, SKColor color)

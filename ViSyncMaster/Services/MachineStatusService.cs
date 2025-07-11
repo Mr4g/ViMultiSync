@@ -233,18 +233,20 @@ namespace ViSyncMaster.Services
             _queueDebouncer.Debounce();
         }
 
-        private async void FlushQueue()
+        private void FlushQueue()
         {
             if (!_hasQueueEvent) return;
 
             try
             {
-                await _messageQueue.SendAllMessages();
                 TableResultTestUpdate?.Invoke();
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"[FlushQueue] Błąd: {ex}");
+                _ = _messageQueue.SendAllMessages().ContinueWith(t =>
+                {
+                    if (t.Exception != null)
+                    {
+                        Debug.WriteLine($"[FlushQueue] Błąd: {t.Exception}");
+                    }
+                }, TaskContinuationOptions.OnlyOnFaulted);
             }
             finally
             {
