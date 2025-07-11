@@ -20,6 +20,7 @@ using ViSyncMaster.Services;
 using ViSyncMaster.ViewModels;
 using System.Threading.Tasks;
 using System.Diagnostics;
+using DynamicData;
 
 namespace ViSyncMaster.ViewModels
 {
@@ -119,7 +120,7 @@ namespace ViSyncMaster.ViewModels
                         TotalPartsProducedChart.Value = TotalUnitsProduced;
                         ExpectedPartsChart.Value = ExpectedOutput;
                         TargetPartsChart.Value = Target;
-                        Needle.Value = Math.Clamp(HumanEfficiency, 0, 200);
+                        //Needle.Value = Math.Clamp(HumanEfficiency, 0, 200);
                         SeriesExpectedEfficiency[0].Values = new double[] { ExpectedEfficiency };
                         // 6) Update Plan table
                         await UpdateHourlyPlanDataAsync();
@@ -401,7 +402,7 @@ namespace ViSyncMaster.ViewModels
             TotalPartsProducedChart.Value = TotalUnitsProduced;
             ExpectedPartsChart.Value = ExpectedOutput;
             TargetPartsChart.Value = Target;
-            Needle.Value = Math.Clamp(HumanEfficiency, 0, 200);
+            //Needle.Value = Math.Clamp(HumanEfficiency, 0, 200);
             SeriesExpectedEfficiency[0].Values = new double[] { ExpectedEfficiency };
             await UpdateHourlyPlanDataAsync();
         }
@@ -449,7 +450,8 @@ namespace ViSyncMaster.ViewModels
         }
         private async Task SendDataAsync()
         {
-            _productionEfficiency.Efficiency = HumanEfficiency;
+            var currentIntervalEfficiency = Math.Clamp(Needle.Value, 0, 200);
+            _productionEfficiency.Efficiency = currentIntervalEfficiency;
             _productionEfficiency.EfficiencyRequired = ExpectedEfficiency;
             _productionEfficiency.Target = Target;
             _productionEfficiency.Plan = (int)Math.Round(ExpectedOutput);
@@ -559,14 +561,15 @@ namespace ViSyncMaster.ViewModels
             HourlyPlan.Clear();
             if (Target <= 0) return;
 
+            // 1) Pobranie i posortowanie danych
             var data = ResultTestList
                 .Where(x => x.StartTime.HasValue)
-                .Select(x => (x.StartTime!.Value, x.Name == "S7.TestingPassed" ? 1 : 0))
-                .OrderBy(x => x.Item1)
+                .Select(x => (Time: x.StartTime!.Value, Passed: x.Name == "S7.TestingPassed" ? 1 : 0))
+                .OrderBy(x => x.Time)
                 .ToList();
-            if (data.Count == 0) return;
+            if (!data.Any()) return;
 
-            var firstPiece = data.Min(x => x.Item1);
+            // 2) Przygotowanie planu zmiany
             var plan = _currentShift switch
             {
                 1 => ShiftPlan.CreateDefaultShift1(),
@@ -574,159 +577,165 @@ namespace ViSyncMaster.ViewModels
                 3 => ShiftPlan.CreateDefaultShift3(),
                 _ => ShiftPlan.CreateDefaultShift1()
             };
-            var calcNoDowntime = new ProductionEfficiencyCalculator(plan);
 
-            var shiftStartDate = firstPiece.Date;
-            var crossMidnight = plan.ShiftEnd < plan.ShiftStart;
-            if (crossMidnight && firstPiece.TimeOfDay < plan.ShiftStart)
+            // 3) Konwersja na DateTime z uwzględnieniem przesunięcia północnego
+            bool crossMidnight = plan.ShiftEnd < plan.ShiftStart;
+            DateTime shiftStartDate = DateTime.Today;
+            if (crossMidnight && DateTime.Now.TimeOfDay < plan.ShiftStart)
                 shiftStartDate = shiftStartDate.AddDays(-1);
 
-            DateTime GetDateTime(TimeSpan ts)
+            DateTime ToDate(TimeSpan ts)
             {
                 var dt = shiftStartDate.Date.Add(ts);
-                if (crossMidnight && ts < plan.ShiftStart)
-                    dt = dt.AddDays(1);
+                if (crossMidnight && ts < plan.ShiftStart) dt = dt.AddDays(1);
                 return dt;
             }
 
-            var end = GetDateTime(plan.ShutDown);
+            // 4) Wyznaczenie początków i końców planowania
+            var shiftActualStart = ToDate(plan.ShiftStart);
+            var planStartTime = ToDate(plan.PlanStart);
+            var firstPieceTime = data.Min(d => d.Time);
+            var scheduleStart = firstPieceTime > planStartTime ? firstPieceTime : planStartTime;
+            var scheduleEnd = ToDate(plan.ShutDown);
 
+            // 5) Zbudowanie listy przerw
             var breaks = plan.Breaks
-                .Select(b => (Start: GetDateTime(b.Start), End: GetDateTime(b.End)))
-                .Where(b => b.End > firstPiece && b.Start < end)
+                .Select(b => (Start: ToDate(b.Start), End: ToDate(b.End)))
+                .Where(b => b.End > scheduleStart && b.Start < scheduleEnd)
                 .OrderBy(b => b.Start)
                 .ToList();
 
-            var current = firstPiece;
-            double prevEfficiency = 0;
-
-            // pierwsza kalkulacja bez zaokrąglania
-            _efficiencyCalculator.CalculateEfficiency(Target, data, current,
-                out _, out double expectedCurrent, out _, out _, out _, out _);
-
-            calcNoDowntime.CalculateEfficiency(Target, data, current,
-                out _, out double expectedCurrentNoDt, out _, out _, out _, out _);
-
-            int producedCurrent = data.Where(d => d.Item1 < current).Sum(d => d.Item2);
-
-            double prevExpectedExact = expectedCurrent;
-            double prevExpectedExactNoDt = expectedCurrentNoDt;
-            int prevProduced = producedCurrent;
-
-            bool isFirst = true;
-
-            while (current < end)
+            // 6) Podział na interwały robocze i przerw
+            var intervals = new List<(DateTime Start, DateTime End, bool IsBreak)>();
+            var cursor = scheduleStart;
+            while (cursor < scheduleEnd)
             {
-                DateTime nextHour = isFirst
-                    ? new DateTime(current.Year, current.Month, current.Day, current.Hour, 0, 0)
-                        .AddHours(1)
-                    : current.AddHours(1);
+                var nextHour = new DateTime(cursor.Year, cursor.Month, cursor.Day, cursor.Hour, 0, 0).AddHours(1);
+                var nextBr = breaks.FirstOrDefault(b => b.Start >= cursor);
+                var nextBrStart = nextBr != default ? nextBr.Start : DateTime.MaxValue;
+                var boundary = new[] { nextHour, nextBrStart, scheduleEnd }.Min();
 
-                var nextBreak = breaks.FirstOrDefault(b => b.Start > current);
-                var nextBreakStart = nextBreak != default ? nextBreak.Start : DateTime.MaxValue;
-                var nextBoundary = new[] { nextHour, nextBreakStart, end }.Min();
+                if (boundary > cursor)
+                    intervals.Add((cursor, boundary, false));
 
-                // oblicz wartość exact dla granicy
-                _efficiencyCalculator.CalculateEfficiency(Target, data, nextBoundary,
-                    out _, out double expectedBoundaryExact, out _, out _, out _, out _);
-
-                calcNoDowntime.CalculateEfficiency(Target, data, nextBoundary,
-                    out _, out double expectedBoundaryExactNoDt, out _, out _, out _, out _);
-
-                // różnica exact
-                double diffExact = expectedBoundaryExact - prevExpectedExact;
-                double diffExactNoDt = expectedBoundaryExactNoDt - prevExpectedExactNoDt;
-                // zaokrąglij zawsze .5 w dół
-                int expectedDiff = (int)Math.Floor(diffExact);
-                int expectedDiffNoDt = (int)Math.Floor(diffExactNoDt);
-                // zahartuj: jeśli różnica jest ujemna, ustaw na 0
-                int lostUnits = expectedDiffNoDt > expectedDiff
-                    ? expectedDiffNoDt - expectedDiff
-                    : 0;
-
-                int producedBoundary = data.Where(d => d.Item1 < nextBoundary).Sum(d => d.Item2);
-                int producedDiff = producedBoundary - prevProduced;
-
-                int downtime = (int)Math.Round(await _machineStatusService.GetDowntimeMinutesAsync(current, nextBoundary));
-
-                double efficiency = expectedDiff > 0 ? (double)producedDiff / expectedDiff * 100 : prevEfficiency;
-
-                HourlyPlan.Add(new HourlyPlan
+                if (nextBr != default && boundary == nextBrStart)
                 {
-                    Time = $"{current:HH:mm}-{nextBoundary:HH:mm}",
-                    ExpectedUnits = expectedDiff,
-                    ProducedUnits = producedDiff,
-                    DowntimeMinutes = downtime,
-                    LostUnitsDueToDowntime = lostUnits,
-                    IsBreak = false,
-                    IsBreakActive = false,
-                    Efficiency = efficiency
-                });
-
-                prevEfficiency = efficiency;
-
-                isFirst = false;
-                prevExpectedExact = expectedBoundaryExact;
-                prevExpectedExactNoDt = expectedBoundaryExactNoDt;
-                prevProduced = producedBoundary;
-                current = nextBoundary;
-
-                if (nextBreak != default && nextBreak.Start == nextBoundary)
+                    var brEnd = nextBr.End < scheduleEnd ? nextBr.End : scheduleEnd;
+                    intervals.Add((nextBr.Start, brEnd, true));
+                    cursor = brEnd;
+                    breaks.Remove(nextBr);
+                }
+                else
                 {
-                    var breakEnd = nextBreak.End < end ? nextBreak.End : end;
-                    bool isActive = DateTime.Now >= nextBreak.Start && DateTime.Now < breakEnd;
-
-                    var producedDuringBreak = data
-                         .Where(d => d.Item1 >= nextBreak.Start && d.Item1 < breakEnd)
-                         .Sum(d => d.Item2);
-
-                    HourlyPlan.Add(new HourlyPlan
-                    {
-                        Time = $"{nextBreak.Start:HH:mm}-{breakEnd:HH:mm}",
-                        ExpectedUnits = 0,
-                        ProducedUnits = producedDuringBreak,
-                        DowntimeMinutes = 0,
-                        IsBreak = true,
-                        IsBreakActive = isActive,
-                        Efficiency = prevEfficiency
-                    });
-
-                    current = breakEnd;
-
-                    _efficiencyCalculator.CalculateEfficiency(Target, data, current,
-                        out _, out double expectedAfterBreakExact, out _, out _, out _, out _);
-                    calcNoDowntime.CalculateEfficiency(Target, data, current,
-                        out _, out double expectedAfterBreakExactNoDt, out _, out _, out _, out _);
-
-                    prevExpectedExact = expectedAfterBreakExact;
-                    prevProduced = data.Where(d => d.Item1 < current).Sum(d => d.Item2);
-
-                    breaks.Remove(nextBreak);
+                    cursor = boundary;
                 }
             }
 
-            var expectedTotal = HourlyPlan.Sum(p => p.ExpectedUnits);
-            var producedTotal = HourlyPlan.Sum(p => p.ProducedUnits);
-            var downtimeTotal = HourlyPlan.Sum(p => p.DowntimeMinutes);
-            var lostDueToDowntime = HourlyPlan.Sum(p => p.LostUnitsDueToDowntime);
+            // 7) Obliczenie totalWorkMinutes i minutesPerUnit
+            double totalWorkMinutes = intervals
+                .Where(iv => !iv.IsBreak)
+                .Sum(iv => (iv.End - iv.Start).TotalMinutes);
+            double minutesPerUnit = totalWorkMinutes / Target;
 
-            double totalEfficiency = expectedTotal > 0 ? (double)producedTotal / expectedTotal * 100 : 0;
+            // 8) Przygotowanie zmiennych do pętli
+            double accumulatedExact = 0;
+            int assignedSum = 0;
+            bool isFirstInterval = true;
 
+            // TU trzymamy SUMARYCZNIE wszystkie jeszcze nie odrobione straty:
+            int pendingLostUnits = 0;
 
-            // wiersz podsumowania
-            var summary = new HourlyPlan
+            // 9) Pętla po interwałach
+            foreach (var (start, end, isBreak) in intervals)
+            {
+                // 9.1) Ile wyprodukowano w tym interwale?
+                int produced = isFirstInterval
+                    ? data.Where(d => d.Time >= shiftActualStart && d.Time < end).Sum(d => d.Passed)
+                    : data.Where(d => d.Time >= start && d.Time < end).Sum(d => d.Passed);
+
+                int rawAssigned = 0, netAssigned = 0, downtime = 0, lostThisInterval = 0;
+
+                if (!isBreak)
+                {
+                    // 9.2) Oblicz plan przed stratami
+                    double length = (end - start).TotalMinutes;
+                    accumulatedExact += Target * (length / totalWorkMinutes);
+                    rawAssigned = (int)Math.Round(accumulatedExact) - assignedSum;
+
+                    // 9.3) Nalicz straty dla tego przedziału
+                    downtime = (int)Math.Round(await _machineStatusService.GetDowntimeMinutesAsync(start, end));
+                    if (downtime > 0)
+                    {
+                        lostThisInterval = (int)Math.Ceiling(downtime / minutesPerUnit);
+                        lostThisInterval = Math.Max(1, lostThisInterval);
+                        pendingLostUnits += lostThisInterval;
+                    }
+
+                    // 9.4) Odrabiamy część strat: ile sztuk powyżej rawAssigned?
+                    int recoup = 0;
+                    if (produced > rawAssigned && pendingLostUnits > 0)
+                    {
+                        recoup = Math.Min(produced - rawAssigned, pendingLostUnits);
+                        pendingLostUnits -= recoup;
+                    }
+
+                    // 9.5) Finalny plan = rawAssigned + recoup
+                    netAssigned = rawAssigned + recoup;
+                    // 9.6) Korekta akumulatora o recoup (żeby kolejny rawAssigned się zgadzał)
+                    accumulatedExact += recoup;
+                    assignedSum += netAssigned;
+                }
+
+                // 9.7) Wydajność
+                double efficiency = netAssigned > 0
+                    ? (double)produced / netAssigned * 100
+                    : 0;
+
+                // 9.8) Dodanie wiersza
+                HourlyPlan.Add(new HourlyPlan
+                {
+                    Time = $"{start:HH:mm}-{end:HH:mm}",
+                    ExpectedUnits = netAssigned,
+                    ProducedUnits = produced,
+                    DowntimeMinutes = downtime,
+                    LostUnitsDueToDowntime = pendingLostUnits,
+                    IsBreak = isBreak,
+                    IsBreakActive = isBreak && DateTime.Now >= start && DateTime.Now < end,
+                    Efficiency = efficiency
+                });
+
+                isFirstInterval = false;
+            }
+
+            // 10) Wiersz TOTAL
+            HourlyPlan.Add(new HourlyPlan
             {
                 Time = "TOTAL",
-                ExpectedUnits = Target - lostDueToDowntime,
-                ProducedUnits = producedTotal,
-                DowntimeMinutes = downtimeTotal,
-                LostUnitsDueToDowntime = lostDueToDowntime,
+                ExpectedUnits = assignedSum,
+                ProducedUnits = HourlyPlan.Sum(p => p.ProducedUnits),
+                DowntimeMinutes = HourlyPlan.Sum(p => p.DowntimeMinutes),
+                LostUnitsDueToDowntime = pendingLostUnits,
                 IsBreak = false,
                 IsBreakActive = false,
-                Efficiency = totalEfficiency
-            };
+                Efficiency = assignedSum > 0
+                    ? (double)HourlyPlan.Sum(p => p.ProducedUnits) / assignedSum * 100
+                    : 0
+            });
 
-            HourlyPlan.Add(summary);
+            // 11) Aktualna wydajność na wskazówce
+            var now = DateTime.Now;
+            var relevant = intervals
+                .Zip(HourlyPlan.Take(intervals.Count), (iv, hp) => new { iv, hp })
+                .Where(x => x.iv.Start <= now)
+                .Select(x => x.hp);
+
+            var sumExp = relevant.Sum(hp => hp.ExpectedUnits);
+            var sumProd = relevant.Sum(hp => hp.ProducedUnits);
+            var currEff = sumExp > 0
+                ? Math.Round(sumProd / (double)sumExp * 100, 1)
+                : 0;
+
+            Needle.Value = Math.Clamp(currEff, 0, 200);
         }
     }
 }
