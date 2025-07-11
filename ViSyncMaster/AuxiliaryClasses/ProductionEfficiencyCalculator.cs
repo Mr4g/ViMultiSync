@@ -5,39 +5,53 @@ using System.Threading.Tasks;
 
 namespace ViSyncMaster.AuxiliaryClasses
 {
+    /// <summary>
+    /// Kalkulator wydajności produkcji na podstawie planu zmiany i danych o produkcji.
+    /// </summary>
     public class ProductionEfficiencyCalculator
     {
         private readonly TimeSpan _shiftStart;
         private readonly TimeSpan _shiftEnd;
-        private readonly TimeSpan _shutDown;
         private readonly TimeSpan _planStart;
+        private readonly TimeSpan _shutDown;
         private readonly bool _crossMidnight;
         private readonly List<ShiftBreak> _breaks;
         private readonly Func<DateTime, DateTime, double>? _downtimeProvider;
 
-
-        public ProductionEfficiencyCalculator(bool isShift1, Func<DateTime, DateTime, double>? downtimeProvider = null)
-                : this(isShift1 ? ShiftPlan.CreateDefaultShift1()
-                                 : ShiftPlan.CreateDefaultShift2(), downtimeProvider)
+        /// <summary>
+        /// Tworzy kalkulator na bazie pliku JSON i nazwy działu.
+        /// </summary>
+        /// <param name="department">Nazwa działu (zgodna z JSON, np. "KM").</param>
+        /// <param name="downtimeProvider">Opcjonalny provider czasu przestojów.</param>
+        public ProductionEfficiencyCalculator(
+            string department,
+            Func<DateTime, DateTime, double>? downtimeProvider = null)
+            : this(ShiftPlan.GetCurrent(department), downtimeProvider)
         {
         }
 
-        public ProductionEfficiencyCalculator(ShiftPlan plan, Func<DateTime, DateTime, double>? downtimeProvider = null)
+        /// <summary>
+        /// Tworzy kalkulator na bazie konkretnego planu zmiany.
+        /// </summary>
+        public ProductionEfficiencyCalculator(
+            ShiftPlan plan,
+            Func<DateTime, DateTime, double>? downtimeProvider = null)
         {
             _shiftStart = plan.ShiftStart;
             _shiftEnd = plan.ShiftEnd;
             _planStart = plan.PlanStart;
             _shutDown = plan.ShutDown;
-            _breaks = plan.Breaks ?? new List<ShiftBreak>();
+            _breaks = plan.Breaks?.ToList() ?? new List<ShiftBreak>();
             _crossMidnight = _shiftEnd < _shiftStart;
             _downtimeProvider = downtimeProvider;
         }
 
-
-        // Metoda do obliczenia wydajności na podstawie targetu i liczby sztuk
+        /// <summary>
+        /// Oblicza wskaźniki wydajności.
+        /// </summary>
         public void CalculateEfficiency(
            int target,
-           List<(DateTime Time, int PassedUnits)> efficiencyDataList,
+           List<(DateTime Time, int PassedUnits)> data,
            DateTime now,
            out int totalUnitsProduced,
            out double expectedOutput,
@@ -46,108 +60,97 @@ namespace ViSyncMaster.AuxiliaryClasses
            out double machineEfficiencyTotal,
            out double humanEfficiencyTotal)
         {
-            totalUnitsProduced = efficiencyDataList.Sum(x => x.PassedUnits);
+            totalUnitsProduced = data.Sum(x => x.PassedUnits);
 
-            // Determine key times
+            // Oblicz czas rozpoczęcia zmiany
             var shiftStartDate = now.Date.Add(_shiftStart);
-            if (now.TimeOfDay < _shiftStart)
-                shiftStartDate = shiftStartDate.AddDays(-1);
+            if (now.TimeOfDay < _shiftStart) shiftStartDate = shiftStartDate.AddDays(-1);
 
-            var planStart = GetDateTime(shiftStartDate, _planStart);
-            var shutDown = GetDateTime(shiftStartDate, _shutDown);
-            var current = now > shutDown ? shutDown : now;
+            var planStart = ToDateTime(shiftStartDate, _planStart);
+            var shutDown = ToDateTime(shiftStartDate, _shutDown);
+            var currentTime = now > shutDown ? shutDown : now;
 
-            var netShiftMinutes = NetMinutes(planStart, shutDown, shiftStartDate);
-
+            var netShiftMinutes = CalculateNetMinutes(planStart, shutDown, shiftStartDate);
             if (netShiftMinutes <= 0 || target <= 0)
             {
-                expectedOutput = 0;
-                machineEfficiency = 0;
-                humanEfficiency = 0;
-                machineEfficiencyTotal = 0;
-                humanEfficiencyTotal = 0;
+                expectedOutput = machineEfficiency = humanEfficiency = machineEfficiencyTotal = humanEfficiencyTotal = 0;
                 return;
             }
 
-            DateTime? firstPieceTime = efficiencyDataList.Count > 0
-                ? efficiencyDataList.Min(x => x.Time)
-                : (DateTime?)null;
+            // Czas pierwszego wyprodukowanego elementu
+            var firstPiece = data.Any() ? data.Min(x => x.Time) : (DateTime?)null;
+            if (firstPiece.HasValue && firstPiece < planStart) firstPiece = planStart;
 
-            if (firstPieceTime.HasValue && firstPieceTime < planStart)
-                firstPieceTime = planStart;
+            double elapsed = firstPiece.HasValue
+                ? CalculateNetMinutes(firstPiece.Value, currentTime, shiftStartDate)
+                : 0;
 
-            double elapsedFromFirstPiece = 0;
-            double minutesFromFirstPieceToEnd = 0;
-            if (firstPieceTime.HasValue)
-            {
-                elapsedFromFirstPiece = NetMinutes(firstPieceTime.Value, current, shiftStartDate);
-                minutesFromFirstPieceToEnd = NetMinutes(firstPieceTime.Value, shutDown, shiftStartDate);
+            double remaining = firstPiece.HasValue
+                ? CalculateNetMinutes(firstPiece.Value, shutDown, shiftStartDate)
+                : 0;
 
-                expectedOutput = minutesFromFirstPieceToEnd > 0
-                    ? target * (elapsedFromFirstPiece / minutesFromFirstPieceToEnd)
-                    : 0;
-            }
-            else
-            {
-                expectedOutput = 0;
-            }
+            // Output expected
+            expectedOutput = remaining > 0
+                ? target * (elapsed / remaining)
+                : 0;
 
+            // Wydajność maszynowa
             machineEfficiency = expectedOutput > 0
                 ? totalUnitsProduced / expectedOutput * 100
                 : 0;
 
-            // Total efficiency from plan start to shutdown
+            // Wydajność całkowita względem targetu
             machineEfficiencyTotal = target > 0
                 ? totalUnitsProduced / (double)target * 100
                 : 0;
 
-            // Human efficiency from first produced piece
-            if (!firstPieceTime.HasValue)
+            // Wydajność ludzka od pierwszego elementu
+            if (!firstPiece.HasValue)
             {
-                humanEfficiency = machineEfficiency; // preserve old behaviour
+                humanEfficiency = machineEfficiency;
                 humanEfficiencyTotal = machineEfficiencyTotal;
                 return;
             }
 
-            // elapsedFromFirstPiece already calculated above
-            var expectedFromFirstPiece = minutesFromFirstPieceToEnd > 0
-                ? target * (elapsedFromFirstPiece / minutesFromFirstPieceToEnd)
+            var expectedFromFirst = remaining > 0
+                ? target * (elapsed / remaining)
                 : 0;
-            humanEfficiency = expectedFromFirstPiece > 0
-                ? totalUnitsProduced / expectedFromFirstPiece * 100
+            humanEfficiency = expectedFromFirst > 0
+                ? totalUnitsProduced / expectedFromFirst * 100
                 : machineEfficiency;
-
             humanEfficiencyTotal = machineEfficiencyTotal;
         }
 
-        private DateTime GetDateTime(DateTime shiftStartDate, TimeSpan ts)
+        private DateTime ToDateTime(DateTime baseDate, TimeSpan time)
         {
-            var dt = shiftStartDate.Date.Add(ts);
-            if (_crossMidnight && ts < _shiftStart)
-                dt = dt.AddDays(1);
+            var dt = baseDate.Date.Add(time);
+            if (_crossMidnight && time < _shiftStart) dt = dt.AddDays(1);
             return dt;
         }
 
-        private double NetMinutes(DateTime from, DateTime to, DateTime shiftStartDate)
+        private double CalculateNetMinutes(DateTime from, DateTime to, DateTime shiftStartDate)
         {
             if (to <= from) return 0;
             double minutes = (to - from).TotalMinutes;
+
+            // Odejmij przerwy
             foreach (var br in _breaks)
             {
-                var bs = GetDateTime(shiftStartDate, br.Start);
-                var be = GetDateTime(shiftStartDate, br.End);
+                var bs = ToDateTime(shiftStartDate, br.Start);
+                var be = ToDateTime(shiftStartDate, br.End);
                 if (be <= from || bs >= to) continue;
                 var s = bs < from ? from : bs;
                 var e = be > to ? to : be;
                 if (e > s) minutes -= (e - s).TotalMinutes;
             }
+
+            // Odejmij przestoje
             if (_downtimeProvider != null)
             {
                 minutes -= _downtimeProvider(from, to);
             }
-            if (minutes < 0) minutes = 0;
-            return minutes;
+
+            return Math.Max(0, minutes);
         }
     }
 }
- 

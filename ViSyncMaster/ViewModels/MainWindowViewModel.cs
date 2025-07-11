@@ -1650,7 +1650,7 @@ namespace ViSyncMaster.ViewModels
 
             var batch = new List<Rs232Data> { piece };
 
-            await _machineStatusService.ReportBatchPartQuality(batch);
+            //await _machineStatusService.ReportBatchPartQuality(batch);
 
             //Ssid = _wifiParameters.FetchWifiName();
             //if (appConfig.AppMode == "VRSKT")

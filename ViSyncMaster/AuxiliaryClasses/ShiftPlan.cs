@@ -1,55 +1,118 @@
-﻿using System;
+﻿// using directives
+using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using Newtonsoft.Json;
 
 namespace ViSyncMaster.AuxiliaryClasses
 {
-    public record ShiftBreak(TimeSpan Start, TimeSpan End);
-
-    public class ShiftPlan
+    /// <summary>
+    /// Reprezentuje pojedynczy plan zmiany oraz zarządza wczytywaniem planów z pliku JSON.
+    /// </summary>
+    public record ShiftPlan
     {
+        /// <summary>Domyślna ścieżka do pliku z konfiguracją planów zmian.</summary>
+        public const string DefaultConfigPath = @"C:\ViSM\ConfigFiles\shiftPlans.json";
+
+        /// <summary>Nazwa działu, z którego pochodzi ten plan.</summary>
+        [JsonIgnore]
+        public string Department { get; init; }
+
+        /// <summary>Numer zmiany (1, 2 lub 3).</summary>
+        public int ShiftNumber { get; init; }
         public TimeSpan ShiftStart { get; init; }
         public TimeSpan ShiftEnd { get; init; }
         public TimeSpan PlanStart { get; init; }
         public TimeSpan ShutDown { get; init; }
+
+        /// <summary>Lista przerw w ramach zmiany.</summary>
         public List<ShiftBreak> Breaks { get; init; } = new();
 
-        public static ShiftPlan CreateDefaultShift1() => new()
+        // Pomocniczy model do deserializacji JSON
+        private class DepartmentPlan
         {
-            ShiftStart = TimeSpan.Parse("05:40"),
-            ShiftEnd = TimeSpan.Parse("13:40"),
-            PlanStart = TimeSpan.Parse("05:50"),
-            ShutDown = TimeSpan.Parse("13:35"),
-            Breaks = new List<ShiftBreak>
-            {
-                new ShiftBreak(TimeSpan.Parse("09:40"), TimeSpan.Parse("10:00")),
-                new ShiftBreak(TimeSpan.Parse("12:00"), TimeSpan.Parse("12:10"))
-            }
-        };
+            public string Name { get; set; }
+            public List<ShiftPlan> Shifts { get; set; }
+        }
 
-        public static ShiftPlan CreateDefaultShift2() => new()
+        private class Root
         {
-            ShiftStart = TimeSpan.Parse("13:40"),
-            ShiftEnd = TimeSpan.Parse("21:40"),
-            PlanStart = TimeSpan.Parse("13:50"),
-            ShutDown = TimeSpan.Parse("21:35"),
-            Breaks = new List<ShiftBreak>
-            {
-                new ShiftBreak(TimeSpan.Parse("17:40"), TimeSpan.Parse("18:00")),
-                new ShiftBreak(TimeSpan.Parse("20:00"), TimeSpan.Parse("20:10"))
-            }
-        };
+            public List<DepartmentPlan> Departments { get; set; }
+        }
 
-        public static ShiftPlan CreateDefaultShift3() => new()
+        // Wewnętrzna kolekcja wszystkich planów
+        private static List<ShiftPlan> _allPlans;
+
+        /// <summary>
+        /// Wczytuje plik JSON z planami zmian spod domyślnej ścieżki.
+        /// </summary>
+        public static void LoadFromJson()
         {
-            ShiftStart = TimeSpan.Parse("21:40"),
-            ShiftEnd = TimeSpan.Parse("05:40"),
-            PlanStart = TimeSpan.Parse("21:50"),
-            ShutDown = TimeSpan.Parse("05:35"),
-            Breaks = new List<ShiftBreak>
-            {
-                new ShiftBreak(TimeSpan.Parse("01:40"), TimeSpan.Parse("02:00")),
-                new ShiftBreak(TimeSpan.Parse("04:00"), TimeSpan.Parse("04:10"))
-            }
-        };
+            LoadFromJson(DefaultConfigPath);
+        }
+
+        /// <summary>
+        /// Wczytuje plik JSON z planami zmian podanej ścieżki.
+        /// </summary>
+        /// <param name="jsonFilePath">Pełna ścieżka do pliku JSON.</param>
+        public static void LoadFromJson(string jsonFilePath)
+        {
+            if (!File.Exists(jsonFilePath))
+                throw new FileNotFoundException($"Nie znaleziono pliku z planami zmian: {jsonFilePath}");
+
+            var json = File.ReadAllText(jsonFilePath);
+            var root = JsonConvert.DeserializeObject<Root>(json)
+                       ?? throw new InvalidDataException("Nieprawidłowa struktura pliku JSON.");
+
+            _allPlans = root.Departments
+                .SelectMany(d => d.Shifts.Select(s => s with { Department = d.Name }))
+                .ToList();
+        }
+
+        /// <summary>
+        /// Zwraca aktywny plan zmiany dla określonego działu na podstawie aktualnego czasu.
+        /// Jeśli czas przypada na nocną zmianę, uwzględnia "przeskok" przez północ.
+        /// </summary>
+        /// <param name="department">Nazwa działu (np. "KM", "SK").</param>
+        /// <param name="now">Opcjonalnie: czas do sprawdzenia; domyślnie DateTime.Now.</param>
+        /// <returns>Obiekt ShiftPlan dla bieżącej zmiany.</returns>
+        public static ShiftPlan GetCurrent(string department, DateTime? now = null)
+        {
+            if (_allPlans == null)
+                throw new InvalidOperationException(
+                    "Plany zmian nie zostały wczytane. Wywołaj ShiftPlan.LoadFromJson().");
+
+            var deptPlans = _allPlans
+                .Where(s => string.Equals(s.Department, department, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+            if (!deptPlans.Any())
+                throw new ArgumentException($"Brak planów dla działu '{department}'.");
+
+            var currentTime = (now ?? DateTime.Now).TimeOfDay;
+
+            // 1. Poszukiwanie zmian dziennych (bez przewijania przez północ)
+            var dayShift = deptPlans
+                .FirstOrDefault(s => s.ShiftStart <= s.ShiftEnd
+                                     && currentTime >= s.ShiftStart
+                                     && currentTime < s.ShiftEnd);
+            if (dayShift != null)
+                return dayShift;
+
+            // 2. Poszukiwanie zmiany nocnej (ShiftStart > ShiftEnd)
+            var nightShift = deptPlans
+                .FirstOrDefault(s => s.ShiftStart > s.ShiftEnd
+                                     && (currentTime >= s.ShiftStart || currentTime < s.ShiftEnd));
+            if (nightShift != null)
+                return nightShift;
+
+            throw new InvalidOperationException(
+                "Nie udało się dopasować żadnej zmiany do bieżącego czasu.");
+        }
     }
+
+    /// <summary>
+    /// Model reprezentujący przerwę w ramach zmiany.
+    /// </summary>
+    public record ShiftBreak(TimeSpan Start, TimeSpan End);
 }

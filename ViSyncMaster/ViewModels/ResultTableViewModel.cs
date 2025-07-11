@@ -21,16 +21,17 @@ using ViSyncMaster.ViewModels;
 using System.Threading.Tasks;
 using System.Diagnostics;
 using DynamicData;
+using System.ComponentModel.DataAnnotations;
 
 namespace ViSyncMaster.ViewModels
 {
-    public partial class ResultTableViewModel : ObservableObject
+    public partial class ResultTableViewModel : ObservableValidator
     {
 
         private readonly MachineStatusService _machineStatusService;
         private ObservableCollection<MachineStatus> _originalResultTestList; // Full data list
         private ProductionEfficiencyCalculator _efficiencyCalculator;
-
+        private AppConfigData _appConfig = MainWindowViewModel.appConfig;
         private DispatcherTimer _hourlyTimer;
         private ProductionEfficiency _productionEfficiency;
         private MainWindowViewModel _mainWindowViewModel;
@@ -52,7 +53,12 @@ namespace ViSyncMaster.ViewModels
         [ObservableProperty] private ObservableCollection<TimelineSegment> _timelineSegments = new();
         [ObservableProperty] private double _currentTimeMarker;
         [ObservableProperty] private double _timelineWidth = 600;
-        [ObservableProperty] private int _target = -1;
+        [ObservableProperty]
+        [RegularExpression(
+           @"^(-1|0|[1-9][0-9]{0,3})$",
+           ErrorMessage = "Target musi być -1 lub liczbą z zakresu 0–9999."
+         )]
+        private int _target = -1;
         [ObservableProperty] private int _totalUnitsProduced;
         [ObservableProperty] private double _expectedEfficiency;
         [ObservableProperty] private double _machineEfficiency;
@@ -77,29 +83,33 @@ namespace ViSyncMaster.ViewModels
         public ObservableValue TargetPartsChart { get; set; }
         public SolidColorPaint LegendTextPaint { get; set; } // Kolor tekstu legendy
 
-        public ResultTableViewModel(MachineStatusService machineStatusService, MainWindowViewModel mainWindowViewModel, ObservableCollection<MachineStatus> resultTests = null)
+        public ResultTableViewModel(
+                    MachineStatusService machineStatusService,
+                    MainWindowViewModel mainWindowViewModel,
+                    ObservableCollection<MachineStatus> resultTests = null)
         {
+            // Wczytaj plany zmian
+            ShiftPlan.LoadFromJson();
+
             _machineStatusService = machineStatusService;
             _mainWindowViewModel = mainWindowViewModel;
             _productionEfficiency = new ProductionEfficiency();
             _originalResultTestList = resultTests ?? throw new ArgumentNullException(nameof(resultTests));
             ResultTestList = new ObservableCollection<MachineStatus>(_originalResultTestList);
+
             AutoSelectCurrentShiftAsync();
             InicializeChart();
-            // Utwórz i dodaj wiersz TOTAL
-            _totalRow = new MachineStatusGrouped
-            {
-                ProductName = "TOTAL",
-                ShiftCounterPass = 0,
-                ShiftCounterFail = 0,
-                Operators = string.Empty
-            };
+
+            // Dodaj wiersz TOTAL
+            _totalRow = new MachineStatusGrouped { ProductName = "TOTAL" };
             GroupedResultList.Add(_totalRow);
             RefreshGroupedResultList();
             UpdateGroupedResultListWithTotal();
-            // Initializing efficiency calculator
-            _currentShift = 1;
-            _efficiencyCalculator = new ProductionEfficiencyCalculator(ShiftPlan.CreateDefaultShift1(), GetDowntimeMinutes);
+
+            // Inicjalizacja kalkulatora wydajności
+            var plan = ShiftPlan.GetCurrent(_appConfig.Line);
+            _efficiencyCalculator = new ProductionEfficiencyCalculator(plan, GetDowntimeMinutes);
+
             _mainWindowViewModel.ResultTableUpdate += async (s, e) => await QueueUpdateAsync();
             StartHourlyTimer();
         }
@@ -264,13 +274,8 @@ namespace ViSyncMaster.ViewModels
         }
         partial void OnCurrentShiftChanged(int value)
         {
-            var plan = value switch
-            {
-                1 => ShiftPlan.CreateDefaultShift1(),
-                2 => ShiftPlan.CreateDefaultShift2(),
-                3 => ShiftPlan.CreateDefaultShift3(),
-                _ => ShiftPlan.CreateDefaultShift1()
-            };
+            // Pobierz aktualny plan dla działu
+            var plan = ShiftPlan.GetCurrent(_appConfig.Line);
             _efficiencyCalculator = new ProductionEfficiencyCalculator(plan, GetDowntimeMinutes);
         }
 
@@ -424,30 +429,14 @@ namespace ViSyncMaster.ViewModels
             _hourlyTimer = new DispatcherTimer { Interval = TimeSpan.FromMinutes(5) };
             _hourlyTimer.Tick += async (sender, e) =>
             {
-                var plan = _currentShift switch
-                {
-                    1 => ShiftPlan.CreateDefaultShift1(),
-                    2 => ShiftPlan.CreateDefaultShift2(),
-                    3 => ShiftPlan.CreateDefaultShift3(),
-                    _ => ShiftPlan.CreateDefaultShift1()
-                };
-
+                var plan = ShiftPlan.GetCurrent(_appConfig.Line);
                 var now = DateTime.Now;
-                var crossMidnight = plan.ShiftEnd < plan.ShiftStart;
-                var shiftStartDate = now.Date;
-                if (crossMidnight && now.TimeOfDay < plan.ShiftStart)
-                    shiftStartDate = shiftStartDate.AddDays(-1);
-
-                var shutDown = shiftStartDate.Add(plan.ShutDown);
-                if (crossMidnight && plan.ShutDown < plan.ShiftStart)
-                    shutDown = shutDown.AddDays(1);
-
-                if (now >= shutDown)
-                {
-                    _hourlyTimer.Stop();
-                    return;
-                }
-
+                bool cross = plan.ShiftEnd < plan.ShiftStart;
+                var startDate = now.Date;
+                if (cross && now.TimeOfDay < plan.ShiftStart) startDate = startDate.AddDays(-1);
+                var shutDown = startDate.Add(plan.ShutDown);
+                if (cross && plan.ShutDown < plan.ShiftStart) shutDown = shutDown.AddDays(1);
+                if (now >= shutDown) { _hourlyTimer.Stop(); return; }
                 await UpdateChartData();
                 await SendDataAsync();
             };
@@ -575,13 +564,7 @@ namespace ViSyncMaster.ViewModels
             if (!data.Any()) return;
 
             // 2) Plan zmiany
-            var plan = _currentShift switch
-            {
-                1 => ShiftPlan.CreateDefaultShift1(),
-                2 => ShiftPlan.CreateDefaultShift2(),
-                3 => ShiftPlan.CreateDefaultShift3(),
-                _ => ShiftPlan.CreateDefaultShift1()
-            };
+            var plan = ShiftPlan.GetCurrent(_appConfig.Line);
 
             // 3) Ustal daty uwzględniając północ
             bool crossMidnight = plan.ShiftEnd < plan.ShiftStart;
