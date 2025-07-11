@@ -561,7 +561,7 @@ namespace ViSyncMaster.ViewModels
             HourlyPlan.Clear();
             if (Target <= 0) return;
 
-            // 1) Pobranie i posortowanie danych
+            // 1) Dane produkcji
             var data = ResultTestList
                 .Where(x => x.StartTime.HasValue)
                 .Select(x => (Time: x.StartTime!.Value, Passed: x.Name == "S7.TestingPassed" ? 1 : 0))
@@ -569,7 +569,7 @@ namespace ViSyncMaster.ViewModels
                 .ToList();
             if (!data.Any()) return;
 
-            // 2) Przygotowanie planu zmiany
+            // 2) Plan zmiany
             var plan = _currentShift switch
             {
                 1 => ShiftPlan.CreateDefaultShift1(),
@@ -578,12 +578,11 @@ namespace ViSyncMaster.ViewModels
                 _ => ShiftPlan.CreateDefaultShift1()
             };
 
-            // 3) Konwersja na DateTime z uwzględnieniem przesunięcia północnego
+            // 3) Ustal daty uwzględniając północ
             bool crossMidnight = plan.ShiftEnd < plan.ShiftStart;
             DateTime shiftStartDate = DateTime.Today;
             if (crossMidnight && DateTime.Now.TimeOfDay < plan.ShiftStart)
                 shiftStartDate = shiftStartDate.AddDays(-1);
-
             DateTime ToDate(TimeSpan ts)
             {
                 var dt = shiftStartDate.Date.Add(ts);
@@ -591,21 +590,21 @@ namespace ViSyncMaster.ViewModels
                 return dt;
             }
 
-            // 4) Wyznaczenie początków i końców planowania
+            // 4) Starty
             var shiftActualStart = ToDate(plan.ShiftStart);
             var planStartTime = ToDate(plan.PlanStart);
             var firstPieceTime = data.Min(d => d.Time);
             var scheduleStart = firstPieceTime > planStartTime ? firstPieceTime : planStartTime;
             var scheduleEnd = ToDate(plan.ShutDown);
 
-            // 5) Zbudowanie listy przerw
+            // 5) Przerwy
             var breaks = plan.Breaks
                 .Select(b => (Start: ToDate(b.Start), End: ToDate(b.End)))
                 .Where(b => b.End > scheduleStart && b.Start < scheduleEnd)
                 .OrderBy(b => b.Start)
                 .ToList();
 
-            // 6) Podział na interwały robocze i przerw
+            // 6) Interwały
             var intervals = new List<(DateTime Start, DateTime End, bool IsBreak)>();
             var cursor = scheduleStart;
             while (cursor < scheduleEnd)
@@ -631,74 +630,71 @@ namespace ViSyncMaster.ViewModels
                 }
             }
 
-            // 7) Obliczenie totalWorkMinutes i minutesPerUnit
-            double totalWorkMinutes = intervals
-                .Where(iv => !iv.IsBreak)
-                .Sum(iv => (iv.End - iv.Start).TotalMinutes);
+            // 7) Podstawowe wskaźniki
+            double totalWorkMinutes = intervals.Where(iv => !iv.IsBreak)
+                                               .Sum(iv => (iv.End - iv.Start).TotalMinutes);
             double minutesPerUnit = totalWorkMinutes / Target;
 
-            // 8) Przygotowanie zmiennych do pętli
             double accumulatedExact = 0;
             int assignedSum = 0;
             bool isFirstInterval = true;
 
-            // TU trzymamy SUMARYCZNIE wszystkie jeszcze nie odrobione straty:
-            int pendingLostUnits = 0;
-
-            // 9) Pętla po interwałach
             foreach (var (start, end, isBreak) in intervals)
             {
-                // 9.1) Ile wyprodukowano w tym interwale?
                 int produced = isFirstInterval
                     ? data.Where(d => d.Time >= shiftActualStart && d.Time < end).Sum(d => d.Passed)
                     : data.Where(d => d.Time >= start && d.Time < end).Sum(d => d.Passed);
 
-                int rawAssigned = 0, netAssigned = 0, downtime = 0, lostThisInterval = 0;
+                int downtime = 0, lostUnits = 0;
+                int rawAssigned = 0, netAssigned = 0;
 
                 if (!isBreak)
                 {
-                    // 9.2) Oblicz plan przed stratami
+                    // 1) Proporcjonalny plan przed stratami
                     double length = (end - start).TotalMinutes;
                     accumulatedExact += Target * (length / totalWorkMinutes);
                     rawAssigned = (int)Math.Round(accumulatedExact) - assignedSum;
 
-                    // 9.3) Nalicz straty dla tego przedziału
+                    // 2) Nalicz straty
                     downtime = (int)Math.Round(await _machineStatusService.GetDowntimeMinutesAsync(start, end));
                     if (downtime > 0)
                     {
-                        lostThisInterval = (int)Math.Ceiling(downtime / minutesPerUnit);
-                        lostThisInterval = Math.Max(1, lostThisInterval);
-                        pendingLostUnits += lostThisInterval;
+                        lostUnits = (int)Math.Ceiling(downtime / minutesPerUnit);
+                        lostUnits = Math.Max(1, lostUnits);
                     }
 
-                    // 9.4) Odrabiamy część strat: ile sztuk powyżej rawAssigned?
-                    int recoup = 0;
-                    if (produced > rawAssigned && pendingLostUnits > 0)
+                    // 3) Pierwotny plan po stratach
+                    var initialNet = Math.Max(0, rawAssigned - lostUnits);
+
+                    // 4) Jeśli operator wyprodukował więcej niż initialNet,
+                    //    to zaczynamy odrabiać stracone sztuki:
+                    if (produced > initialNet)
                     {
-                        recoup = Math.Min(produced - rawAssigned, pendingLostUnits);
-                        pendingLostUnits -= recoup;
+                        var recoup = Math.Min(produced - initialNet, lostUnits);
+                        lostUnits -= recoup;                          // zmniejszamy liczbę pozostałych strat
+                        netAssigned = rawAssigned - lostUnits;        // plan = gross plan – pozostałe straty
+                    }
+                    else
+                    {
+                        netAssigned = initialNet;
                     }
 
-                    // 9.5) Finalny plan = rawAssigned + recoup
-                    netAssigned = rawAssigned + recoup;
-                    // 9.6) Korekta akumulatora o recoup (żeby kolejny rawAssigned się zgadzał)
-                    accumulatedExact += recoup;
+                    // 5) Korekta akumulatora i sumy
+                    accumulatedExact -= (rawAssigned - netAssigned);
                     assignedSum += netAssigned;
                 }
 
-                // 9.7) Wydajność
                 double efficiency = netAssigned > 0
                     ? (double)produced / netAssigned * 100
                     : 0;
 
-                // 9.8) Dodanie wiersza
                 HourlyPlan.Add(new HourlyPlan
                 {
                     Time = $"{start:HH:mm}-{end:HH:mm}",
                     ExpectedUnits = netAssigned,
                     ProducedUnits = produced,
                     DowntimeMinutes = downtime,
-                    LostUnitsDueToDowntime = pendingLostUnits,
+                    LostUnitsDueToDowntime = lostUnits,
                     IsBreak = isBreak,
                     IsBreakActive = isBreak && DateTime.Now >= start && DateTime.Now < end,
                     Efficiency = efficiency
@@ -707,14 +703,14 @@ namespace ViSyncMaster.ViewModels
                 isFirstInterval = false;
             }
 
-            // 10) Wiersz TOTAL
+            // 9) Wiersz TOTAL
             HourlyPlan.Add(new HourlyPlan
             {
                 Time = "TOTAL",
                 ExpectedUnits = assignedSum,
                 ProducedUnits = HourlyPlan.Sum(p => p.ProducedUnits),
                 DowntimeMinutes = HourlyPlan.Sum(p => p.DowntimeMinutes),
-                LostUnitsDueToDowntime = pendingLostUnits,
+                LostUnitsDueToDowntime = HourlyPlan.Sum(p => p.LostUnitsDueToDowntime),
                 IsBreak = false,
                 IsBreakActive = false,
                 Efficiency = assignedSum > 0
@@ -722,7 +718,7 @@ namespace ViSyncMaster.ViewModels
                     : 0
             });
 
-            // 11) Aktualna wydajność na wskazówce
+            // 10) Aktualna wydajność na wskazówce
             var now = DateTime.Now;
             var relevant = intervals
                 .Zip(HourlyPlan.Take(intervals.Count), (iv, hp) => new { iv, hp })
@@ -734,9 +730,8 @@ namespace ViSyncMaster.ViewModels
             var currEff = sumExp > 0
                 ? Math.Round(sumProd / (double)sumExp * 100, 1)
                 : 0;
-
             Needle.Value = Math.Clamp(currEff, 0, 200);
         }
+
     }
 }
-
