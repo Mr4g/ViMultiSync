@@ -1642,7 +1642,7 @@ namespace ViSyncMaster.ViewModels
         {
             var piece = new Rs232Data
             {
-                ProductName = "1111113",
+                ProductName = "1111111",
                 OperatorId = "smbl",
                 TestingPassed = "true",
                 Timestamp = DateTimeOffset.Now.ToUnixTimeMilliseconds()

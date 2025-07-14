@@ -21,6 +21,8 @@ namespace ViSyncMaster.ViewModels
         private List<ProductSettings> _productSettingsList = new();
         string _settingsFilePath = Path.Combine("C:", "ViSM", "ConfigFiles", "ProductSettings.csv");
 
+        [ObservableProperty]
+        private bool _applyCsvFilter = true;
 
         [ObservableProperty]
         private FirstPartModel _firstPartModel = new FirstPartModel();
@@ -55,6 +57,22 @@ namespace ViSyncMaster.ViewModels
         [ObservableProperty]
         public bool _isSignatureVisible;
 
+        partial void OnApplyCsvFilterChanged(bool oldValue, bool newValue)
+        {
+            if (!string.IsNullOrEmpty(FirstPartModel.NumberProduct))
+            {
+                if (newValue)
+                {
+                    var settings = GetProductSettings(FirstPartModel.NumberProduct, _productSettingsList);
+                    UpdateFieldVisibility(settings);
+                }
+                else
+                {
+                    UpdateFieldVisibility(null);
+                }
+            }
+        }
+
         public FormFirstPartViewModel(MachineStatusService machineStatusService)
         {
             _machineStatusService = machineStatusService;
@@ -74,8 +92,15 @@ namespace ViSyncMaster.ViewModels
         {
             if (!string.IsNullOrEmpty(FirstPartModel.NumberProduct))
             {
-                var settings = GetProductSettings(FirstPartModel.NumberProduct, _productSettingsList);
-                UpdateFieldVisibility(settings);
+                if (ApplyCsvFilter)
+                {
+                    var settings = GetProductSettings(FirstPartModel.NumberProduct, _productSettingsList);
+                    UpdateFieldVisibility(settings);
+                }
+                else
+                {
+                    UpdateFieldVisibility(null);
+                }
             }
         }
 

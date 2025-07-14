@@ -55,6 +55,19 @@
 			<Setter Property="FontWeight" Value="Bold"/>
 			<Setter Property="MinHeight" Value="50"/>
 		</Style>
+
+		<Style Selector="CheckBox.CsvFilterCheckBox:checked /template/ Border#NormalRectangle">
+			<Setter Property="Background" Value="{DynamicResource OrangeRedBrush}"/>
+			<Setter Property="BorderBrush" Value="{DynamicResource OrangeRedBrush}"/>
+		</Style>
+		<Style Selector="CheckBox.CsvFilterCheckBox:checked /template/ ContentPresenter">
+			<Setter Property="FontWeight" Value="Bold"/>
+		</Style>
+		<!-- (opcjonalnie) zostawiamy ptaszek w kontrastowym kolorze -->
+		<Style Selector="CheckBox.CsvFilterCheckBox:checked /template/ Path#CheckGlyph">
+			<Setter Property="Fill" Value="White"/>
+		</Style>
+	
 	</UserControl.Styles>
 
 	<ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
@@ -105,6 +118,7 @@
 				<StackPanel Grid.Row="0" Grid.Column="1" Spacing="10" Margin="30,10,30,10">
 					<TextBlock Classes="Title" Text="Podaj numer produktu:"/>
 					<TextBox Text="{Binding FirstPartModel.NumberProduct, UpdateSourceTrigger=PropertyChanged}"/>
+					<CheckBox Content="Filtruj po numerze" IsChecked="{Binding ApplyCsvFilter}" Classes="CsvFilterCheckBox"/>
 
 					<TextBlock  IsVisible="{Binding IsNumberClampVisible}" Classes="Title" Text="Podaj numer zacisku:"/>
 					<TextBox IsVisible="{Binding IsNumberClampVisible}" 
