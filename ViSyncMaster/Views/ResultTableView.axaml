@@ -22,15 +22,6 @@
 			<Setter Property="FontSize" Value="16"/>
 		</Style>
 
-		<!-- Styl dla komórek -->
-		<Style Selector="DataGridCell">
-			<Setter Property="Background" Value="#2D2F38"/>
-			<Setter Property="Foreground" Value="White"/>
-			<Setter Property="Padding" Value="10"/>
-			<Setter Property="FontSize" Value="24"/>
-			<Setter Property="TextBlock.TextAlignment" Value="Center"/>
-		</Style>
-
 		<!-- Styl dla nagłówków kolumn -->
 		<Style Selector="DataGridColumnHeader">
 			<Setter Property="Background" Value="#3A3F47"/>
@@ -41,25 +32,26 @@
 			<Setter Property="FontSize" Value="18"/>
 		</Style>
 
-		<!-- Styl dla wierszy -->
-		<Style Selector="DataGridRow">
+		<!-- Styl dla komórek -->
+		<Style Selector="DataGridCell">
+			<Setter Property="Background" Value="Transparent"/>
+			<Setter Property="Foreground" Value="White"/>
+			<Setter Property="Padding" Value="10"/>
+			<Setter Property="FontSize" Value="24"/>
+			<Setter Property="TextBlock.TextAlignment" Value="Center"/>
+		</Style>
+
+		<!-- Zebra striping: co drugi wiersz inny odcień -->
+		<Style Selector="DataGridRow:nth-child(odd)">
 			<Setter Property="Background" Value="#24262F"/>
 			<Setter Property="Foreground" Value="White"/>
 		</Style>
+		<Style Selector="DataGridRow:nth-child(even)">
+			<Setter Property="Background" Value="#2D2F38"/>
+			<Setter Property="Foreground" Value="White"/>
+		</Style>
 
-		<!-- Highlight break rows -->
-		<!--<Style Selector="DataGridRow">
-			<Style.Triggers>
-				<DataTrigger Binding="{Binding IsBreak}" Value="True">
-					<Setter Property="Background" Value="#334d33"/>
-				</DataTrigger>
-				<DataTrigger Binding="{Binding IsBreakActive}" Value="True">
-					<Setter Property="Background" Value="#336633"/>
-				</DataTrigger>
-			</Style.Triggers>
-		</Style>-->
-
-		<!-- Styl dla wierszy po najechaniu -->
+		<!-- Hover -->
 		<Style Selector="DataGridRow:hover">
 			<Setter Property="Background" Value="#3A3F47"/>
 		</Style>
@@ -161,45 +153,48 @@
 		</StackPanel>
 
 		<!-- Tabela planu -->
-		<DataGrid Grid.Row="3" Grid.Column="2" ItemsSource="{Binding HourlyPlan}" AutoGenerateColumns="False"
-                                  IsReadOnly="True" GridLinesVisibility="None" Margin="10" Width="1000">
-			<DataGrid.Columns>
-				<DataGridTextColumn Header="Czas" Binding="{Binding Time}" Width="*"/>
-				<DataGridTextColumn Header="Plan" Binding="{Binding ExpectedDisplay}" Width="*"/>
-				<DataGridTemplateColumn Header="Produced" Width="*">
-					<DataGridTemplateColumn.CellTemplate>
-						<DataTemplate>
-							<Grid>
-								<Grid IsVisible="{Binding IsBreak, Converter={StaticResource InverseBoolConverter}}">
-									<ProgressBar Minimum="0"
-										 Maximum="{Binding ExpectedUnits}"
-										 Value="{Binding ProducedUnits}"
-										 HorizontalAlignment="Stretch"
-										 Height="20"
-										 Margin="0,2"
-										 Foreground="Green"
-										 Background="#1D1F27"/>
-									<TextBlock Text="{Binding ProducedUnits}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+		<ScrollViewer Grid.Row="3" Grid.Column="2" VerticalScrollBarVisibility="Auto">
+			<DataGrid ItemsSource="{Binding HourlyPlan}" AutoGenerateColumns="False" RowHeight="45" MaxHeight="700"
+						  IsReadOnly="True" GridLinesVisibility="None" Margin="10" Width="1100" 
+						  VerticalAlignment="Stretch"
+					  >
+				<DataGrid.Columns>
+					<DataGridTextColumn Header="Czas" Binding="{Binding Time}" Width="Auto"/>
+					<DataGridTextColumn Header="Plan" Binding="{Binding ExpectedDisplay}" Width="Auto"/>
+					<DataGridTemplateColumn Header="Wykon" Width="Auto">
+						<DataGridTemplateColumn.CellTemplate>
+							<DataTemplate>
+								<Grid>
+									<Grid IsVisible="{Binding IsBreak, Converter={StaticResource InverseBoolConverter}}">
+										<ProgressBar Minimum="0"
+											 Maximum="{Binding ExpectedUnits}"
+											 Value="{Binding ProducedUnits}"
+											 HorizontalAlignment="Stretch"
+											 Height="20"
+											 Margin="0,2"
+											 Foreground="Green"
+											 Background="#1D1F27"/>
+										<TextBlock Text="{Binding ProducedUnits}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+									</Grid>
+									<StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding IsBreak}">
+										<TextBlock Text="{Binding ProducedUnits}" Margin="5,0,0,0"/>
+									</StackPanel>
 								</Grid>
-								<StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding IsBreak}">
-									<TextBlock Text="{Binding ProducedUnits}" Margin="5,0,0,0"/>
-								</StackPanel>
-							</Grid>
-						</DataTemplate>
-					</DataGridTemplateColumn.CellTemplate>
-				</DataGridTemplateColumn>
-				<DataGridTextColumn Header="Przestoje [min]" Binding="{Binding DowntimeDisplay}" Width="*"/>
-				<DataGridTextColumn Header="Stracone [szt]" Binding="{Binding LostUnitsDisplay}" Width="*"/>
-				<DataGridTextColumn Header="Efektywność [%]"
-									Binding="{Binding EfficiencyDisplay}"
-									Width="*"/>
-			</DataGrid.Columns>
-		</DataGrid>
+							</DataTemplate>
+						</DataGridTemplateColumn.CellTemplate>
+					</DataGridTemplateColumn>
+					<DataGridTextColumn Header="Przestoje [min]" Binding="{Binding DowntimeDisplay}" Width="Auto"/>
+					<DataGridTextColumn Header="Stracone [szt]" Binding="{Binding LostUnitsDisplay}" Width="Auto"/>
+					<DataGridTextColumn Header="Efektywność [%]"
+										Binding="{Binding EfficiencyDisplay}"
+										Width="*"/>
+				</DataGrid.Columns>
+			</DataGrid>
+		</ScrollViewer>
+
 
 		<!-- Panel prawy: Wskaźniki kołowe -->
-
-		<!-- Panel prawy: Wskaźniki kołowe -->
-		<StackPanel Grid.Row="3" Grid.Column="3" Orientation="Vertical" HorizontalAlignment="Center" Margin="30" VerticalAlignment="Center">
+		<StackPanel Grid.Row="3" Grid.Column="3" Grid.RowSpan="2" Orientation="Vertical" HorizontalAlignment="Center" Margin="30" VerticalAlignment="Center">
 			<!-- Wiersz z dwoma wykresami kołowymi -->
 			<Border CornerRadius="28" Background="#0B0A0F" HorizontalAlignment="Center">
 				<StackPanel Orientation="Vertical" HorizontalAlignment="Center">
@@ -271,6 +266,6 @@
 				</StackPanel>
 			</Border>
                 </StackPanel>-->
-		</Grid>
+	</Grid>
 
 </UserControl>

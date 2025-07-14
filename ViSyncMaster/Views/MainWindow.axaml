@@ -2061,24 +2061,22 @@
 
 
 			<!-- ControlPanel -->
-			<Border  
+			<Border
 			    Grid.Column="1"
 				CornerRadius="10"
 			    BorderBrush="{Binding IsActiveStatus, Converter={StaticResource BoolToBrushConverter}}"
 			    BorderThickness="{Binding IsActiveStatus, Converter={StaticResource BoolToThicknessConverter}}">
-			
-			    <Grid>
-			        <Image Grid.ColumnSpan="3" Source="/Assets/logoW16.png" Stretch="None"/>
-			        
-			        <UserControl
-			            IsVisible="{Binding !ControlPanelVisible}"
-			            CornerRadius="20"
-			            Background="#232228"
-			            Content="{Binding ActivePage}"
-			            HorizontalAlignment="Stretch"
-			            Margin="10,20,10,0"
-			            VerticalAlignment="Stretch" />
-			    </Grid>
+				<Grid>
+					<Image Grid.ColumnSpan="3" Source="/Assets/logoW16.png" Stretch="None"/>
+
+					<ContentControl
+						IsVisible="{Binding !ControlPanelVisible}"
+						Background="#232228"
+						Content="{Binding ActivePage}"
+						HorizontalAlignment="Stretch"
+						VerticalAlignment="Stretch"
+						Margin="10,20,10,0"/>
+				</Grid>
 			</Border>
 			<StackPanel Margin ="0,2,2,2" Grid.RowSpan="3" Grid.Column="2" VerticalAlignment="Center" Orientation="Horizontal" IsVisible="{Binding VacuumButtonIsVisible}">
 				<Grid VerticalAlignment="Center">
