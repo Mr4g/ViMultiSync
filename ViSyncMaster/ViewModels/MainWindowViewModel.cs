@@ -1642,7 +1642,7 @@ namespace ViSyncMaster.ViewModels
         {
             var piece = new Rs232Data
             {
-                ProductName = "1111111",
+                ProductName = "1111113",
                 OperatorId = "smbl",
                 TestingPassed = "true",
                 Timestamp = DateTimeOffset.Now.ToUnixTimeMilliseconds()
@@ -1650,7 +1650,7 @@ namespace ViSyncMaster.ViewModels
 
             var batch = new List<Rs232Data> { piece };
 
-            //await _machineStatusService.ReportBatchPartQuality(batch);
+            await _machineStatusService.ReportBatchPartQuality(batch);
 
             //Ssid = _wifiParameters.FetchWifiName();
             //if (appConfig.AppMode == "VRSKT")

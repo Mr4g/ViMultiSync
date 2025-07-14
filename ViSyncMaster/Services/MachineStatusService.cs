@@ -45,6 +45,15 @@ namespace ViSyncMaster.Services
         private DateTime _lastDowntimeRefresh = DateTime.MinValue;
         private readonly TimeSpan _downtimeCacheDuration = TimeSpan.FromMinutes(1);
 
+        // names of statuses treated as downtime
+        private readonly string[] _downtimeNames = new[]
+        {
+            "S1.LogisticMode_IPC",
+            "S1.ProductionIssuesMode_IPC",
+            "S1.SettingMode_IPC",
+            "S1.MachineDowntime_IPC"
+        };
+
 
         // Konstruktor przyjmuje repozytoria generyczne dla obu tabel
         public MachineStatusService(GenericRepository<MachineStatus> repositoryMachineStatus,
@@ -273,16 +282,46 @@ namespace ViSyncMaster.Services
         public async Task<double> GetDowntimeMinutesAsync(DateTime start, DateTime end)
         {
             var records = await GetDowntimeRecordsAsync(start, end);
+
+            var intervals = records
+                .Select(r =>
+                {
+                    var s = r.StartTime ?? start;
+                    var e = r.EndTime ?? DateTime.Now;
+                    if (s < start) s = start;
+                    if (e > end) e = end;
+                    return (Start: s, End: e);
+                })
+                .Where(iv => iv.End > start && iv.Start < end)
+                .OrderBy(iv => iv.Start)
+                .ToList();
+
             double total = 0;
-            foreach (var r in records)
+            DateTime? currentStart = null;
+            DateTime? currentEnd = null;
+
+            foreach (var iv in intervals)
             {
-                var s = r.StartTime ?? start;
-                var e = r.EndTime ?? DateTime.Now;
-                if (e <= start || s >= end) continue;
-                if (s < start) s = start;
-                if (e > end) e = end;
-                total += (e - s).TotalMinutes;
+                if (currentStart == null)
+                {
+                    currentStart = iv.Start;
+                    currentEnd = iv.End;
+                }
+                else if (iv.Start <= currentEnd)
+                {
+                    if (iv.End > currentEnd) currentEnd = iv.End;
+                }
+                else
+                {
+                    total += (currentEnd.Value - currentStart.Value).TotalMinutes;
+                    currentStart = iv.Start;
+                    currentEnd = iv.End;
+                }
             }
+
+            if (currentStart != null)
+                total += (currentEnd.Value - currentStart.Value).TotalMinutes;
+
             return total;
         }
 
@@ -295,13 +334,18 @@ namespace ViSyncMaster.Services
 
             if (refresh)
             {
-                const string query = @"SELECT * FROM MachineStatus WHERE Name = @name AND StartTime <= @end AND (EndTime >= @start OR EndTime IS NULL)";
+                var namePlaceholders = string.Join(", ", _downtimeNames.Select((_, i) => $"@name{i}"));
+                var query = $@"SELECT * FROM MachineStatus WHERE Name IN ({namePlaceholders}) AND StartTime <= @end AND (EndTime >= @start OR EndTime IS NULL)";
+
                 var parameters = new Dictionary<string, object>
                 {
-                    ["@name"] = "S1.MachineDowntime_IPC",
                     ["@start"] = start,
                     ["@end"] = end
                 };
+                for (int i = 0; i < _downtimeNames.Length; i++)
+                {
+                    parameters[$"@name{i}"] = _downtimeNames[i];
+                }
 
                 _downtimeCache = await _database.ExecuteReaderAsync<MachineStatus>(query, parameters);
                 _downtimeCacheStart = start;
