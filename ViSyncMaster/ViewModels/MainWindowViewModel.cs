@@ -1646,7 +1646,7 @@ namespace ViSyncMaster.ViewModels
         {
             //var piece = new Rs232Data
             //{
-            //    ProductName = "1111111",
+            //    ProductName = "7976081 2/90 V.01 NceS",
             //    OperatorId = "smbl",
             //    TestingPassed = "true",
             //    Timestamp = DateTimeOffset.Now.ToUnixTimeMilliseconds()

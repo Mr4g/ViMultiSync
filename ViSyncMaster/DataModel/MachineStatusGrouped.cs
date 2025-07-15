@@ -15,5 +15,13 @@ namespace ViSyncMaster.DataModel
         [ObservableProperty] private int _target; // Cel
         [ObservableProperty] private int _shiftCounterPass; // Liczba pozytywnych wyników testów w zmianie
         [ObservableProperty] private int _shiftCounterFail;// Liczba negatywnych wyników testów w zmianie
+
+        /// <summary>
+        /// Zwraca tylko numer produktu (tekst przed pierwszą spacją).
+        /// </summary>
+        public string ProductNumber
+            => string.IsNullOrWhiteSpace(ProductName)
+               ? string.Empty
+               : ProductName.Split(' ')[0];
     }
 }
