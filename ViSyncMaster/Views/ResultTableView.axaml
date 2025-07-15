@@ -154,7 +154,7 @@
 
 		<!-- Tabela planu -->
 		<ScrollViewer Grid.Row="3" Grid.Column="2" VerticalScrollBarVisibility="Auto">
-			<DataGrid ItemsSource="{Binding HourlyPlan}" AutoGenerateColumns="False" RowHeight="45" MaxHeight="700"
+			<DataGrid ItemsSource="{Binding HourlyPlan}" AutoGenerateColumns="False" RowHeight="48" MaxHeight="700"
 						  IsReadOnly="True" GridLinesVisibility="None" Margin="10" Width="1100" 
 						  VerticalAlignment="Stretch"
 					  >

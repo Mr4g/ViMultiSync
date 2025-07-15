@@ -78,15 +78,6 @@
 												   Foreground="Black" />
 									</StackPanel>
 									<StackPanel Orientation="Horizontal" Margin="5">
-										<TextBlock Text="AnyDesk ID: "
-												   FontWeight="Bold"
-												   FontSize="20"
-												   Foreground="Black" />
-										<TextBlock Text="{Binding AnyDeskId}"
-												   FontSize="18"
-												   Foreground="Black" />
-									</StackPanel>
-									<StackPanel Orientation="Horizontal" Margin="5">
 										<TextBlock  Text="Version App: "
 													FontSize="20"
 												    FontWeight="Bold"
@@ -99,12 +90,21 @@
 							</DataTemplate>
 						</ListBox.ItemTemplate>
 					</ListBox>
-					<StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="22,20,20,30">
+					<StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="22,20,20,5">
 						<TextBlock Text="SSID: "
 								   FontWeight="Bold"
 								   FontSize="20"
 								   Foreground="Black" />
 						<TextBlock Text="{Binding Ssid}"
+								   FontSize="18"
+								   Foreground="Black" />
+					</StackPanel>
+					<StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="22,5,20,30">
+						<TextBlock Text="AnyDesk ID: "
+								   FontWeight="Bold"
+								   FontSize="20"
+								   Foreground="Black" />
+						<TextBlock Text="{Binding AnyDeskId}"
 								   FontSize="18"
 								   Foreground="Black" />
 					</StackPanel>

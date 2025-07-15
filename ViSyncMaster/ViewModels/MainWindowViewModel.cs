@@ -35,12 +35,12 @@ using System.Linq;
 using ViSyncMaster.Handlers;
 using System.Data;
 using ViSyncMaster.DeepCopy;
-using ViSyncMaster.WiFi;
 using System.Text.Json;
 using ViSyncMaster.Services.Test;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 using ViSyncMaster.Heleprs;
 using System.Runtime.InteropServices;
+using ViSyncMaster.SystemParameters;
 
 
 namespace ViSyncMaster.ViewModels
@@ -68,6 +68,7 @@ namespace ViSyncMaster.ViewModels
         private int _machineStatusCounter = 6;
         private GenericSplunkLogger<IEntity> _splunkLogger;
         private WifiParameters _wifiParameters;
+        private AnyDeskParameters _anyDeskParameters;   
 
         private DispatcherTimer _timerScheduleForLogging;
         private TaskCompletionSource<bool> _dataIsSendingToSplunkCompletionSource = new TaskCompletionSource<bool>();
@@ -159,6 +160,9 @@ namespace ViSyncMaster.ViewModels
 
         [ObservableProperty]
         private string _ssid;
+
+        [ObservableProperty]
+        private string _anyDeskId;
 
         [ObservableProperty]
         public bool _isActiveStatus;// lub false, zależnie od logiki
@@ -1640,35 +1644,33 @@ namespace ViSyncMaster.ViewModels
 
         private async Task ReSendMessageToSplunk(object state)
         {
-            var piece = new Rs232Data
+            //var piece = new Rs232Data
+            //{
+            //    ProductName = "1111111",
+            //    OperatorId = "smbl",
+            //    TestingPassed = "true",
+            //    Timestamp = DateTimeOffset.Now.ToUnixTimeMilliseconds()
+            //};
+            //var batch = new List<Rs232Data> { piece };
+            //await _machineStatusService.ReportBatchPartQuality(batch);
+
+            Ssid = _wifiParameters.FetchWifiName();
+            if (appConfig.AppMode == "VRSKT")
             {
-                ProductName = "1111111",
-                OperatorId = "smbl",
-                TestingPassed = "true",
-                Timestamp = DateTimeOffset.Now.ToUnixTimeMilliseconds()
-        };
+                var messagePgToSplunk = _splunkMessageHandler.PreparingPgMessageToSplunk(MachineStatuses, _machineStatusCounter);
+                await _machineStatusService.SendPgMessage((MessagePgToSplunk)messagePgToSplunk);
+                await SendMessageToSplunk(messagePgToSplunk);
+            }
 
-            var batch = new List<Rs232Data> { piece };
-
-            await _machineStatusService.ReportBatchPartQuality(batch);
-
-            //Ssid = _wifiParameters.FetchWifiName();
-            //if (appConfig.AppMode == "VRSKT")
-            //{
-            //    var messagePgToSplunk = _splunkMessageHandler.PreparingPgMessageToSplunk(MachineStatuses, _machineStatusCounter);
-            //    await _machineStatusService.SendPgMessage((MessagePgToSplunk)messagePgToSplunk);
-            //    await SendMessageToSplunk(messagePgToSplunk);
-            //}
-
-            //if (MachineStatuses != null && MachineStatuses.Any())
-            //{
-            //    // Tworzymy kopię listy MachineStatuses
-            //    var machineStatusesCopy = new List<MachineStatus>(MachineStatuses.Select(status => status.DeepCopy()));
-            //    foreach (var machineStatus in machineStatusesCopy)
-            //    {
-            //        await _machineStatusService.ReSendMessageToSplunk(machineStatus);
-            //    }
-            //}
+            if (MachineStatuses != null && MachineStatuses.Any())
+            {
+                // Tworzymy kopię listy MachineStatuses
+                var machineStatusesCopy = new List<MachineStatus>(MachineStatuses.Select(status => status.DeepCopy()));
+                foreach (var machineStatus in machineStatusesCopy)
+                {
+                    await _machineStatusService.ReSendMessageToSplunk(machineStatus);
+                }
+            }
         }
 
         private async void StatusPingService(object sender, bool isPing)
@@ -1848,6 +1850,8 @@ namespace ViSyncMaster.ViewModels
             _timerForLoadStatuses = new Timer(LoadStatuses, null, TimeSpan.Zero, TimeSpan.FromSeconds(1));
 
             _wifiParameters = new WifiParameters();
+            _anyDeskParameters = new AnyDeskParameters();
+            _anyDeskId = _anyDeskParameters.FetchAnyDeskId();  
 
             // Sprawdzenie trybu z pliku konfiguracyjnego
             if (appConfig.AppMode == "CUPP")

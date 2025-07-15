@@ -3,7 +3,7 @@ using System.Diagnostics;
 using System.Text;
 using ViSyncMaster.AuxiliaryClasses;
 
-namespace ViSyncMaster.WiFi
+namespace ViSyncMaster.SystemParameters
 {
     public class WifiParameters
     {
