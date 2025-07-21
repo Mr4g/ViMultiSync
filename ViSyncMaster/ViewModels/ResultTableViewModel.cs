@@ -20,7 +20,6 @@ using ViSyncMaster.Services;
 using ViSyncMaster.ViewModels;
 using System.Threading.Tasks;
 using System.Diagnostics;
-using DynamicData;
 using System.ComponentModel.DataAnnotations;
 
 namespace ViSyncMaster.ViewModels
@@ -708,7 +707,7 @@ namespace ViSyncMaster.ViewModels
             }
 
             // 9) Wiersz TOTAL
-            HourlyPlan.Add(new HourlyPlan
+             HourlyPlan.Add(new HourlyPlan
             {
                 Period = "TOTAL",
                 ExpectedUnits = assignedSum,
@@ -736,8 +735,21 @@ namespace ViSyncMaster.ViewModels
                 : 0;
             Needle.Value = Math.Clamp(currEff, 0, 200);
 
-            if (planMessages.Count > 0)
-                await _machineStatusService.ReportHourlyPlanAsync(planMessages);
+            // Wyślij tylko wiadomość dla bieżącego przedziału
+            var currentMessage = planMessages.FirstOrDefault(pm =>
+            {
+                var parts = pm.Period.Split('-');
+                var start = TimeSpan.Parse(parts[0]);
+                var end = TimeSpan.Parse(parts[1]);
+                if (end <= start) end = end.Add(TimeSpan.FromDays(1));
+                var nowTs = now.TimeOfDay;
+                return nowTs >= start && nowTs < end;
+            });
+
+            if (currentMessage != null)
+                await _machineStatusService.ReportHourlyPlanAsync(
+                        new List<HourlyPlanMessage> { currentMessage }
+                 );
         }
     }
 }
