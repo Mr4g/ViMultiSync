@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using ExCSS;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -204,7 +205,11 @@ namespace ViSyncMaster.Services
                         || property.PropertyName == "breakingForceLumberg" || property.PropertyName == "breakingForceClamp" || property.PropertyName == "breakingForcePlug"
                         || property.PropertyName == "breakingForceInjection" || property.PropertyName == "injectionHardness" || property.PropertyName == "eq"
                         || property.PropertyName == "screwdriverTorque" || property.PropertyName == "shellSize" || property.PropertyName == "pasteWeight"
-                        || property.PropertyName == "department" || property.PropertyName == "signature")
+                        || property.PropertyName == "department" || property.PropertyName == "signature" || property.PropertyName == "sendTime" || property.PropertyName == "sendStatus"
+                        || property.PropertyName == "expectedUnits" || property.PropertyName == "producedUnits" || property.PropertyName == "downtimeMinutes"
+                        || property.PropertyName == "isBreak" || property.PropertyName == "isBreakActive" || property.PropertyName == "lostUnitsDueToDowntime"
+                        || property.PropertyName == "period" || property.PropertyName == "efficiency" || property.PropertyName == "plan" || property.PropertyName == "expectedUnits"
+                        || property.PropertyName == "total")
                     {
                         eventFields[property.PropertyName] = property.PropertyValue.ToString();
                     }

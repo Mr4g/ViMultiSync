@@ -555,6 +555,8 @@ namespace ViSyncMaster.ViewModels
             HourlyPlan.Clear();
             if (Target <= 0) return;
 
+            var planMessages = new List<HourlyPlanMessage>();
+
             // 1) Dane produkcji
             var data = ResultTestList
                 .Where(x => x.StartTime.HasValue)
@@ -676,9 +678,9 @@ namespace ViSyncMaster.ViewModels
                     ? (double)produced / netAssigned * 100
                     : 0;
 
-                HourlyPlan.Add(new HourlyPlan
+                var hp = new HourlyPlan
                 {
-                    Time = $"{start:HH:mm}-{end:HH:mm}",
+                    Period = $"{start:HH:mm}-{end:HH:mm}",
                     ExpectedUnits = netAssigned,
                     ProducedUnits = produced,
                     DowntimeMinutes = downtime,
@@ -686,6 +688,20 @@ namespace ViSyncMaster.ViewModels
                     IsBreak = isBreak,
                     IsBreakActive = isBreak && DateTime.Now >= start && DateTime.Now < end,
                     Efficiency = efficiency
+                };
+                HourlyPlan.Add(hp);
+
+                planMessages.Add(new HourlyPlanMessage
+                {
+                    Period = hp.Period,
+                    ExpectedUnits = hp.ExpectedUnits,
+                    Total = Target,
+                    ProducedUnits = hp.ProducedUnits,
+                    DowntimeMinutes = hp.DowntimeMinutes,
+                    LostUnitsDueToDowntime = hp.LostUnitsDueToDowntime,
+                    IsBreak = hp.IsBreak,
+                    IsBreakActive = hp.IsBreakActive,
+                    Efficiency = hp.Efficiency
                 });
 
                 isFirstInterval = false;
@@ -694,7 +710,7 @@ namespace ViSyncMaster.ViewModels
             // 9) Wiersz TOTAL
             HourlyPlan.Add(new HourlyPlan
             {
-                Time = "TOTAL",
+                Period = "TOTAL",
                 ExpectedUnits = assignedSum,
                 ProducedUnits = HourlyPlan.Sum(p => p.ProducedUnits),
                 DowntimeMinutes = HourlyPlan.Sum(p => p.DowntimeMinutes),
@@ -719,7 +735,9 @@ namespace ViSyncMaster.ViewModels
                 ? Math.Round(sumProd / (double)sumExp * 100, 1)
                 : 0;
             Needle.Value = Math.Clamp(currEff, 0, 200);
-        }
 
+            if (planMessages.Count > 0)
+                await _machineStatusService.ReportHourlyPlanAsync(planMessages);
+        }
     }
 }

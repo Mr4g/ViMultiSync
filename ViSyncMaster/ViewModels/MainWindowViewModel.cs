@@ -115,6 +115,7 @@ namespace ViSyncMaster.ViewModels
         private readonly GenericRepository<MachineStatus> _repositoryTestingResult;
         private readonly GenericRepository<ProductionEfficiency> _repositoryProductionEfficiency;
         private readonly GenericRepository<FirstPartModel> _repositoryFirstPartData;
+        private readonly GenericRepository<HourlyPlanMessage> _repositoryHourlyPlan;
         private readonly MessageQueue _messageQueue;
         private readonly MessageSender _messageSender;
         private readonly MachineStatusService _machineStatusService;
@@ -1980,21 +1981,21 @@ namespace ViSyncMaster.ViewModels
             _database.CreateTableIfNotExists<MachineStatus>("TestingResult");
             _database.CreateTableIfNotExists<ProductionEfficiency>("ProductionEfficiency");
             _database.CreateTableIfNotExists<FirstPartModel>("FirstPartData");
+            _database.CreateTableIfNotExists<HourlyPlanMessage>("HourlyPlanMessage");
             _repositoryMachineStatus = new GenericRepository<MachineStatus>(_database, "MachineStatus");
             _repositoryMachineStatusQueue = new GenericRepository<MachineStatus>(_database, "MachineStatusQueue");
             _repositoryTestingResultQueue = new GenericRepository<MachineStatus>(_database, "TestingResultQueue");
             _repositoryTestingResult = new GenericRepository<MachineStatus>(_database, "TestingResult");
             _repositoryProductionEfficiency = new GenericRepository<ProductionEfficiency>(_database, "ProductionEfficiency");
             _repositoryFirstPartData = new GenericRepository<FirstPartModel>(_database, "FirstPartData");
+            _repositoryHourlyPlan = new GenericRepository<HourlyPlanMessage>(_database, "HourlyPlanMessage");
             // Inicjalizacja widoku, który będzie używany przez DataContext
             _messageSender = new MessageSender(this); // Na początku brak połączenia   
-            _messageQueue = new MessageQueue(_repositoryMachineStatusQueue, _repositoryTestingResultQueue, _repositoryProductionEfficiency, _repositoryFirstPartData, _messageSender);
-            _splunkMessageHandler = new SplunkMessageHandler();
+            _messageQueue = new MessageQueue(_repositoryMachineStatusQueue, _repositoryTestingResultQueue, _repositoryProductionEfficiency, _repositoryFirstPartData, _repositoryHourlyPlan, _messageSender); _splunkMessageHandler = new SplunkMessageHandler();
             _mqttSender = new MqttMessageSender(mqttConfig.brokerHost, mqttConfig.brokerPort, appConfig.Source, mqttConfig.username, mqttConfig.password);
 
             _machineStatusService = new MachineStatusService(_repositoryMachineStatus, _repositoryMachineStatusQueue,
-                _repositoryTestingResultQueue, _repositoryTestingResult, _repositoryProductionEfficiency, _repositoryFirstPartData, _messageSender, _messageQueue, _database, _mqttSender);
-
+               _repositoryTestingResultQueue, _repositoryTestingResult, _repositoryProductionEfficiency, _repositoryFirstPartData, _repositoryHourlyPlan, _messageSender, _messageQueue, _database, _mqttSender);
 
             LoadStatuses(this);
             InitializeAsync();

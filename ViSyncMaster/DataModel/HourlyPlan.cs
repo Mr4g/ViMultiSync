@@ -9,7 +9,7 @@ namespace ViSyncMaster.DataModel
 {
     public partial class HourlyPlan : ObservableObject
     {
-        [ObservableProperty] private string _time;
+        [ObservableProperty] private string _period;
         [ObservableProperty] private int _expectedUnits;
         [ObservableProperty] private int _producedUnits;
         [ObservableProperty] private int _downtimeMinutes;

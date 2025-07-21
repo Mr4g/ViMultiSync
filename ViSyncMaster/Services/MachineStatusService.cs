@@ -24,6 +24,7 @@ namespace ViSyncMaster.Services
         private readonly GenericRepository<MachineStatus> _repositoryTestingResult;
         private readonly GenericRepository<ProductionEfficiency> _repositoryProductionEfficiency;
         private readonly GenericRepository<FirstPartModel> _repositoryFirstPartQueue;
+        private readonly GenericRepository<HourlyPlanMessage> _repositoryHourlyPlan;
         private readonly MqttMessageSender _mqttMessageSender;
         private readonly MessageSender _messageSender;
         private readonly MessageQueue _messageQueue;
@@ -62,6 +63,7 @@ namespace ViSyncMaster.Services
                                     GenericRepository<MachineStatus> repositoryTestingResult,
                                     GenericRepository<ProductionEfficiency> repositoryProductionEfficiency,
                                     GenericRepository<FirstPartModel> repositoryFirstPartQueue,
+                                    GenericRepository<HourlyPlanMessage> repositoryHourlyPlan,
                                     MessageSender messageSender,
                                     MessageQueue messageQueue,
                                     SQLiteDatabase database,
@@ -72,6 +74,7 @@ namespace ViSyncMaster.Services
             _repositoryTestingResultQueue = repositoryTestingResultQueue;
             _repositoryTestingResult = repositoryTestingResult;
             _repositoryProductionEfficiency = repositoryProductionEfficiency;
+            _repositoryHourlyPlan = repositoryHourlyPlan;
             _repositoryFirstPartQueue = repositoryFirstPartQueue;
             _mqttMessageSender = mqttMessageSender;
             _messageSender = messageSender;
@@ -84,7 +87,7 @@ namespace ViSyncMaster.Services
             _repositoryTestingResultQueue.CacheUpdated += info => OnRepoUpdated(info);
             _repositoryProductionEfficiency.CacheUpdated += info => OnRepoUpdated(info);
             _repositoryFirstPartQueue.CacheUpdated += info => OnRepoUpdated(info);
-
+            _repositoryHourlyPlan.CacheUpdated += info => OnRepoUpdated(info);
         }
 
         // Rozpoczęcie nowego statusu
@@ -165,6 +168,17 @@ namespace ViSyncMaster.Services
             await _repositoryProductionEfficiency.AddOrUpdate(productionEfficiency);
             return productionEfficiency;
         }
+        public async Task ReportHourlyPlanAsync(List<HourlyPlanMessage> planMessages)
+        {
+            foreach (var msg in planMessages)
+            {
+                var epoch = DateTimeOffset.Now.ToUnixTimeMilliseconds();
+                msg.SendTime = epoch;
+                msg.Id = epoch;
+            }
+
+            await _repositoryHourlyPlan.AddOrUpdateBatch(planMessages);
+        }
 
         public async Task<MachineCounters> SendShiftCounterMqtt(MachineCounters machineCounters)
         {
@@ -232,7 +246,8 @@ namespace ViSyncMaster.Services
         {
             if (info.TableName.Contains("Queue", StringComparison.OrdinalIgnoreCase)
                 || string.Equals(info.TableName, "ProductionEfficiency", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(info.TableName, "FirstPartData", StringComparison.OrdinalIgnoreCase))
+                || string.Equals(info.TableName, "FirstPartData", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(info.TableName, "HourlyPlanMessage", StringComparison.OrdinalIgnoreCase))
             {
                 _hasQueueEvent = true;
                 _lastQueueTable = info.TableName;

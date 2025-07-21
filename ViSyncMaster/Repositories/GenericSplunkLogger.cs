@@ -211,7 +211,11 @@ namespace ViSyncMaster.Repositories
                         || propertyName == "productNumber" || propertyName == "operatorId" || propertyName == "efficiency"
                         || propertyName == "efficiencyRequired" || propertyName == "target" || propertyName == "plan"
                         || propertyName == "passedPiecesPerShift" || propertyName == "failedPiecesPerShift"
-                        || propertyName == "sendTime" || propertyName == "sendStatus")
+                        || propertyName == "sendTime" || propertyName == "sendStatus"
+                        || propertyName == "expectedUnits" || propertyName == "producedUnits" || propertyName == "downtimeMinutes"
+                        || propertyName == "isBreak" || propertyName == "isBreakActive" || propertyName == "lostUnitsDueToDowntime"
+                        || propertyName == "sendTime" || propertyName == "sendStatus" || propertyName == "period" || propertyName == "efficiency")
+
                     {
                         eventFields[propertyName] = propertyValue.ToString();
                     }

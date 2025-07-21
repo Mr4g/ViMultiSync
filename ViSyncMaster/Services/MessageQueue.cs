@@ -17,6 +17,8 @@ public class MessageQueue
     private readonly Queue<MachineStatus> _testingResultQueue = new();
     private readonly Queue<ProductionEfficiency> _productionEfficiencyQueue = new();
     private readonly Queue<FirstPartModel> _firstPartDataQueue = new();
+    private readonly Queue<HourlyPlanMessage> _hourlyPlanQueue = new();
+
 
     // ID tracking for TestingResult deduplication
     private readonly HashSet<long> _testingResultSeen = new();
@@ -26,6 +28,7 @@ public class MessageQueue
     private readonly GenericRepository<MachineStatus> _repositoryTestingResultQueue;
     private readonly GenericRepository<ProductionEfficiency> _repositoryProductionEfficiency;
     private readonly GenericRepository<FirstPartModel> _repositoryFirstPartQueue;
+    private readonly GenericRepository<HourlyPlanMessage> _repositoryHourlyPlan;
     private readonly MessageSender _messageSender;            // ← dodajemy
 
     private DateTime _lastSendTime = DateTime.MinValue;
@@ -38,12 +41,14 @@ public class MessageQueue
         GenericRepository<MachineStatus> repositoryTestingResultQueue,
         GenericRepository<ProductionEfficiency> repositoryProductionEfficiency,
         GenericRepository<FirstPartModel> repositoryFirstPartQueue,
+        GenericRepository<HourlyPlanMessage> repositoryHourlyPlan,
         MessageSender messageSender)                        // ← wstrzykujemy
     {
         _repositoryMachineStatusQueue = repositoryMachineStatusQueue;
         _repositoryTestingResultQueue = repositoryTestingResultQueue;
         _repositoryProductionEfficiency = repositoryProductionEfficiency;
         _repositoryFirstPartQueue = repositoryFirstPartQueue;
+        _repositoryHourlyPlan = repositoryHourlyPlan;
         _messageSender = messageSender;
 
         // Asynchroniczna inicjalizacja
@@ -85,7 +90,11 @@ public class MessageQueue
             var m4 = await _repositoryFirstPartQueue.GetByStatusAsync();
             EnqueueAndMark(m4, _repositoryFirstPartQueue, _firstPartDataQueue);
 
-            Log.Information($"[LoadPending] Queues: MS={_machineStatusQueue.Count}, TR={_testingResultQueue.Count}, PE={_productionEfficiencyQueue.Count}, FP={_firstPartDataQueue.Count}");
+            // HourlyPlan Pending
+            var m5 = await _repositoryHourlyPlan.GetByStatusAsync();
+            EnqueueAndMark(m5, _repositoryHourlyPlan, _hourlyPlanQueue);
+
+            Log.Information($"[LoadPending] Queues: MS={_machineStatusQueue.Count}, TR={_testingResultQueue.Count}, PE={_productionEfficiencyQueue.Count}, FP={_firstPartDataQueue.Count}, HP={_hourlyPlanQueue.Count}");
         }
         catch (Exception ex)
         {
@@ -109,7 +118,10 @@ public class MessageQueue
             var i4 = await _repositoryFirstPartQueue.GetByStatusInProgressAsync();
             EnqueueOnly(i4, _firstPartDataQueue);
 
-            Log.Information($"[LoadInProgress] Queues: MS={_machineStatusQueue.Count}, TR={_testingResultQueue.Count}, PE={_productionEfficiencyQueue.Count}, FP={_firstPartDataQueue.Count}");
+            var i5 = await _repositoryHourlyPlan.GetByStatusInProgressAsync();
+            EnqueueOnly(i5, _hourlyPlanQueue);
+
+            Log.Information($"[LoadInProgress] Queues: MS={_machineStatusQueue.Count}, TR={_testingResultQueue.Count}, PE={_productionEfficiencyQueue.Count}, FP={_firstPartDataQueue.Count}, HP={_hourlyPlanQueue.Count}");
         }
         catch (Exception ex)
         {
@@ -147,7 +159,8 @@ public class MessageQueue
         if (_machineStatusQueue.Count == 0
          && _testingResultQueue.Count == 0
          && _productionEfficiencyQueue.Count == 0
-         && _firstPartDataQueue.Count == 0)
+         && _firstPartDataQueue.Count == 0
+         && _hourlyPlanQueue.Count == 0)
         {
             await LoadPendingMessagesAsync();
         }
@@ -162,7 +175,8 @@ public class MessageQueue
                 SendMessagesFromQueue(_machineStatusQueue, _repositoryMachineStatusQueue),
                 SendMessagesFromQueue(_testingResultQueue, _repositoryTestingResultQueue),
                 SendMessagesFromQueue(_productionEfficiencyQueue, _repositoryProductionEfficiency),
-                SendMessagesFromQueue(_firstPartDataQueue, _repositoryFirstPartQueue)
+                SendMessagesFromQueue(_firstPartDataQueue, _repositoryFirstPartQueue),
+                SendMessagesFromQueue(_hourlyPlanQueue, _repositoryHourlyPlan)
             };
 
             await Task.WhenAll(tasks);
@@ -226,6 +240,11 @@ public class MessageQueue
     public void EnqueueFirstPartDataMessage(FirstPartModel m)
     {
         _firstPartDataQueue.Enqueue(m);
+        _ = SendAllMessages();
+    }
+    public void EnqueueHourlyPlanMessage(HourlyPlanMessage m)
+    {
+        _hourlyPlanQueue.Enqueue(m);
         _ = SendAllMessages();
     }
 }

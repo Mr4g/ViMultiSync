@@ -159,7 +159,7 @@
 						  VerticalAlignment="Stretch"
 					  >
 				<DataGrid.Columns>
-					<DataGridTextColumn Header="Czas" Binding="{Binding Time}" Width="Auto"/>
+					<DataGridTextColumn Header="Czas" Binding="{Binding Period}" Width="Auto"/>
 					<DataGridTextColumn Header="Plan" Binding="{Binding ExpectedDisplay}" Width="Auto"/>
 					<DataGridTemplateColumn Header="Wykon" Width="Auto">
 						<DataGridTemplateColumn.CellTemplate>
