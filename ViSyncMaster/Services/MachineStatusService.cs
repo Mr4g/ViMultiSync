@@ -230,7 +230,9 @@ namespace ViSyncMaster.Services
 
         private void OnRepoUpdated(DatabaseOperationInfo info)
         {
-            if (info.TableName.Contains("Queue", StringComparison.OrdinalIgnoreCase))
+            if (info.TableName.Contains("Queue", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(info.TableName, "ProductionEfficiency", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(info.TableName, "FirstPartData", StringComparison.OrdinalIgnoreCase))
             {
                 _hasQueueEvent = true;
                 _lastQueueTable = info.TableName;
