@@ -426,7 +426,7 @@ namespace ViSyncMaster.ViewModels
         }
         private void StartHourlyTimer()
         {
-            _hourlyTimer = new DispatcherTimer { Interval = TimeSpan.FromMinutes(5) };
+            _hourlyTimer = new DispatcherTimer { Interval = TimeSpan.FromMinutes(2) };
             _hourlyTimer.Tick += async (sender, e) =>
             {
                 var plan = ShiftPlan.GetCurrent(_appConfig.Line);
