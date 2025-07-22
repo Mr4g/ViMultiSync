@@ -9,17 +9,17 @@ namespace ViSyncMaster.Services
     public class BatchEntityTask<T> : IQueueTask where T : class
     {
         private readonly List<T> _entities;
-        private readonly Action<List<T>> _action;
+        private readonly Func<List<T>, Task> _action;
 
-        public BatchEntityTask(List<T> entities, Action<List<T>> action)
+        public BatchEntityTask(List<T> entities, Func<List<T>, Task> action)
         {
             _entities = entities;
             _action = action;
         }
 
-        public void Execute()
+        public async Task ExecuteAsync()
         {
-            _action(_entities);
+            await _action(_entities);
         }
     }
 }

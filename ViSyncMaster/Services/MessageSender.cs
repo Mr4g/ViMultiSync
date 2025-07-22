@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -16,13 +17,15 @@ using ViSyncMaster.ViewModels;
 
 namespace ViSyncMaster.Services
 {
-    public class MessageSender
+    public class MessageSender : IDisposable
     {
         private readonly string splunkUrl;
         private readonly string hecToken;
         private readonly MainWindowViewModel _viewModel;
         private SharedDataService _sharedDataService;
         private AppConfigData appConfig;
+        private readonly HttpClient _httpClient;
+
 
         public MessageSender(MainWindowViewModel viewModel)
         {
@@ -31,6 +34,8 @@ namespace ViSyncMaster.Services
             this.appConfig = _sharedDataService.AppConfig;
             this.splunkUrl = _sharedDataService.AppConfig.UrlSplunk ?? string.Empty;
             this.hecToken = _sharedDataService.AppConfig.TokenSplunk;
+            _httpClient = CreateHttpClientWithKeepAlive();
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Splunk", hecToken);
         }
 
         public virtual async Task<bool> SendMessageAsync<T>(T data)
@@ -39,75 +44,70 @@ namespace ViSyncMaster.Services
 
             try
             {
-                using (var client = CreateHttpClientWithKeepAlive())
+                HttpResponseMessage response = null;
+
+                string currentTime = DateTime.Now.ToString("yyyy-MM-dd_HH:mm:ss.fff");
+
+                DateTimeOffset dto;
+                var startTimeProperty = typeof(T).GetProperty("StartTime");
+                var sendTimeProperty = typeof(T).GetProperty("SendTime");
+
+                if (sendTimeProperty != null)
                 {
-                    HttpResponseMessage response = null;
+                    var sendTimeValue = sendTimeProperty.GetValue(data) as DateTime?;
+                    dto = sendTimeValue.HasValue
+                        ? new DateTimeOffset(sendTimeValue.Value.ToUniversalTime())
+                        : new DateTimeOffset(DateTime.UtcNow);
+                }
+                else if (startTimeProperty != null)
+                {
+                    var startTimeValue = startTimeProperty.GetValue(data) as DateTime?;
+                    dto = startTimeValue.HasValue
+                        ? new DateTimeOffset(startTimeValue.Value.ToUniversalTime())
+                        : new DateTimeOffset(DateTime.UtcNow);
+                }
+                else
+                {
+                    // Jeśli właściwość StartTime nie istnieje
+                    dto = new DateTimeOffset(DateTime.UtcNow);
+                }
 
-                    client.DefaultRequestHeaders.Add("Authorization", $"Splunk {hecToken}");
+                string unixTimeMilliSeconds = dto.ToUnixTimeMilliseconds().ToString();
 
-                    string currentTime = DateTime.Now.ToString("yyyy-MM-dd_HH:mm:ss.fff");
+                string jsonPayload = ConvertDataToJson(data, unixTimeMilliSeconds, currentTime);
 
-                    DateTimeOffset dto;
-                    var startTimeProperty = typeof(T).GetProperty("StartTime");
-                    var sendTimeProperty = typeof(T).GetProperty("SendTime");
+                StringContent content = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
 
-                    if(sendTimeProperty != null)
-                    {
-                        var sendTimeValue = sendTimeProperty.GetValue(data) as DateTime?;
-                        dto = sendTimeValue.HasValue
-                            ? new DateTimeOffset(sendTimeValue.Value.ToUniversalTime())
-                            : new DateTimeOffset(DateTime.UtcNow);
-                    }
-                    else if (startTimeProperty != null)
-                    {
-                        var startTimeValue = startTimeProperty.GetValue(data) as DateTime?;
-                        dto = startTimeValue.HasValue
-                            ? new DateTimeOffset(startTimeValue.Value.ToUniversalTime())
-                            : new DateTimeOffset(DateTime.UtcNow);
-                    }
-                    else
-                    {
-                        // Jeśli właściwość StartTime nie istnieje
-                        dto = new DateTimeOffset(DateTime.UtcNow);
-                    }
+                Console.WriteLine($"Wysyłanie");
 
-                    string unixTimeMilliSeconds = dto.ToUnixTimeMilliseconds().ToString();
+                // Ustawienie timeout dla HttpClient
+                var timeoutTokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(30)); // Ustaw timeout na 10 sekund
 
-                    string jsonPayload = ConvertDataToJson(data, unixTimeMilliSeconds, currentTime);
+                try
+                {
+                    // Wysłanie danych do Splunka za pomocą POST z uwzględnieniem timeout
+                    response = await _httpClient.PostAsync(splunkUrl, content, timeoutTokenSource.Token);
+                }
+                catch (TaskCanceledException ex) when (ex.CancellationToken == timeoutTokenSource.Token)
+                {
+                    // Timeout wystąpił
+                    Console.WriteLine("Timeout - dane nie zostały wysłane");
+                    await ErrorHandler.ShowErrorNetwork($"Timeout - dane nie zostały wysłane.\r\nProblemy z siecią, proszę powiadomić UR przez telefon.");
+                    return false; // Przerwij wysyłanie i zwróć false
+                }
 
-                    StringContent content = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
+                string responseContent = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"Odpowiedź z Splunk: {responseContent}");
 
-                    Console.WriteLine($"Wysyłanie");
-
-                    // Ustawienie timeout dla HttpClient
-                    var timeoutTokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(30)); // Ustaw timeout na 10 sekund
-
-                    try
-                    {
-                        // Wysłanie danych do Splunka za pomocą POST z uwzględnieniem timeout
-                        response = await client.PostAsync(splunkUrl, content, timeoutTokenSource.Token);
-                    }
-                    catch (TaskCanceledException ex) when (ex.CancellationToken == timeoutTokenSource.Token)
-                    {
-                        // Timeout wystąpił
-                        Console.WriteLine("Timeout - dane nie zostały wysłane");
-                        await ErrorHandler.ShowErrorNetwork($"Timeout - dane nie zostały wysłane.\r\nProblemy z siecią, proszę powiadomić UR przez telefon.");
-                        return false; // Przerwij wysyłanie i zwróć false
-                    }
-
-                    string responseContent = await response.Content.ReadAsStringAsync();
-                    Console.WriteLine($"Odpowiedź z Splunk: {responseContent}");
-
-                    if (response.IsSuccessStatusCode)
-                    {
-                        Console.WriteLine("Dane zostały pomyślnie wysłane do indeksu w Splunku.");
-                        return true;
-                    }
-                    else
-                    {
-                        Console.WriteLine($"Wystąpił błąd: {response.StatusCode} - {response.ReasonPhrase}");
-                        return false; // Zwróć false w przypadku błędu
-                    }
+                if (response.IsSuccessStatusCode)
+                {
+                    Console.WriteLine("Dane zostały pomyślnie wysłane do indeksu w Splunku.");
+                    return true;
+                }
+                else
+                {
+                    Console.WriteLine($"Wystąpił błąd: {response.StatusCode} - {response.ReasonPhrase}");
+                    return false; // Zwróć false w przypadku błędu
                 }
             }
             catch (HttpRequestException e)
@@ -295,6 +295,10 @@ namespace ViSyncMaster.Services
 
             // Zamiana wyjątków Ł/ł
             return noDiacritics.Replace('Ł', 'L').Replace('ł', 'l');
+        }
+        public void Dispose()
+        {
+            _httpClient.Dispose();
         }
     }
 }

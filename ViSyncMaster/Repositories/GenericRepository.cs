@@ -30,7 +30,7 @@ namespace ViSyncMaster.Repositories
         {
             _db = db;
             _tableName = tableName;
-            RestoreFromBackup();
+            RestoreFromBackup().GetAwaiter().GetResult();
             UpdateCacheAsync();
             if (_tableName == "MachineStatus")
                 _hasIsActive = true;
@@ -57,19 +57,19 @@ namespace ViSyncMaster.Repositories
             return Task.CompletedTask;
         }
 
-        public async void AddOrUpdateInternalSync(T entity)
+        public async Task AddOrUpdateInternalSync(T entity)
         {
             try
             {
                 string query = $@"
-                     INSERT INTO {_tableName} 
-                     ({GetColumns(entity)}) 
-                     VALUES 
-                     ({GetColumnParameters(entity)}) 
+                     INSERT INTO {_tableName}
+                     ({GetColumns(entity)})
+                     VALUES
+                     ({GetColumnParameters(entity)})
                      ON CONFLICT(Id) DO UPDATE SET
                      {GetUpdateColumns(entity)}";
 
-                _db.ExecuteNonQuery(query, entity).Wait();
+                await _db.ExecuteNonQuery(query, entity);
                 Log.Debug("Zapisano rekord w tabeli {TableName}", _tableName);
 
                 // Wywołanie eventu CacheUpdated z obiektem DatabaseOperationInfo
@@ -83,8 +83,7 @@ namespace ViSyncMaster.Repositories
 
             await UpdateCacheAsync();
         }
-
-        public async void AddOrUpdateInternalBatchSync(List<T> batch)
+        public async Task AddOrUpdateInternalBatchSync(List<T> batch)
         {
             try
             {
@@ -94,14 +93,14 @@ namespace ViSyncMaster.Repositories
                         entity.Id = DateTimeOffset.Now.ToUnixTimeMilliseconds();
 
                     string query = $@"
-                        INSERT INTO {_tableName} 
-                        ({GetColumns(entity)}) 
-                        VALUES 
-                        ({GetColumnParameters(entity)}) 
+                        INSERT INTO {_tableName}
+                        ({GetColumns(entity)})
+                        VALUES
+                        ({GetColumnParameters(entity)})
                         ON CONFLICT(Id) DO UPDATE SET
                         {GetUpdateColumns(entity)}";
 
-                    _db.ExecuteNonQuery(query, entity).Wait();
+                    await _db.ExecuteNonQuery(query, entity);
                 }
 
                 Log.Debug("Zapisano batch ({Count}) elementów do tabeli {TableName}", batch.Count, _tableName);
@@ -243,7 +242,7 @@ namespace ViSyncMaster.Repositories
         }
 
 
-        public void RestoreFromBackup()
+        public async Task RestoreFromBackup()
         {
             string backupDirectory = @"C:\\ViSM\\App\\backupDB";
             string backupFilePath = Path.Combine(backupDirectory, $"backup_{_tableName}.json");
@@ -254,7 +253,7 @@ namespace ViSyncMaster.Repositories
                 var allEntities = JsonSerializer.Deserialize<List<T>>(File.ReadAllText(backupFilePath)) ?? new List<T>();
                 foreach (var entity in allEntities)
                 {
-                    AddOrUpdate(entity).Wait();
+                    await AddOrUpdate(entity);
                 }
                 File.Delete(backupFilePath);
                 Log.Information("Przywrócono dane z backupu do tabeli {TableName}", _tableName);

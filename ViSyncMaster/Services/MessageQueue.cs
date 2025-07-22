@@ -70,29 +70,28 @@ public class MessageQueue
         {
             // MachineStatus Pending
             var m1 = await _repositoryMachineStatusQueue.GetByStatusAsync();
-            EnqueueAndMark(m1, _repositoryMachineStatusQueue, _machineStatusQueue);
+            await EnqueueAndMark(m1, _repositoryMachineStatusQueue, _machineStatusQueue);
 
             // TestingResult Pending - dedupe by ID
             var m2 = await _repositoryTestingResultQueue.GetByStatusAsync();
             foreach (var m in m2)
             {
                 if (_testingResultSeen.Add(m.Id))
-                    EnqueueAndMark(new[] { m }, _repositoryTestingResultQueue, _testingResultQueue);
+                    await EnqueueAndMark(new[] { m }, _repositoryTestingResultQueue, _testingResultQueue);
                 else
                     Log.Debug("Skipping duplicate TestingResult ID={Id}", m.Id);
             }
 
             // ProductionEfficiency Pending
             var m3 = await _repositoryProductionEfficiency.GetByStatusAsync();
-            EnqueueAndMark(m3, _repositoryProductionEfficiency, _productionEfficiencyQueue);
-
+            await EnqueueAndMark(m3, _repositoryProductionEfficiency, _productionEfficiencyQueue);
             // FirstPartData Pending
             var m4 = await _repositoryFirstPartQueue.GetByStatusAsync();
-            EnqueueAndMark(m4, _repositoryFirstPartQueue, _firstPartDataQueue);
+            await EnqueueAndMark(m4, _repositoryFirstPartQueue, _firstPartDataQueue);
 
             // HourlyPlan Pending
             var m5 = await _repositoryHourlyPlan.GetByStatusAsync();
-            EnqueueAndMark(m5, _repositoryHourlyPlan, _hourlyPlanQueue);
+            await EnqueueAndMark(m5, _repositoryHourlyPlan, _hourlyPlanQueue);
 
             Log.Information($"[LoadPending] Queues: MS={_machineStatusQueue.Count}, TR={_testingResultQueue.Count}, PE={_productionEfficiencyQueue.Count}, FP={_firstPartDataQueue.Count}, HP={_hourlyPlanQueue.Count}");
         }
@@ -129,13 +128,14 @@ public class MessageQueue
         }
     }
 
-    private static void EnqueueAndMark<T>(IEnumerable<T> msgs, GenericRepository<T> repo, Queue<T> q)
+    private static async Task EnqueueAndMark<T>(IEnumerable<T> msgs, GenericRepository<T> repo, Queue<T> q)
         where T : class, IEntity, new()
     {
         foreach (var m in msgs)
         {
             m.SendStatus = "InProgress";
-            repo.AddOrUpdate(m).Wait();
+            await repo.AddOrUpdate(m);
+
             q.Enqueue(m);
         }
     }
@@ -203,11 +203,20 @@ public class MessageQueue
                 Debug.WriteLine($"Błąd wysyłania: {ex.Message}");
                 ok = false;
             }
-
             if (ok)
             {
-                await repo.DeleteAsync(msg.Id);
-                queue.Dequeue();
+                try
+                {
+                    await repo.DeleteAsync(msg.Id);
+                    queue.Dequeue();
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(ex, "Failed to delete message ID={Id}", msg.Id);
+                    msg.SendStatus = "Pending";
+                    await repo.AddOrUpdate(msg);
+                    await Task.Delay(500);
+                }
             }
             else
             {

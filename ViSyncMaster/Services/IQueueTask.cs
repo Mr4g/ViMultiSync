@@ -8,6 +8,6 @@ namespace ViSyncMaster.Services
 {
     public interface IQueueTask
     {
-        void Execute();
+        Task ExecuteAsync();
     }
 }

@@ -50,7 +50,7 @@ namespace ViSyncMaster.Services
                             try
                             {
                                 Log.Debug("Przetwarzanie zadania {TaskType}, próba {Attempt}/{Max}", task.GetType().Name, attempt, _maxRetries);
-                                task.Execute();
+                                await task.ExecuteAsync();
                                 success = true;
                             }
                             catch (Exception ex)

@@ -9,17 +9,17 @@ namespace ViSyncMaster.Services
     public class SingleEntityTask<T> : IQueueTask where T : class
     {
         private readonly T _entity;
-        private readonly Action<T> _action;
+        private readonly Func<T, Task> _action;
 
-        public SingleEntityTask(T entity, Action<T> action)
+        public SingleEntityTask(T entity, Func<T, Task> action)
         {
             _entity = entity;
             _action = action;
         }
 
-        public void Execute()
+        public async Task ExecuteAsync()
         {
-            _action(_entity);
+            await _action(_entity);
         }
     }
 }
