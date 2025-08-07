@@ -1932,7 +1932,7 @@
 				</Button>
 				<Button Grid.Column="7"
                     Name = "ScreenShotButton"
-                    Command="{Binding LoadStatusTableOfMachineCommand}">
+                    Command="{Binding LoadScadaSystemCommand}">
 					<Image Source="{SvgImage /Assets/icons/mark.svg}"/>
 				</Button>
 				<Button Grid.Column="8"

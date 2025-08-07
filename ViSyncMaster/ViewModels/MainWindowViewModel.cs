@@ -97,6 +97,8 @@ namespace ViSyncMaster.ViewModels
         string clientId;
         string token;
 
+       
+
         private List<CallForServicePanelItem> _allCallForServicePanelData = new List<CallForServicePanelItem>();
 
         /// <summary>
@@ -121,6 +123,7 @@ namespace ViSyncMaster.ViewModels
         private readonly MachineStatusService _machineStatusService;
         private ResultTableView _resultTableView;
         private FormFirstPartView _firstPartView;
+        private readonly ScadaHostView _scadaView = new();
 
         private readonly SplunkMessageHandler _splunkMessageHandler;
 
@@ -1619,6 +1622,12 @@ namespace ViSyncMaster.ViewModels
             ActivePage = _firstPartView;
         }
 
+        [RelayCommand]
+        private void LoadScadaSystem()
+        {
+            ActivePage = _scadaView;
+        }
+ 
 
         public void OpenSerialPort()
         {
