@@ -65,26 +65,28 @@ public partial class ScadaHostView : UserControl
 
     private void ConfigureScadaWindow()
     {
-        if (!OperatingSystem.IsWindows() || _scadaHandle == IntPtr.Zero) return;
+        if (!OperatingSystem.IsWindows() || _scadaHandle == IntPtr.Zero)
+            return;
 
-        var hostHwnd = ((IPlatformHandle)ScadaContainer.PlatformImpl!).Handle;
+        var hostHandle = ScadaContainer.TryGetPlatformHandle()?.Handle;
+        if (hostHandle is null || hostHandle == IntPtr.Zero)
+            return;
 
+        var hostHwnd = hostHandle.Value;
 
         // 1) ustawiamy WS_CHILD, usuwamy WS_BORDER i WS_CAPTION
         var style = GetWindowLong(_scadaHandle, GWL_STYLE);
-        style = (style | WS_CHILD | WS_VISIBLE)
-                & ~(WS_BORDER | WS_CAPTION);
+        style = (style | WS_CHILD | WS_VISIBLE) & ~(WS_BORDER | WS_CAPTION);
         SetWindowLong(_scadaHandle, GWL_STYLE, style);
 
-        // 2) podpinamy pod hosta Avalonia
+        // 2) podpinamy okno SCADA pod hosta Avalonia
         SetParent(_scadaHandle, hostHwnd);
 
-        // 3) opcjonalnie: nasłuchuj zmiany rozmiaru
+        // 3) aktualizacja rozmiaru
         ScadaContainer.LayoutUpdated += (_, __) =>
         {
             var b = ScadaContainer.Bounds;
-            MoveWindow(_scadaHandle, 0, 0,
-                       (int)b.Width, (int)b.Height, true);
+            MoveWindow(_scadaHandle, 0, 0, (int)b.Width, (int)b.Height, true);
         };
     }
 
