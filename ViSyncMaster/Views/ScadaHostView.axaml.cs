@@ -2,9 +2,11 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
+using Avalonia.Platform;
 using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.IO;
 
 namespace ViSyncMaster;
 
@@ -22,12 +24,21 @@ public partial class ScadaHostView : UserControl
 
     private void StartScada()
     {
+        var visionLauncherPath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "Inductive Automation",
+            "Vision Client Launcher",
+            "visionclientlauncher.exe");
+
+        var scadaDirectory = Path.Combine(
+            Path.GetPathRoot(Environment.SystemDirectory) ?? "C:",
+            "ViSM",
+            "SCADA");
+
         var psi = new ProcessStartInfo
         {
-            FileName =
-                @"C:\Users\smbl\AppData\Roaming\Inductive Automation\Vision Client Launcher\visionclientlauncher.exe",
-            Arguments =
-                "-Dapp.home=\"C:\\Users\\smbl\\.ignition\\clientlauncher-data\" -Dapplication=W16_SCADA",
+            FileName = visionLauncherPath,
+            Arguments = $"-Dapp.home=\"{scadaDirectory}\" -Dapplication=W16_SCADA",
             UseShellExecute = true
         };
 
@@ -37,10 +48,14 @@ public partial class ScadaHostView : UserControl
         _scadaProcess.WaitForInputIdle();
         _scadaHandle = _scadaProcess.MainWindowHandle;
 
-        var hostHandle = ((HwndSource)PresentationSource.FromVisual(ScadaContainer)!).Handle;
+        if (OperatingSystem.IsWindows())
+        {
+            var topLevel = TopLevel.GetTopLevel(ScadaContainer);
+            var hostHandle = topLevel?.PlatformImpl?.Handle.Handle ?? IntPtr.Zero;
 
-        SetParent(_scadaHandle, hostHandle);
-        SetWindowLong(_scadaHandle, GWL_STYLE, WS_VISIBLE);
+            SetParent(_scadaHandle, hostHandle);
+            SetWindowLong(_scadaHandle, GWL_STYLE, WS_VISIBLE);
+        }
     }
 
     [DllImport("user32.dll")]
