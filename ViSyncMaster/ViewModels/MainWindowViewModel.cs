@@ -1623,11 +1623,12 @@ namespace ViSyncMaster.ViewModels
         }
 
         [RelayCommand]
-        private void LoadScadaSystem()
+        private UserControl LoadScadaSystem()
         {
             ActivePage = _scadaView;
+            return _scadaView;
         }
- 
+
 
         public void OpenSerialPort()
         {

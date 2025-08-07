@@ -18,9 +18,19 @@ public partial class ScadaHostView : UserControl
     public ScadaHostView()
     {
         InitializeComponent();
+        DetachedFromVisualTree += OnDetachedFromVisualTree;
+
     }
 
-    private void UserControl_Loaded(object sender, RoutedEventArgs e) => StartScada();
+    private void UserControl_Loaded(object sender, RoutedEventArgs e)
+    {
+        if (_scadaProcess == null || _scadaProcess.HasExited)
+            StartScada();
+        else
+            ShowScada();
+    }
+
+    private void UserControl_Unloaded(object? sender, RoutedEventArgs e) => HideScada();
 
     private void StartScada()
     {
@@ -49,33 +59,54 @@ public partial class ScadaHostView : UserControl
         _scadaProcess.WaitForInputIdle();
         _scadaHandle = _scadaProcess.MainWindowHandle;
 
-        if (OperatingSystem.IsWindows())
+        ConfigureScadaWindow();
+        ShowScada();
+    }
+
+    private void ConfigureScadaWindow()
+    {
+        if (!OperatingSystem.IsWindows() || _scadaHandle == IntPtr.Zero) return;
+
+        var topLevel = TopLevel.GetTopLevel(ScadaContainer);
+        var hostHwnd = topLevel!.TryGetPlatformHandle()!.Handle;
+
+        // 1) ustawiamy WS_CHILD, usuwamy WS_BORDER i WS_CAPTION
+        var style = GetWindowLong(_scadaHandle, GWL_STYLE);
+        style = (style | WS_CHILD | WS_VISIBLE)
+                & ~(WS_BORDER | WS_CAPTION);
+        SetWindowLong(_scadaHandle, GWL_STYLE, style);
+
+        // 2) podpinamy pod hosta Avalonia
+        SetParent(_scadaHandle, hostHwnd);
+
+        // 3) opcjonalnie: nasłuchuj zmiany rozmiaru
+        ScadaContainer.LayoutUpdated += (_, __) =>
         {
-            var topLevel = TopLevel.GetTopLevel(ScadaContainer);
-            var hostHwnd = topLevel!.TryGetPlatformHandle()!.Handle;
-
-            // 1) ustawiamy WS_CHILD, usuwamy WS_BORDER i WS_CAPTION
-            var style = GetWindowLong(_scadaHandle, GWL_STYLE);
-            style = (style | WS_CHILD | WS_VISIBLE)
-                    & ~(WS_BORDER | WS_CAPTION);
-            SetWindowLong(_scadaHandle, GWL_STYLE, style);
-
-            // 2) podpinamy pod hosta Avalonia
-            SetParent(_scadaHandle, hostHwnd);
-
-            // 3) ustawiamy rozmiar i pozycję (możesz to też wrzucić w LayoutUpdated)
-            var rect = ScadaContainer.Bounds;
+            var b = ScadaContainer.Bounds;
             MoveWindow(_scadaHandle, 0, 0,
-                       (int)rect.Width, (int)rect.Height, true);
+                       (int)b.Width, (int)b.Height, true);
+        };
+    }
 
-            // 4) opcjonalnie: nasłuchuj zmiany rozmiaru:
-            ScadaContainer.LayoutUpdated += (_, __) =>
-            {
-                var b = ScadaContainer.Bounds;
-                MoveWindow(_scadaHandle, 0, 0,
-                           (int)b.Width, (int)b.Height, true);
-            };
-        }
+    private void ShowScada()
+    {
+        if (!OperatingSystem.IsWindows() || _scadaHandle == IntPtr.Zero) return;
+
+        var rect = ScadaContainer.Bounds;
+        MoveWindow(_scadaHandle, 0, 0, (int)rect.Width, (int)rect.Height, true);
+        ShowWindow(_scadaHandle, SW_SHOW);
+    }
+
+    private void HideScada()
+    {
+        if (!OperatingSystem.IsWindows() || _scadaHandle == IntPtr.Zero) return;
+        ShowWindow(_scadaHandle, SW_HIDE);
+    }
+
+    private void OnDetachedFromVisualTree(object? sender, VisualTreeAttachmentEventArgs e)
+    {
+        _scadaProcess?.CloseMainWindow();
+        _scadaProcess?.Dispose();
     }
 
     [DllImport("user32.dll", SetLastError = true)]
@@ -91,9 +122,14 @@ public partial class ScadaHostView : UserControl
     static extern bool MoveWindow(
         IntPtr hWnd, int X, int Y, int nWidth, int nHeight, bool bRepaint);
 
+    [DllImport("user32.dll", SetLastError = true)]
+    static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
     const int GWL_STYLE = -16;
     const uint WS_VISIBLE = 0x10000000;
     const uint WS_CHILD = 0x40000000;
     const uint WS_BORDER = 0x00800000;
     const uint WS_CAPTION = 0x00C00000;
+    const int SW_HIDE = 0;
+    const int SW_SHOW = 5;
 }

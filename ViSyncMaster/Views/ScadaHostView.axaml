@@ -6,10 +6,11 @@
              d:DesignWidth="800"
              d:DesignHeight="450"
              x:Class="ViSyncMaster.ScadaHostView"
-             Loaded="UserControl_Loaded">
+             Loaded="UserControl_Loaded"
+             Unloaded="UserControl_Unloaded">
 	<Grid>
-		<Border x:Name="ScadaContainer"
-                HorizontalAlignment="Stretch"
-                VerticalAlignment="Stretch" />
+		<NativeControlHost x:Name="ScadaContainer"
+		HorizontalAlignment="Stretch"
+		VerticalAlignment="Stretch" />
 	</Grid>
 </UserControl>
