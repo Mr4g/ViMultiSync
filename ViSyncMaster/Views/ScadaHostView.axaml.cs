@@ -67,8 +67,8 @@ public partial class ScadaHostView : UserControl
     {
         if (!OperatingSystem.IsWindows() || _scadaHandle == IntPtr.Zero) return;
 
-        var topLevel = TopLevel.GetTopLevel(ScadaContainer);
-        var hostHwnd = topLevel!.TryGetPlatformHandle()!.Handle;
+        var hostHwnd = ((IPlatformHandle)ScadaContainer.PlatformImpl!).Handle;
+
 
         // 1) ustawiamy WS_CHILD, usuwamy WS_BORDER i WS_CAPTION
         var style = GetWindowLong(_scadaHandle, GWL_STYLE);
