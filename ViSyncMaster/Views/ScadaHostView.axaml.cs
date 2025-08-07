@@ -1,4 +1,4 @@
-using Avalonia;
+﻿using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
@@ -32,14 +32,15 @@ public partial class ScadaHostView : UserControl
 
         var scadaDirectory = Path.Combine(
             Path.GetPathRoot(Environment.SystemDirectory) ?? "C:",
-            "ViSM",
-            "SCADA");
+            "ViSM", "SCADA");
 
         var psi = new ProcessStartInfo
         {
             FileName = visionLauncherPath,
-            Arguments = $"-Dapp.home=\"{scadaDirectory}\" -Dapplication=W16_SCADA",
-            UseShellExecute = true
+            Arguments = "application=W16_SCADA window.mode=window",
+            WorkingDirectory = Path.GetDirectoryName(visionLauncherPath),
+            UseShellExecute = false,                // ← false, żeby Redirect… zadziałało
+            RedirectStandardError = true,
         };
 
         _scadaProcess = Process.Start(psi);
@@ -51,19 +52,48 @@ public partial class ScadaHostView : UserControl
         if (OperatingSystem.IsWindows())
         {
             var topLevel = TopLevel.GetTopLevel(ScadaContainer);
-            var hostHandle = topLevel?.PlatformImpl?.Handle.Handle ?? IntPtr.Zero;
+            var hostHwnd = topLevel!.TryGetPlatformHandle()!.Handle;
 
-            SetParent(_scadaHandle, hostHandle);
-            SetWindowLong(_scadaHandle, GWL_STYLE, WS_VISIBLE);
+            // 1) ustawiamy WS_CHILD, usuwamy WS_BORDER i WS_CAPTION
+            var style = GetWindowLong(_scadaHandle, GWL_STYLE);
+            style = (style | WS_CHILD | WS_VISIBLE)
+                    & ~(WS_BORDER | WS_CAPTION);
+            SetWindowLong(_scadaHandle, GWL_STYLE, style);
+
+            // 2) podpinamy pod hosta Avalonia
+            SetParent(_scadaHandle, hostHwnd);
+
+            // 3) ustawiamy rozmiar i pozycję (możesz to też wrzucić w LayoutUpdated)
+            var rect = ScadaContainer.Bounds;
+            MoveWindow(_scadaHandle, 0, 0,
+                       (int)rect.Width, (int)rect.Height, true);
+
+            // 4) opcjonalnie: nasłuchuj zmiany rozmiaru:
+            ScadaContainer.LayoutUpdated += (_, __) =>
+            {
+                var b = ScadaContainer.Bounds;
+                MoveWindow(_scadaHandle, 0, 0,
+                           (int)b.Width, (int)b.Height, true);
+            };
         }
     }
 
-    [DllImport("user32.dll")]
-    private static extern IntPtr SetParent(IntPtr hWndChild, IntPtr hWndNewParent);
+    [DllImport("user32.dll", SetLastError = true)]
+    static extern IntPtr SetParent(IntPtr hWndChild, IntPtr hWndNewParent);
 
     [DllImport("user32.dll", SetLastError = true)]
-    private static extern uint SetWindowLong(IntPtr hWnd, int nIndex, uint dwNewLong);
+    static extern uint GetWindowLong(IntPtr hWnd, int nIndex);
 
-    private const int GWL_STYLE = -16;
-    private const uint WS_VISIBLE = 0x10000000;
+    [DllImport("user32.dll", SetLastError = true)]
+    static extern uint SetWindowLong(IntPtr hWnd, int nIndex, uint dwNewLong);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    static extern bool MoveWindow(
+        IntPtr hWnd, int X, int Y, int nWidth, int nHeight, bool bRepaint);
+
+    const int GWL_STYLE = -16;
+    const uint WS_VISIBLE = 0x10000000;
+    const uint WS_CHILD = 0x40000000;
+    const uint WS_BORDER = 0x00800000;
+    const uint WS_CAPTION = 0x00C00000;
 }
