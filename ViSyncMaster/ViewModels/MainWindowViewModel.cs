@@ -639,7 +639,7 @@ namespace ViSyncMaster.ViewModels
         //}
 
         [ObservableProperty]
-        private UserControl _activePage;
+        private Control? _activePage;
 
         #region Public Command
 
@@ -1623,9 +1623,10 @@ namespace ViSyncMaster.ViewModels
         }
 
         [RelayCommand]
-        private void LoadScadaSystem()
+        public async Task LoadScadaSystemAsync()
         {
-            ActivePage = _scadaView;
+            // uruchom SCADA w tle
+            ActivePage = new ScadaHostView();
         }
 
 

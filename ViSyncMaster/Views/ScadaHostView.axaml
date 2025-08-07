@@ -1,16 +1,16 @@
-<UserControl xmlns="https://github.com/avaloniaui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             mc:Ignorable="d"
-             d:DesignWidth="800"
-             d:DesignHeight="450"
-             x:Class="ViSyncMaster.ScadaHostView"
-             Loaded="UserControl_Loaded"
-             Unloaded="UserControl_Unloaded">
-	<Grid>
-		<NativeControlHost x:Name="ScadaContainer"
-		HorizontalAlignment="Stretch"
-		VerticalAlignment="Stretch" />
-	</Grid>
+<UserControl
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:ctrl="clr-namespace:ViSyncMaster.Views.Controls"
+  mc:Ignorable="d"
+  x:Class="ViSyncMaster.Views.ScadaHostView">
+  <Grid>
+    <!-- teraz Avalonia znajdzie Twoją klasę ScadaHostNative -->
+    <ctrl:ScadaHostNative
+      x:Name="NativeHost"
+      HorizontalAlignment="Stretch"
+      VerticalAlignment="Stretch"/>
+  </Grid>
 </UserControl>
