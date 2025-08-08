@@ -6,4 +6,4 @@ namespace ViSyncMaster.Views
     {
         public NotepadHostControl() => InitializeComponent();
     }
-}
+}   

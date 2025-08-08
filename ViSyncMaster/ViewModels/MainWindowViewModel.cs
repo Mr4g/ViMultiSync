@@ -124,6 +124,7 @@ namespace ViSyncMaster.ViewModels
         private ResultTableView _resultTableView;
         private FormFirstPartView _firstPartView;
         private readonly ScadaHostView _scadaView = new();
+        private readonly NotepadHostControl _notepadHost = new();
 
         private readonly SplunkMessageHandler _splunkMessageHandler;
 
@@ -1626,7 +1627,8 @@ namespace ViSyncMaster.ViewModels
         public async Task LoadScadaSystemAsync()
         {
             // uruchom SCADA w tle
-            ActivePage = new ScadaHostView();
+            //ActivePage = new ScadaHostView();
+            ActivePage = new NotepadHostControl();  
         }
 
 
