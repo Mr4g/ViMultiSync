@@ -1,11 +1,15 @@
-using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Markup.Xaml;
+using ViSyncMaster.Views.Controls;
 
 namespace ViSyncMaster.Views
 {
     public partial class ScadaHostView : UserControl
     {
-        public ScadaHostView() => InitializeComponent();
+        public ScadaHostNative NativeHostControl => NativeHost;
+
+        public ScadaHostView()
+        {
+            InitializeComponent();
+        }
     }
 }

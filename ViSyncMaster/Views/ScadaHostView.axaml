@@ -6,11 +6,11 @@
   xmlns:ctrl="clr-namespace:ViSyncMaster.Views.Controls"
   mc:Ignorable="d"
   x:Class="ViSyncMaster.Views.ScadaHostView">
-  <Grid>
-    <!-- teraz Avalonia znajdzie Twoją klasę ScadaHostNative -->
-    <ctrl:ScadaHostNative
-      x:Name="NativeHost"
-      HorizontalAlignment="Stretch"
-      VerticalAlignment="Stretch"/>
-  </Grid>
+
+	<Grid>
+		<ctrl:ScadaHostNative
+		  x:Name="NativeHost"
+		  HorizontalAlignment="Stretch"
+		  VerticalAlignment="Stretch" />
+	</Grid>
 </UserControl>

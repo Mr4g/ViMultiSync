@@ -3,13 +3,13 @@
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-  xmlns:ctrl="clr-namespace:ViSyncMaster.Views.Controls"
+  xmlns:ctrl="clr-namespace:ViSyncMaster.Controls"
   mc:Ignorable="d"
   x:Class="ViSyncMaster.Views.NotepadHostControl">
 	<Grid>
-		<ctrl:NotepadHostNative
-			x:Name ="NativeNote"
-	 HorizontalAlignment="Stretch"
-      VerticalAlignment="Stretch"/>
-		</Grid>
-	</UserControl>
+		<ctrl:NotepadHost
+		  x:Name="NativeNote"
+		  HorizontalAlignment="Stretch"
+		  VerticalAlignment="Stretch" />
+	</Grid>
+</UserControl>

@@ -1626,9 +1626,8 @@ namespace ViSyncMaster.ViewModels
         [RelayCommand]
         public async Task LoadScadaSystemAsync()
         {
-            // uruchom SCADA w tle
-            //ActivePage = new ScadaHostView();
-            ActivePage = new NotepadHostControl();  
+            await ScadaProcessManager.Instance.EnsureStartedAsync();
+            ActivePage = new ScadaHostView();
         }
 
 
