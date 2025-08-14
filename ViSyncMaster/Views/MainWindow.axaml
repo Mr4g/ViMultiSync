@@ -9,6 +9,7 @@
         xmlns:collections="clr-namespace:CommunityToolkit.Mvvm.Collections;assembly=CommunityToolkit.Mvvm"
         xmlns:dataModel="clr-namespace:ViSyncMaster.DataModel"
         xmlns:material="using:Material.Icons.Avalonia"
+		xmlns:scada="clr-namespace:ViSyncMaster.Views.Controls"
         mc:Ignorable="d" d:DesignWidth="1400" d:DesignHeight="1000"
         x:Class="ViSyncMaster.Views.MainWindow"
         x:DataType="viewModels:MainWindowViewModel"
@@ -37,6 +38,7 @@
 
 
 	<Grid Name="MainGrid" RowDefinitions="Auto, *, Auto">
+		<scada:ScadaParkingHost Width="0" Height="0" IsHitTestVisible="False" />
 
 		<!-- Info Panel Popup Open -->
 

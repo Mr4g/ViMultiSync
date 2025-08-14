@@ -1627,9 +1627,11 @@ namespace ViSyncMaster.ViewModels
         public async Task LoadScadaSystemAsync()
         {
             await ScadaProcessManager.Instance.EnsureStartedAsync();
-            ActivePage = new ScadaHostView();
+            if (ActivePage != _scadaView)
+            {
+                ActivePage = _scadaView;
+            }
         }
-
 
         public void OpenSerialPort()
         {
