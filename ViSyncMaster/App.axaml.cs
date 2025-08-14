@@ -20,11 +20,11 @@ namespace ViSyncMaster
 
         public override void OnFrameworkInitializationCompleted()
         {
+            base.OnFrameworkInitializationCompleted();
 
             // Konfiguracja œcie¿ki do SCADY
             ScadaProcessManager.Instance.StartPath = @"C:\ViSM\SCADA\W16 SCADA.lnk";
             ScadaProcessManager.Instance.WindowTitleMatch = "W16 SCADA";
-
             // Get an array of plugins to remove
             var dataValidationPluginsToRemove =
                 BindingPlugins.DataValidators.OfType<DataAnnotationsValidationPlugin>().ToArray();
@@ -46,7 +46,7 @@ namespace ViSyncMaster
                     DataContext = mainViewModel
                 };
             }
-            base.OnFrameworkInitializationCompleted();
+            
         }
     }
 }

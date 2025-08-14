@@ -1,46 +1,47 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Drawing.Imaging;
-using System.Linq;
-using System.Threading.Tasks;
-using Avalonia;
+﻿using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.Collections;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using System.IO;
-using ViSyncMaster.DataModel;
-using ViSyncMaster.Entitys;
-using ViSyncMaster.Repositories;
-using ViSyncMaster.Services;
-using ViSyncMaster.Views;
-using Avalonia.Threading;
+using CommunityToolkit.Mvvm.Messaging;
 using MsBox.Avalonia;
 using MsBox.Avalonia.Dto;
 using MsBox.Avalonia.Models;
 using ScreenCapturerNS;
+using Serilog;
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.ComponentModel.DataAnnotations;
+using System.Data;
+using System.Diagnostics;
+using System.Drawing.Imaging;
+using System.IO;
+using System.Linq;
+using System.Linq;
+using System.Reflection;
+using System.Runtime.InteropServices;
+using System.Text.Json;
+using System.Threading.Tasks;
+using ViSyncMaster.AuxiliaryClasses;
+using ViSyncMaster.DataModel;
+using ViSyncMaster.DeepCopy;
+using ViSyncMaster.Entitys;
+using ViSyncMaster.Handlers;
+using ViSyncMaster.Heleprs;
+using ViSyncMaster.OPCUA;
+using ViSyncMaster.Repositories;
+using ViSyncMaster.Services;
+using ViSyncMaster.Services.Test;
+using ViSyncMaster.SystemParameters;
+using ViSyncMaster.Views;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 using Bitmap = System.Drawing.Bitmap;
 using Icon = MsBox.Avalonia.Enums.Icon;
 using Path = System.IO.Path;
 using Timer = System.Threading.Timer;
-using ViSyncMaster.AuxiliaryClasses;
-using System.ComponentModel.DataAnnotations;
-using CommunityToolkit.Mvvm.Messaging;
-using System.Collections.ObjectModel;
-using Serilog;
-using System.Reflection;
-using System.Linq;
-using ViSyncMaster.Handlers;
-using System.Data;
-using ViSyncMaster.DeepCopy;
-using System.Text.Json;
-using ViSyncMaster.Services.Test;
-using static System.Runtime.InteropServices.JavaScript.JSType;
-using ViSyncMaster.Heleprs;
-using System.Runtime.InteropServices;
-using ViSyncMaster.SystemParameters;
 
 
 namespace ViSyncMaster.ViewModels
@@ -75,6 +76,7 @@ namespace ViSyncMaster.ViewModels
 
         private PingService pingService;
         private MachineStatus _pendingMachineStatus;
+        private OpcUaStandbyService? _opcUaService;
 
         string screenshotPath = "C:/zrzut_ekranu.png"; // Ścieżka, gdzie zostanie zapisany zrzut ekranu
         string imgurClientId = "0fe6e59673311dc"; // Zastąp wartością swojego Client ID zarejestrowanego na Imgur
@@ -1633,6 +1635,19 @@ namespace ViSyncMaster.ViewModels
             }
         }
 
+        private void OnStandbyChanged(bool standby)
+        {
+            if (standby)
+            {
+                Dispatcher.UIThread.Post(LoadPageSap);
+            }
+            else
+            {
+                Dispatcher.UIThread.Post(async () => await LoadScadaSystemAsync());
+            }
+        }
+
+
         public void OpenSerialPort()
         {
             _serialPortListener = new SerialPortListener();
@@ -2017,6 +2032,12 @@ namespace ViSyncMaster.ViewModels
 
             if (appConfig.AppMode != null)
                 InitializeAppFunctions();
+
+            _opcUaService = new OpcUaStandbyService(
+               "opc.tcp://scada001w16:4840",
+               "ns=2;s=[SMBL - simulator]/Random/RandomBoolean1");
+            _opcUaService.StandbyChanged += OnStandbyChanged;
+            _ = _opcUaService.StartAsync();
 
             CurrentTime = DateTime.Now.TimeOfDay;
             _timerForVacuum = new DispatcherTimer();
