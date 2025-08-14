@@ -1880,7 +1880,7 @@ namespace ViSyncMaster.ViewModels
 
             _wifiParameters = new WifiParameters();
             _anyDeskParameters = new AnyDeskParameters();
-            _anyDeskId = _anyDeskParameters.FetchAnyDeskId();  
+            _anyDeskId = _anyDeskParameters.FetchAnyDeskId();
 
             // Sprawdzenie trybu z pliku konfiguracyjnego
             if (appConfig.AppMode == "CUPP")
@@ -1892,6 +1892,13 @@ namespace ViSyncMaster.ViewModels
             {
                 // Inicjalizacja funkcji związanych z trybem CHPKT
                 InitializeVRSKTFunctions();
+
+                _opcUaService = new OpcUaStandbyService(
+                 "opc.tcp://scada001w16:4840",
+                 "ns=2;s=[SMBL - simulator]/Random/RandomBoolean1");
+                _opcUaService.StandbyChanged += OnStandbyChanged;
+                try { await _opcUaService.StartAsync(useSecurity: false); }
+                catch (Exception ex) { Log.Error(ex, "OPC UA start failed"); }
             }
             else
             {
@@ -2032,12 +2039,6 @@ namespace ViSyncMaster.ViewModels
 
             if (appConfig.AppMode != null)
                 InitializeAppFunctions();
-
-            _opcUaService = new OpcUaStandbyService(
-               "opc.tcp://scada001w16:4840",
-               "ns=2;s=[SMBL - simulator]/Random/RandomBoolean1");
-            _opcUaService.StandbyChanged += OnStandbyChanged;
-            _ = _opcUaService.StartAsync();
 
             CurrentTime = DateTime.Now.TimeOfDay;
             _timerForVacuum = new DispatcherTimer();
