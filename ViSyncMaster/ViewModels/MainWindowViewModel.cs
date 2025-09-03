@@ -76,7 +76,7 @@ namespace ViSyncMaster.ViewModels
 
         private PingService pingService;
         private MachineStatus _pendingMachineStatus;
-        private OpcUaStandbyService? _opcUaService;
+        private OpcUaMultiWatchService? _opcUa;
 
         string screenshotPath = "C:/zrzut_ekranu.png"; // Ścieżka, gdzie zostanie zapisany zrzut ekranu
         string imgurClientId = "0fe6e59673311dc"; // Zastąp wartością swojego Client ID zarejestrowanego na Imgur
@@ -125,8 +125,8 @@ namespace ViSyncMaster.ViewModels
         private readonly MachineStatusService _machineStatusService;
         private ResultTableView _resultTableView;
         private FormFirstPartView _firstPartView;
-        private readonly ScadaHostView _scadaView = new();
-        private readonly NotepadHostControl _notepadHost = new();
+        private ScadaHostView? _scadaView;
+        ///private readonly NotepadHostControl _notepadHost = new();
 
         private readonly SplunkMessageHandler _splunkMessageHandler;
 
@@ -430,6 +430,8 @@ namespace ViSyncMaster.ViewModels
         private bool _targetPlanButtonIsVisible;
         [ObservableProperty]
         private bool _userButtonIsVisible;
+        [ObservableProperty]
+        private bool _scadaButtonIsVisible;
 
         [ObservableProperty] private bool isTimeStampFromiPC = true;
 
@@ -1032,6 +1034,7 @@ namespace ViSyncMaster.ViewModels
         private void ExitPressed()
         {
             Log.CloseAndFlush();
+            _opcUa?.Dispose();
             System.Diagnostics.Process.GetCurrentProcess().CloseMainWindow();
             System.Diagnostics.Process.GetCurrentProcess().Kill();
         }
@@ -1637,14 +1640,22 @@ namespace ViSyncMaster.ViewModels
 
         private void OnStandbyChanged(bool standby)
         {
-            if (standby)
+            if (!standby)
             {
                 Dispatcher.UIThread.Post(LoadPageSap);
             }
-            else
-            {
-                Dispatcher.UIThread.Post(async () => await LoadScadaSystemAsync());
-            }
+        }
+
+        private void OnTestOkChange(bool testOk)
+        {
+            //if (testOk)
+            //{
+            //    Dispatcher.UIThread.Post(LoadPageSap);
+            //}
+            //else
+            //{
+            //    Dispatcher.UIThread.Post(async () => await LoadScadaSystemAsync());
+            //}
         }
 
 
@@ -1893,12 +1904,40 @@ namespace ViSyncMaster.ViewModels
                 // Inicjalizacja funkcji związanych z trybem CHPKT
                 InitializeVRSKTFunctions();
 
-                _opcUaService = new OpcUaStandbyService(
-                 "opc.tcp://scada001w16:4840",
-                 "ns=2;s=[SMBL - simulator]/Random/RandomBoolean1");
-                _opcUaService.StandbyChanged += OnStandbyChanged;
-                try { await _opcUaService.StartAsync(useSecurity: false); }
-                catch (Exception ex) { Log.Error(ex, "OPC UA start failed"); }
+            }
+            else if (appConfig.AppMode == "ODUSCADA")
+            {
+                // Inicjalizacja funkcji związanych z trybem CHPKT
+                InitializeODUSCADAFunctions();
+                _scadaView ??= new ScadaHostView(); 
+                // Konfiguracja ścieżki do SCADY
+                ScadaProcessManager.Instance.StartPath = @"C:\ViSM\SCADA\W1605 SCADA.lnk";
+                ScadaProcessManager.Instance.WindowTitleMatch = "W1605 SCADA";
+
+                _opcUa = new OpcUaMultiWatchService("opc.tcp://10.109.142.2:4840");
+                _opcUa.BoolChanged += (key, val) =>
+                {
+                    switch (key)
+                    {
+                        case "Standby": OnStandbyChanged(val); break;
+                        case "TEST_OK": OnTestOkChange(val); break;  // nowy bool
+                                                                   // dopisuj kolejne w razie potrzeby
+                    }
+                };
+
+                await _opcUa.StartAsync(useSecurity: false, publishingIntervalMs: 500, defaultSamplingIntervalMs: 200);
+
+                // Dodaj obserwacje (klucz to Twoja etykieta)
+                _opcUa.AddWatch(
+                    key: "Standby",
+                    nodeIdString: "ns=3;s=\"IOT_Furness_IV1673000332\".\"IOT_Data\".\"Current_Stage\".\"Standby\"",
+                    samplingIntervalMs: 200);
+
+                _opcUa.AddWatch(
+                    key: "TEST_OK",
+                    nodeIdString: "ns=3;s=\"IOT_Furness_IV1673000332\".\"IOT_Data\".\"S7.TEST_OK\"",
+                    samplingIntervalMs: 200);
+
             }
             else
             {
@@ -1914,6 +1953,13 @@ namespace ViSyncMaster.ViewModels
             googleDiskUrl = appConfig.UrlDiscGoogle;
             googleInstructionUrl = appConfig.UrlInstruction;
             googleTargetPlanUrl = appConfig.UrlTargetPlan;
+            EnableFuction("ODUSCADA");
+            LoadPageSap();
+            CreateScheduleForLogging();
+        }
+
+        private void InitializeODUSCADAFunctions()
+        {
             EnableFuction("CUPP");
             LoadPageSap();
             CreateScheduleForLogging();
@@ -1967,6 +2013,7 @@ namespace ViSyncMaster.ViewModels
                     InstructionButtonIsVisible = true;
                     TargetPlanButtonIsVisible = true;
                     UserButtonIsVisible = false;
+                    ScadaButtonIsVisible = false;
                     break;
 
                 case "CUPP":
@@ -1976,6 +2023,17 @@ namespace ViSyncMaster.ViewModels
                     InstructionButtonIsVisible = false;
                     TargetPlanButtonIsVisible = false;
                     UserButtonIsVisible = true;
+                    ScadaButtonIsVisible = false;
+                    break;
+
+                case "ODUSCADA":
+                    OpenSerialPortButtonIsVisible = false;
+                    AdaptronicButtonIsVisible = false;
+                    GoogleDriveButtonIsVisible = false;
+                    InstructionButtonIsVisible = false;
+                    TargetPlanButtonIsVisible = false;
+                    UserButtonIsVisible = true;
+                    ScadaButtonIsVisible = true;
                     break;
 
                 default:

@@ -1933,9 +1933,10 @@
 					<Image Source="{SvgImage /Assets/icons/wrench.svg}"/>
 				</Button>
 				<Button Grid.Column="7"
-                    Name = "ScreenShotButton"
+                    Name = "ScadaButton"
+					IsVisible="{Binding ScadaButtonIsVisible}"
                     Command="{Binding LoadScadaSystemCommand}">
-					<Image Source="{SvgImage /Assets/icons/mark.svg}"/>
+					<Image Source="{SvgImage /Assets/icons/ignition.svg}"/>
 				</Button>
 				<Button Grid.Column="8"
                     Name = "Reserve"
