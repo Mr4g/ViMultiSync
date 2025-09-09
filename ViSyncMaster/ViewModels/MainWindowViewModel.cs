@@ -1642,7 +1642,7 @@ namespace ViSyncMaster.ViewModels
         {
             if (!standby)
             {
-                Dispatcher.UIThread.Post(LoadPageSap);
+                Dispatcher.UIThread.Post(async () => await LoadScadaSystemAsync());
             }
         }
 
@@ -1953,14 +1953,14 @@ namespace ViSyncMaster.ViewModels
             googleDiskUrl = appConfig.UrlDiscGoogle;
             googleInstructionUrl = appConfig.UrlInstruction;
             googleTargetPlanUrl = appConfig.UrlTargetPlan;
-            EnableFuction("ODUSCADA");
+            EnableFuction("CUPP");
             LoadPageSap();
             CreateScheduleForLogging();
         }
 
         private void InitializeODUSCADAFunctions()
         {
-            EnableFuction("CUPP");
+            EnableFuction("ODUSCADA");
             LoadPageSap();
             CreateScheduleForLogging();
         }

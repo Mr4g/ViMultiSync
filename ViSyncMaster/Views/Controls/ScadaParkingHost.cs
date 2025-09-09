@@ -44,9 +44,13 @@ namespace ViSyncMaster.Views.Controls
 
         private async System.Threading.Tasks.Task AttachHereAsync()
         {
+            var sharedDataService = new SharedDataService();
+                        if (sharedDataService.AppConfig?.AppMode != "ODUSCADA")
+                            return;
+            
             var ok = await ScadaProcessManager.Instance.EnsureStartedAsync();
-            if (!ok) return;
-            var (w, h) = GetPixelSize();
+                        if (!ok) return;
+            var(w, h) = GetPixelSize();
             ScadaProcessManager.Instance.AttachToHost(CurrentHandle, w, h);
         }
 
