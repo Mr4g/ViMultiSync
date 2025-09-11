@@ -1697,6 +1697,8 @@ namespace ViSyncMaster.ViewModels
             //message.Value = "true";
             //message.OperatorName = LoginLabel ?? null;
             SendMessageToSplunk(message);
+            var pgMessage = new MessagePgToSplunk();
+            await _machineStatusService.SendPgMessage(pgMessage);
         }
 
         private async Task ReSendMessageToSplunk(object state)
