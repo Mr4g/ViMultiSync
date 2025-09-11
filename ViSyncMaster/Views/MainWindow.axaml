@@ -201,6 +201,57 @@
 			</Grid>
 		</controls:AnimatedPopup>
 
+		<!-- Line Stop Question Popup -->
+		<controls:AnimatedPopup
+			Grid.Row="0"
+			ZIndex="9999"
+			Grid.RowSpan="3"
+			Grid.ColumnSpan="6"
+			Margin="20"
+			AnimationTime="0.3"
+			HorizontalAlignment="Center"
+			VerticalAlignment="Center"
+			UnderlayOpacity="0.2"
+			Name="LineStopPanel"
+			Background="#232228"
+			Open="{Binding LineStopPanelIsOpen, Mode=TwoWay}"
+			DuringOpening="{Binding ControlPanelVisible, Mode=TwoWay}">
+
+			<Grid RowDefinitions="Auto,Auto">
+				<TextBlock
+					Grid.Row="0"
+					Text="Czy awaria powoduje zatrzymanie linii?"
+					HorizontalAlignment="Center"
+					FontSize="32"
+					Foreground="WhiteSmoke"
+					Margin="10"/>
+
+				<Border Grid.Row="1" Background="OrangeRed" Padding="30" CornerRadius="24">
+					<ItemsControl ItemsSource="{Binding LineStopPanelOptions}">
+						<ItemsControl.ItemsPanel>
+							<ItemsPanelTemplate>
+								<!-- 1 rząd, 3 kolumny -->
+								<UniformGrid Rows="1" Columns="3"
+											 HorizontalAlignment="Center"
+											 VerticalAlignment="Center"/>
+							</ItemsPanelTemplate>
+						</ItemsControl.ItemsPanel>
+
+						<ItemsControl.ItemTemplate>
+							<DataTemplate>
+								<Button
+									Classes="PopupButton"
+									Content="{Binding Label}"
+									FontSize="22"
+									Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).LineStopPanelOptionPressedCommand}"
+									CommandParameter="{Binding}" />
+							</DataTemplate>
+						</ItemsControl.ItemTemplate>
+					</ItemsControl>
+				</Border>
+			</Grid>
+		</controls:AnimatedPopup>
+
 		<!-- Reason Downtime Panel Popup Open-->
 
 		<controls:AnimatedPopup
@@ -902,6 +953,7 @@
 				</Border>
 			</Grid>
 		</controls:AnimatedPopup>
+		
 
 		<!-- Downtime Z+F Brady Panel Popup Open-->
 

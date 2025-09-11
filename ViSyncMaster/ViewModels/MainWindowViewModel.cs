@@ -734,6 +734,13 @@ namespace ViSyncMaster.ViewModels
         [RelayCommand]
         private async Task ReportMachineDowntime(MachineStatus item)
         {
+
+            // Pokaż nasz ładny popup i poczekaj na wybór
+            var lineStop = await AskIfLineStopsViaPopupAsync();
+            if (lineStop is null) // Anuluj
+                return;
+
+
             UpdateCallForServicePanel(0, item);
             var itemWords = item.Status
                 .ToUpperInvariant()
@@ -789,6 +796,11 @@ namespace ViSyncMaster.ViewModels
         [RelayCommand]
         private async Task ReportMachineStatus(MachineStatus item)
         {
+            // Pokaż nasz ładny popup i poczekaj na wybór
+            var lineStop = await AskIfLineStopsViaPopupAsync();
+            if (lineStop is null) // Anuluj
+                return;
+
             if (MachineStatuses.Any(status => status.Status == item.Status))
             {
                 ActualValueForWarrningNoticePopup(item);
@@ -2058,6 +2070,67 @@ namespace ViSyncMaster.ViewModels
         /// 
         private SerialPortListener _serialPortListener;
         private MqttMessageSender _mqttSender;
+
+        // --- COMMAND (kliknięcie opcji) ---
+        [RelayCommand]
+        private void LineStopPanelOptionPressed(LineStopOption? option)
+        {
+            // 1) Najpierw rozwiąż TCS
+            _lineStopTcs?.TrySetResult(option?.Value);
+            _lineStopTcs = null;
+
+            // 2) Potem zamknij popup i overlay
+            LineStopPanelIsOpen = false;
+            ControlPanelVisible = false;
+        }
+
+        // --- HELPER: pokaż popup i poczekaj na odpowiedź ---
+        private async Task<bool?> AskIfLineStopsViaPopupAsync()
+        {
+            // zabezpieczenie, gdyby popup był już otwarty
+            if (_lineStopTcs != null)
+                return await _lineStopTcs.Task;
+
+            _lineStopTcs = new TaskCompletionSource<bool?>();
+
+            LineStopPanelOptions = new ObservableCollection<LineStopOption>(new[]
+            {
+        new LineStopOption { Label = "TAK – zatrzymuje", Value = true },
+        new LineStopOption { Label = "NIE – nie zatrzymuje", Value = false },
+        new LineStopOption { Label = "Exit", Value = (bool?)null },
+    });
+
+            ControlPanelVisible = true;
+            LineStopPanelIsOpen = true;
+
+            var answer = await _lineStopTcs.Task; // true/false/null
+            return answer;
+        }
+
+        partial void OnLineStopPanelIsOpenChanged(bool value)
+        {
+            // Jeśli popup został zamknięty “z boku” (klik w tło / ESC),
+            // domknij oczekujące TCS jako Anuluj (null), żeby kolejny raz mógł się otworzyć.
+            if (!value && _lineStopTcs != null)
+            {
+                _lineStopTcs.TrySetResult(null);
+                _lineStopTcs = null;
+            }
+        }
+
+        // --- PROPERTIES ---
+        [ObservableProperty] private bool _lineStopPanelIsOpen;
+        [ObservableProperty] private ObservableCollection<LineStopOption> _lineStopPanelOptions = new();
+
+        // do czekania na wybór użytkownika
+        private TaskCompletionSource<bool?>? _lineStopTcs;
+
+        // Mała klasa opcji dla popupu
+        public sealed class LineStopOption
+        {
+            public string Label { get; set; } = "";
+            public bool? Value { get; set; } // true = TAK, false = NIE, null = Anuluj
+        }
 
         public MainWindowViewModel(IStatusInterfaceService statusInterfaceService)
         {
