@@ -13,7 +13,8 @@ namespace ViSyncMaster.DataModel
     {
         public static Dictionary<string, object> ToMqttFormat(this MachineStatus status, bool stopsLine)
         {
-            var value = status.StepOfStatus * 10 + (stopsLine ? 1 : 0);
+            int value = (status.StepOfStatus == 0 ? 10 : status.StepOfStatus * 10)
+                        + (stopsLine ? 1 : 0);
             return new Dictionary<string, object>
             {
                 {

@@ -734,12 +734,7 @@ namespace ViSyncMaster.ViewModels
         [RelayCommand]
         private async Task ReportMachineDowntime(MachineStatus item)
         {
-
-            // Pokaż nasz ładny popup i poczekaj na wybór
             IsLineStopped = await AskIfLineStopsViaPopupAsync();
-            if (IsLineStopped is false) // Anuluj
-                return;
-
 
             UpdateCallForServicePanel(0, item);
             var itemWords = item.Status
@@ -796,11 +791,7 @@ namespace ViSyncMaster.ViewModels
         [RelayCommand]
         private async Task ReportMachineStatus(MachineStatus item)
         {
-            // Pokaż nasz ładny popup i poczekaj na wybór
-            IsLineStopped = await AskIfLineStopsViaPopupAsync();
-            if (IsLineStopped is false) // Anuluj
-                return;
-
+            
             if (MachineStatuses.Any(status => status.Status == item.Status))
             {
                 ActualValueForWarrningNoticePopup(item);
@@ -817,6 +808,8 @@ namespace ViSyncMaster.ViewModels
             else
             {
                 var newStatus = item.DeepCopy();
+                IsLineStopped = await AskIfLineStopsViaPopupAsync();
+
                 await _machineStatusService.StartStatus(newStatus, IsLineStopped);
                 var messagePgToSplunk = _splunkMessageHandler.PreparingPgMessageToSplunk(MachineStatuses, newStatus, _machineStatusCounter);
                 await _machineStatusService.SendPgMessage((MessagePgToSplunk)messagePgToSplunk);
@@ -2095,8 +2088,8 @@ namespace ViSyncMaster.ViewModels
             LineStopPanelOptions = new ObservableCollection<LineStopOption>(new[]
             {
                 new LineStopOption { Label = "TAK – zatrzymuje",      Value = true  },
-                new LineStopOption { Label = "NIE – nie zatrzymuje",  Value = false },
-                new LineStopOption { Label = "Exit", Value = false } 
+                new LineStopOption { Label = "NIE – nie zatrzymuje",  Value = false }
+                //new LineStopOption { Label = "Exit", Value = false } 
             });
 
             ControlPanelVisible = true;
