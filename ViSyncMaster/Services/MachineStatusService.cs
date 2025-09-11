@@ -91,7 +91,7 @@ namespace ViSyncMaster.Services
         }
 
         // Rozpoczęcie nowego statusu
-        public async Task<MachineStatus> StartStatus(MachineStatus machineStatus, bool stopsLine)
+        public async Task<MachineStatus> StartStatus(MachineStatus machineStatus)
         {
             var epochMilliseconds = DateTimeOffset.Now.ToUnixTimeMilliseconds(); // Czas epoch w milisekundach
             var uniqueId = epochMilliseconds;
@@ -103,7 +103,7 @@ namespace ViSyncMaster.Services
             // Asynchronicznie dodawanie status do repozytoriów
             await _repositoryMachineStatusQueue.AddOrUpdate(machineStatus);
             await _repositoryMachineStatus.AddOrUpdate(machineStatus);
-            var jsonMessage = JsonSerializer.Serialize(machineStatus.ToMqttFormat(stopsLine));
+            var jsonMessage = JsonSerializer.Serialize(machineStatus.ToMqttFormat());
             await SendMessageMqtt(jsonMessage);
             return machineStatus;
         }
@@ -199,24 +199,24 @@ namespace ViSyncMaster.Services
         }
 
         // Wysyłanie wiadomości które już posiadają ID/Start/End etc..
-        public async Task<MachineStatus> ReSendMessageToSplunk(MachineStatus machineStatus, bool stopsLine)
+        public async Task<MachineStatus> ReSendMessageToSplunk(MachineStatus machineStatus)
         {
             var epochMilliseconds = DateTimeOffset.Now.ToUnixTimeMilliseconds(); // Czas epoch w milisekundach
             machineStatus.SendTime = epochMilliseconds;
             await _repositoryMachineStatusQueue.AddOrUpdate(machineStatus);
-            var jsonMessage = JsonSerializer.Serialize(machineStatus.ToMqttFormat(stopsLine));
+            var jsonMessage = JsonSerializer.Serialize(machineStatus.ToMqttFormat());
             await SendMessageMqtt(jsonMessage);
             return machineStatus;
         }
 
-        public async Task<MachineStatus> UpdateStatus(MachineStatus machineStatus, bool stopsLine)
+        public async Task<MachineStatus> UpdateStatus(MachineStatus machineStatus)
         {
             var epochMilliseconds = DateTimeOffset.Now.ToUnixTimeMilliseconds(); 
             machineStatus.SendTime = epochMilliseconds;
             // Asynchronicznie dodaj status do repozytoriów
             await _repositoryMachineStatusQueue.AddOrUpdate(machineStatus);
             await _repositoryMachineStatus.AddOrUpdate(machineStatus);         
-            var jsonMessage = JsonSerializer.Serialize(machineStatus.ToMqttFormat(stopsLine));
+            var jsonMessage = JsonSerializer.Serialize(machineStatus.ToMqttFormat());
             await SendMessageMqtt(jsonMessage);
             return machineStatus;
         }
@@ -227,9 +227,9 @@ namespace ViSyncMaster.Services
             await SendMessageMqtt(jsonMessage);
             return machineStatus;
         }
-            
+
         // Zakończenie statusu
-        public async Task<MachineStatus> EndStatus(MachineStatus machineStatus, bool stopsLine)
+        public async Task<MachineStatus> EndStatus(MachineStatus machineStatus)
         {
             var epochMilliseconds = DateTimeOffset.Now.ToUnixTimeMilliseconds(); // Czas epoch w milisekundach
             machineStatus.SendTime = epochMilliseconds;
@@ -237,7 +237,7 @@ namespace ViSyncMaster.Services
             // Zapisz zaktualizowany status w repozytorium MachineStatus
             await _repositoryMachineStatusQueue.AddOrUpdate(machineStatus);
             await _repositoryMachineStatus.AddOrUpdate(machineStatus);
-            var jsonMessage = JsonSerializer.Serialize(machineStatus.ToMqttFormat(stopsLine));
+            var jsonMessage = JsonSerializer.Serialize(machineStatus.ToMqttFormat());
             await SendMessageMqtt(jsonMessage);
             return machineStatus;
         }

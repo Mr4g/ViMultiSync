@@ -736,8 +736,8 @@ namespace ViSyncMaster.ViewModels
         {
 
             // Pokaż nasz ładny popup i poczekaj na wybór
-            IsLineStopped = await AskIfLineStopsViaPopupAsync();
-            if (IsLineStopped is null) // Anuluj
+            var lineStop = await AskIfLineStopsViaPopupAsync();
+            if (lineStop is null) // Anuluj
                 return;
 
 
@@ -797,8 +797,8 @@ namespace ViSyncMaster.ViewModels
         private async Task ReportMachineStatus(MachineStatus item)
         {
             // Pokaż nasz ładny popup i poczekaj na wybór
-            IsLineStopped = await AskIfLineStopsViaPopupAsync();
-            if (IsLineStopped is null) // Anuluj
+            var lineStop = await AskIfLineStopsViaPopupAsync();
+            if (lineStop is null) // Anuluj
                 return;
 
             if (MachineStatuses.Any(status => status.Status == item.Status))
@@ -817,7 +817,7 @@ namespace ViSyncMaster.ViewModels
             else
             {
                 var newStatus = item.DeepCopy();
-                await _machineStatusService.StartStatus(newStatus, IsLineStopped);
+                await _machineStatusService.StartStatus(newStatus);
                 var messagePgToSplunk = _splunkMessageHandler.PreparingPgMessageToSplunk(MachineStatuses, newStatus, _machineStatusCounter);
                 await _machineStatusService.SendPgMessage((MessagePgToSplunk)messagePgToSplunk);
             }
@@ -860,7 +860,7 @@ namespace ViSyncMaster.ViewModels
         private async Task HandleUnmappedStatus(MachineStatus machineStatus)
         {
             IsActiveStatus = false;
-            await _machineStatusService.EndStatus(machineStatus, IsLineStopped); // Kończenie statusu bez powodu
+            await _machineStatusService.EndStatus(machineStatus); // Kończenie statusu bez powodu
             var messagePgToSplunk = _splunkMessageHandler.PreparingPgMessageToSplunk(MachineStatuses, machineStatus, _machineStatusCounter);
             await _machineStatusService.SendPgMessage((MessagePgToSplunk)messagePgToSplunk);
             ReasonDowntimeMechanicalPanelIsOpen = false;
@@ -899,7 +899,7 @@ namespace ViSyncMaster.ViewModels
                 pendingStatus.CallForService = DateTime.Now;
                 if (pendingStatus.Status != "PŁYTA")
                     pendingStatus.Status = $"{pendingStatus.Status} & {panelItem.Status}";
-                await _machineStatusService.StartStatus(pendingStatus, IsLineStopped);
+                await _machineStatusService.StartStatus(pendingStatus);
                 var messagePgToSplunk = _splunkMessageHandler.PreparingPgMessageToSplunk(MachineStatuses, pendingStatus, _machineStatusCounter);
                 await _machineStatusService.SendPgMessage((MessagePgToSplunk)messagePgToSplunk);
 
@@ -1720,7 +1720,7 @@ namespace ViSyncMaster.ViewModels
                 var machineStatusesCopy = new List<MachineStatus>(MachineStatuses.Select(status => status.DeepCopy()));
                 foreach (var machineStatus in machineStatusesCopy)
                 {
-                    await _machineStatusService.ReSendMessageToSplunk(machineStatus, IsLineStopped);
+                    await _machineStatusService.ReSendMessageToSplunk(machineStatus);
                 }
             }
         }
@@ -2121,10 +2121,9 @@ namespace ViSyncMaster.ViewModels
         // --- PROPERTIES ---
         [ObservableProperty] private bool _lineStopPanelIsOpen;
         [ObservableProperty] private ObservableCollection<LineStopOption> _lineStopPanelOptions = new();
-        [ObservableProperty] private bool? _isLineStopped;
 
         // do czekania na wybór użytkownika
-        private TaskCompletionSource<bool?> _lineStopTcs;
+        private TaskCompletionSource<bool?>? _lineStopTcs;
 
         // Mała klasa opcji dla popupu
         public sealed class LineStopOption
