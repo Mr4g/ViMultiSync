@@ -11,8 +11,9 @@ namespace ViSyncMaster.DataModel
 {
     public static class MachineStatusExtensions
     {
-        public static Dictionary<string, object> ToMqttFormat(this MachineStatus status)
+        public static Dictionary<string, object> ToMqttFormat(this MachineStatus status, bool stopsLine)
         {
+            var value = status.StepOfStatus * 10 + (stopsLine ? 1 : 0);
             return new Dictionary<string, object>
             {
                 {
@@ -22,7 +23,7 @@ namespace ViSyncMaster.DataModel
                             CleanStatusName(status.Name),
                             new Dictionary<string, object>
                             {
-                                { RemoveDiacritics(status.Status), status.StepOfStatus }
+                                { RemoveDiacritics(status.Status), value }
                             }
                         }
                     }
