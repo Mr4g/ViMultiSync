@@ -732,9 +732,21 @@ namespace ViSyncMaster.ViewModels
         }
 
         [RelayCommand]
-        private async Task ReportMachineDowntime(MachineStatus item)
+        private Task ReportMachineDowntime(MachineStatus item)
         {
-            IsLineStopped = await AskIfLineStopsViaPopupAsync();
+            _pendingMachineStatus = item.DeepCopy();
+
+            _ = AskIfLineStopsViaPopupAsync()
+                .ContinueWith(t => HandleReportMachineDowntimeAsync(item, t.Result),
+                    TaskScheduler.FromCurrentSynchronizationContext())
+                .Unwrap();
+
+            return Task.CompletedTask;
+        }
+
+        private async Task HandleReportMachineDowntimeAsync(MachineStatus item, bool isLineStopped)
+        {
+            IsLineStopped = isLineStopped;
 
             UpdateCallForServicePanel(0, item);
             var itemWords = item.Status
@@ -1677,7 +1689,7 @@ namespace ViSyncMaster.ViewModels
             LoginPanelIsOpen = true;
         }
 
-        private void KeepAlive(object state)
+        private async void KeepAlive(object state)
         {
             MessageInformationToSplunk message = new MessageInformationToSplunk();
             message.Name = "S11.KeepAlive";
@@ -2088,8 +2100,8 @@ namespace ViSyncMaster.ViewModels
             LineStopPanelOptions = new ObservableCollection<LineStopOption>(new[]
             {
                 new LineStopOption { Label = "TAK – zatrzymuje",      Value = true  },
-                new LineStopOption { Label = "NIE – nie zatrzymuje",  Value = false }
-                //new LineStopOption { Label = "Exit", Value = false } 
+                new LineStopOption { Label = "NIE – nie zatrzymuje",  Value = false },
+                new LineStopOption { Label = "Exit", Value = false } 
             });
 
             ControlPanelVisible = true;
