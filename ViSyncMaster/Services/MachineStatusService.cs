@@ -249,7 +249,7 @@ namespace ViSyncMaster.Services
                 || string.Equals(info.TableName, "FirstPartData", StringComparison.OrdinalIgnoreCase)
                 || string.Equals(info.TableName, "HourlyPlanMessage", StringComparison.OrdinalIgnoreCase))
             {
-                _hasQueueEvent = true;///
+                _hasQueueEvent = true;
                 _lastQueueTable = info.TableName;
             }
             if (info.TableName.Contains("MachineStatus", StringComparison.OrdinalIgnoreCase))
