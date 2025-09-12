@@ -2059,8 +2059,8 @@
 				</Button>
 				<Button Classes="NavigationButton" Name="MaintenancePanelButton" Command="{Binding #MaintenancePanelPopup.BeginOpen}">
 					<StackPanel Orientation="Horizontal"  Margin="5">
-						<Image HorizontalAlignment="Left" Source="{SvgImage /Assets/icons/broom.svg}"/>
-						<TextBlock  Text="TPM" />
+						<Image HorizontalAlignment="Left" Source="{SvgImage /Assets/icons/qa.svg}"/>
+						<TextBlock  Text="Jakość" />
 					</StackPanel>
 				</Button>
 				<Button Classes="NavigationButton" Name="LogisticPanelButton" Command="{Binding #LogisticPanelPopup.BeginOpen}">
