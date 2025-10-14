@@ -77,6 +77,8 @@ namespace ViSyncMaster.ViewModels
         private PingService pingService;
         private MachineStatus _pendingMachineStatus;
         private OpcUaMultiWatchService? _opcUa;
+        private bool _isOpcUaInitialized;
+
 
         string screenshotPath = "C:/zrzut_ekranu.png"; // Ścieżka, gdzie zostanie zapisany zrzut ekranu
         string imgurClientId = "0fe6e59673311dc"; // Zastąp wartością swojego Client ID zarejestrowanego na Imgur
@@ -1051,7 +1053,7 @@ namespace ViSyncMaster.ViewModels
         private void ExitPressed()
         {
             Log.CloseAndFlush();
-            _opcUa?.Dispose();
+            DisposeOpcUaService();
             System.Diagnostics.Process.GetCurrentProcess().CloseMainWindow();
             System.Diagnostics.Process.GetCurrentProcess().Kill();
         }
@@ -1913,50 +1915,34 @@ namespace ViSyncMaster.ViewModels
             _anyDeskId = _anyDeskParameters.FetchAnyDeskId();
 
             // Sprawdzenie trybu z pliku konfiguracyjnego
-            if (appConfig.AppMode == "CUPP")
+            var appMode = appConfig.AppMode?.Trim();
+
+            if (!string.Equals(appMode, "ODUSCADA", StringComparison.OrdinalIgnoreCase))
+            {
+                DisposeOpcUaService();
+            }
+
+            if (string.Equals(appMode, "CUPP", StringComparison.OrdinalIgnoreCase))
             {
                 // Inicjalizacja funkcji związanych z trybem CUPP
                 InitializeCUPPFunctions();
             }
-            else if (appConfig.AppMode == "VRSKT")
+            else if (string.Equals(appMode, "VRSKT", StringComparison.OrdinalIgnoreCase))
             {
                 // Inicjalizacja funkcji związanych z trybem CHPKT
                 InitializeVRSKTFunctions();
 
             }
-            else if (appConfig.AppMode == "ODUSCADA")
+            else if (string.Equals(appMode, "ODUSCADA", StringComparison.OrdinalIgnoreCase))
             {
                 // Inicjalizacja funkcji związanych z trybem CHPKT
                 InitializeODUSCADAFunctions();
-                _scadaView ??= new ScadaHostView(); 
+                _scadaView ??= new ScadaHostView();
                 // Konfiguracja ścieżki do SCADY
                 ScadaProcessManager.Instance.StartPath = @"C:\ViSM\SCADA\W1605 SCADA.lnk";
                 ScadaProcessManager.Instance.WindowTitleMatch = "W1605 SCADA";
 
-                _opcUa = new OpcUaMultiWatchService("opc.tcp://10.109.142.2:4840");
-                _opcUa.BoolChanged += (key, val) =>
-                {
-                    switch (key)
-                    {
-                        case "Standby": OnStandbyChanged(val); break;
-                        case "TEST_OK": OnTestOkChange(val); break;  // nowy bool
-                                                                   // dopisuj kolejne w razie potrzeby
-                    }
-                };
-
-                await _opcUa.StartAsync(useSecurity: false, publishingIntervalMs: 500, defaultSamplingIntervalMs: 200);
-
-                // Dodaj obserwacje (klucz to Twoja etykieta)
-                _opcUa.AddWatch(
-                    key: "Standby",
-                    nodeIdString: "ns=3;s=\"IOT_Furness_IV1673000332\".\"IOT_Data\".\"Current_Stage\".\"Standby\"",
-                    samplingIntervalMs: 200);
-
-                _opcUa.AddWatch(
-                    key: "TEST_OK",
-                    nodeIdString: "ns=3;s=\"IOT_Furness_IV1673000332\".\"IOT_Data\".\"S7.TEST_OK\"",
-                    samplingIntervalMs: 200);
-
+                await EnsureOpcUaInitializedAsync();
             }
             else
             {
@@ -1965,6 +1951,64 @@ namespace ViSyncMaster.ViewModels
                 throw new InvalidOperationException("Nieznany tryb konfiguracyjny.");
             }
         }
+
+        private async Task EnsureOpcUaInitializedAsync()
+        {
+            if (_isOpcUaInitialized)
+            {
+                return;
+            }
+
+            _opcUa = new OpcUaMultiWatchService("opc.tcp://10.109.142.2:4840");
+            _opcUa.BoolChanged += OnOpcUaBoolChanged;
+
+            _opcUa.AddWatch(
+                key: "Standby",
+                nodeIdString: "ns=3;s=\"IOT_Furness_IV1673000332\".\"IOT_Data\".\"Current_Stage\".\"Standby\"",
+                samplingIntervalMs: 200);
+
+            _opcUa.AddWatch(
+                key: "TEST_OK",
+                nodeIdString: "ns=3;s=\"IOT_Furness_IV1673000332\".\"IOT_Data\".\"S7.TEST_OK\"",
+                samplingIntervalMs: 200);
+
+            try
+            {
+                await _opcUa.StartAsync(useSecurity: false, publishingIntervalMs: 500, defaultSamplingIntervalMs: 200);
+                _isOpcUaInitialized = true;
+            }
+            catch
+            {
+                DisposeOpcUaService();
+                throw;
+            }
+        }
+
+        private void DisposeOpcUaService()
+        {
+            if (_opcUa != null)
+            {
+                _opcUa.BoolChanged -= OnOpcUaBoolChanged;
+                _opcUa.Dispose();
+                _opcUa = null;
+                _isOpcUaInitialized = false;
+            }
+        }
+
+        private void OnOpcUaBoolChanged(string key, bool val)
+        {
+            switch (key)
+            {
+                case "Standby":
+                    OnStandbyChanged(val);
+                    break;
+                case "TEST_OK":
+                    OnTestOkChange(val);
+                    break;
+                    // dopisuj kolejne w razie potrzeby
+            }
+        }
+
 
         private void InitializeCUPPFunctions()
         {
