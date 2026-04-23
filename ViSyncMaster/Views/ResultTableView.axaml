@@ -161,20 +161,22 @@
 				<DataGrid.Columns>
 					<DataGridTextColumn Header="Czas" Binding="{Binding Period}" Width="Auto"/>
 					<DataGridTextColumn Header="Plan" Binding="{Binding ExpectedDisplay}" Width="Auto"/>
-					<DataGridTemplateColumn Header="Wykon" Width="Auto">
+					<DataGridTemplateColumn Header="Wykon" Width="220">
 						<DataGridTemplateColumn.CellTemplate>
 							<DataTemplate>
-								<Grid>
-									<Grid IsVisible="{Binding IsBreak, Converter={StaticResource InverseBoolConverter}}">
+								<Grid ClipToBounds="True">
+									<Grid IsVisible="{Binding IsBreak, Converter={StaticResource InverseBoolConverter}}" ClipToBounds="True">
 										<ProgressBar Minimum="0"
-											 Maximum="{Binding ExpectedUnits}"
-											 Value="{Binding ProducedUnits}"
+											 Maximum="100"
+											 Value="{Binding ProgressPercent}"
 											 HorizontalAlignment="Stretch"
 											 Height="20"
 											 Margin="0,2"
 											 Foreground="Green"
-											 Background="#1D1F27"/>
-										<TextBlock Text="{Binding ProducedUnits}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+											 Background="#1D1F27"
+											 IsHitTestVisible="False"/>
+										<!-- Tekst nad paskiem: zawsze czytelny, niezależnie od poziomu progresu -->
+										<TextBlock Text="{Binding ProducedUnits}" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="WhiteSmoke" FontWeight="SemiBold"/>
 									</Grid>
 									<StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding IsBreak}">
 										<TextBlock Text="{Binding ProducedUnits}" Margin="5,0,0,0"/>

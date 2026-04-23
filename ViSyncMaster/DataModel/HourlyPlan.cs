@@ -23,6 +23,23 @@ namespace ViSyncMaster.DataModel
         public string DowntimeDisplay => IsBreak ? "PRZERWA" : DowntimeMinutes.ToString();
         public string LostUnitsDisplay => IsBreak ? "PRZERWA" : LostUnitsDueToDowntime.ToString();
         public string EfficiencyDisplay =>IsBreak ? "PRZERWA" : $"{Efficiency:0.0} %";
+        // Clamp progress to <0..1> to avoid UI glitches for edge-cases (target=0, produced>expected, negative values).
+        public double ProgressRatio
+        {
+            get
+            {
+                if (IsBreak)
+                    return 0;
+
+                var expected = Math.Max(ExpectedUnits, 0);
+                var produced = Math.Max(ProducedUnits, 0);
+                if (expected <= 0)
+                    return 0;
+
+                return Math.Clamp((double)produced / expected, 0d, 1d);
+            }
+        }
+        public double ProgressPercent => ProgressRatio * 100d;
 
 
 
@@ -33,11 +50,23 @@ namespace ViSyncMaster.DataModel
             OnPropertyChanged(nameof(LostUnitsDisplay));
             OnPropertyChanged(nameof(DowntimeDisplay));
             OnPropertyChanged(nameof(EfficiencyDisplay));
+            OnPropertyChanged(nameof(ProgressRatio));
+            OnPropertyChanged(nameof(ProgressPercent));
         }
 
-        partial void OnExpectedUnitsChanged(int value) => OnPropertyChanged(nameof(ExpectedDisplay));
+        partial void OnExpectedUnitsChanged(int value)
+        {
+            OnPropertyChanged(nameof(ExpectedDisplay));
+            OnPropertyChanged(nameof(ProgressRatio));
+            OnPropertyChanged(nameof(ProgressPercent));
+        }
 
-        partial void OnProducedUnitsChanged(int value) => OnPropertyChanged(nameof(ProducedDisplay));
+        partial void OnProducedUnitsChanged(int value)
+        {
+            OnPropertyChanged(nameof(ProducedDisplay));
+            OnPropertyChanged(nameof(ProgressRatio));
+            OnPropertyChanged(nameof(ProgressPercent));
+        }
 
         partial void OnDowntimeMinutesChanged(int value) => OnPropertyChanged(nameof(DowntimeDisplay));
 
