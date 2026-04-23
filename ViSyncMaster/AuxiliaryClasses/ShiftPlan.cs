@@ -132,6 +132,39 @@ namespace ViSyncMaster.AuxiliaryClasses
 
             return shiftPlan;
         }
+
+        /// <summary>
+        /// Wylicza zakres DateTime dla konkretnej zmiany na podstawie planu (line/ShiftPlanName).
+        /// Jeśli zmiana dla dnia referencyjnego jeszcze się nie zaczęła, zwraca ostatni poprawny zakres (dzień wcześniej).
+        /// </summary>
+        public static (DateTime Start, DateTime End) GetShiftTimeRange(
+            string department,
+            int shiftNumber,
+            DateTime referenceDate,
+            DateTime now,
+            bool forcePreviousDay = false)
+        {
+            var shiftPlan = GetByNumber(department, shiftNumber);
+
+            var shiftStartDate = referenceDate.Date;
+            if (forcePreviousDay)
+            {
+                shiftStartDate = shiftStartDate.AddDays(-1);
+            }
+            else
+            {
+                var todayShiftStart = referenceDate.Date.Add(shiftPlan.ShiftStart);
+                if (now < todayShiftStart)
+                    shiftStartDate = shiftStartDate.AddDays(-1);
+            }
+
+            var start = shiftStartDate.Add(shiftPlan.ShiftStart);
+            var end = shiftStartDate.Add(shiftPlan.ShiftEnd);
+            if (shiftPlan.ShiftEnd <= shiftPlan.ShiftStart)
+                end = end.AddDays(1);
+
+            return (start, end);
+        }
     }
 
     /// <summary>

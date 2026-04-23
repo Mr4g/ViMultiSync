@@ -17,6 +17,7 @@ namespace ViSyncMaster.DataModel
         public string UrlDiscGoogle { get; set; }
         public string UrlInstruction { get; set; }
         public string UrlTargetPlan { get; set; }
+        public string ShiftPlanName { get; set; }
         public string IpTesterKt { get; set; }
         public string Hostname { get; set; }
         public string Workplace { get; set; }

@@ -71,6 +71,7 @@ namespace ViSyncMaster.ViewModels
         [ObservableProperty] private int _failedCount;
         [ObservableProperty] private int _uniqueOperatorCount;
         [ObservableProperty] private int _uniqueProductCount;
+        [ObservableProperty] private string _selectedShiftRangeInfo = "Brak wybranego zakresu";
 
         public IEnumerable<ISeries> Series { get; set; }
         public IEnumerable<ISeries> SeriesEfficiency { get; set; }
@@ -106,7 +107,7 @@ namespace ViSyncMaster.ViewModels
             UpdateGroupedResultListWithTotal();
 
             // Inicjalizacja kalkulatora wydajności
-            var plan = ShiftPlan.GetCurrent(_appConfig.Line);
+            var plan = ShiftPlan.GetCurrent(GetShiftPlanKey());
             _efficiencyCalculator = new ProductionEfficiencyCalculator(plan, GetDowntimeMinutes);
 
             _mainWindowViewModel.ResultTableUpdate += async (s, e) => await QueueUpdateAsync();
@@ -195,7 +196,7 @@ namespace ViSyncMaster.ViewModels
         }
         private async Task AutoSelectCurrentShiftAsync()
         {
-            var plan = ShiftPlan.GetCurrent(_appConfig.Line, DateTime.Now);
+            var plan = ShiftPlan.GetCurrent(GetShiftPlanKey(), DateTime.Now);
             await FilterShiftByNumberAsync(plan.ShiftNumber, DateTime.Today);
         }
 
@@ -221,7 +222,7 @@ namespace ViSyncMaster.ViewModels
         [RelayCommand]
         public async Task FilterYesterdayShift3Async()
         {
-            await FilterShiftByNumberAsync(3, DateTime.Today.AddDays(-1));
+            await FilterShiftByNumberAsync(3, DateTime.Today, forcePreviousDay: true);
         }
 
         [RelayCommand]
@@ -265,34 +266,51 @@ namespace ViSyncMaster.ViewModels
         partial void OnCurrentShiftChanged(int value)
         {
             // Pobierz aktualny plan dla działu
-            var plan = ShiftPlan.GetCurrent(_appConfig.Line);
+            var plan = ShiftPlan.GetCurrent(GetShiftPlanKey());
             _efficiencyCalculator = new ProductionEfficiencyCalculator(plan, GetDowntimeMinutes);
         }
 
-        private async Task FilterShiftByNumberAsync(int shiftNumber, DateTime shiftStartDate)
+        private async Task FilterShiftByNumberAsync(int shiftNumber, DateTime referenceDate, bool forcePreviousDay = false)
         {
-            var shiftPlan = ShiftPlan.GetByNumber(_appConfig.Line, shiftNumber);
+            var planKey = GetShiftPlanKey();
             CurrentShift = shiftNumber;
-            await FilterByShiftPlanRangeAsync(shiftStartDate.Date, shiftPlan);
+            var range = ShiftPlan.GetShiftTimeRange(planKey, shiftNumber, referenceDate, DateTime.Now, forcePreviousDay);
+            await FilterByShiftPlanRangeAsync(range.Start, range.End);
+            SelectedShiftRangeInfo = BuildShiftRangeInfo(shiftNumber, range.Start, range.End);
         }
 
-        private async Task FilterByShiftPlanRangeAsync(DateTime shiftStartDate, ShiftPlan shiftPlan)
+        private async Task FilterByShiftPlanRangeAsync(DateTime start, DateTime end)
         {
-            DateTime start = shiftStartDate.Date.Add(shiftPlan.ShiftStart);
-            DateTime end = shiftStartDate.Date.Add(shiftPlan.ShiftEnd);
-
-            if (shiftPlan.ShiftEnd <= shiftPlan.ShiftStart)
-                end = end.AddDays(1);
+            // Filtr po pełnym DateTime gwarantuje poprawność dla zmian nocnych (przez północ).
+            var now = DateTime.Now;
+            var effectiveEnd = end > now ? now : end;
+            if (effectiveEnd < start)
+                effectiveEnd = start;
 
             var filtered = _originalResultTestList
                 .Where(x => x.StartTime.HasValue
                          && x.StartTime.Value >= start
-                         && x.StartTime.Value < end)
+                         && x.StartTime.Value < effectiveEnd)
                 .ToList();
 
             ResultTestList.SyncWith(filtered, x => x.Id);
             await Dispatcher.UIThread.InvokeAsync(RefreshGroupedResultList);
             await GroupByPassedFailedAndTotalCounterAsync(ResultTestList);
+        }
+
+        private string GetShiftPlanKey()
+        {
+            return !string.IsNullOrWhiteSpace(_appConfig.ShiftPlanName)
+                ? _appConfig.ShiftPlanName
+                : _appConfig.Line;
+        }
+
+        private static string BuildShiftRangeInfo(int shiftNumber, DateTime start, DateTime end)
+        {
+            string dayLabel = start.Date == end.Date
+                ? start.ToString("yyyy-MM-dd")
+                : $"{start:yyyy-MM-dd} / {end:yyyy-MM-dd}";
+            return $"{shiftNumber}ZM | {dayLabel} | {start:HH:mm}–{end:HH:mm}";
         }
 
         private void UpdateGroupedResultListWithTotal()
@@ -425,7 +443,7 @@ namespace ViSyncMaster.ViewModels
             _hourlyTimer = new DispatcherTimer { Interval = TimeSpan.FromMinutes(2) };
             _hourlyTimer.Tick += async (sender, e) =>
             {
-                var plan = ShiftPlan.GetCurrent(_appConfig.Line);
+                var plan = ShiftPlan.GetCurrent(GetShiftPlanKey());
                 var now = DateTime.Now;
                 bool cross = plan.ShiftEnd < plan.ShiftStart;
                 var startDate = now.Date;
@@ -562,7 +580,7 @@ namespace ViSyncMaster.ViewModels
             if (!data.Any()) return;
 
             // 2) Plan zmiany
-            var plan = ShiftPlan.GetCurrent(_appConfig.Line);
+            var plan = ShiftPlan.GetCurrent(GetShiftPlanKey());
 
             // 3) Ustal daty uwzględniając północ
             bool crossMidnight = plan.ShiftEnd < plan.ShiftStart;

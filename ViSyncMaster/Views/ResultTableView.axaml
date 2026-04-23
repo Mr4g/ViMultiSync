@@ -81,7 +81,7 @@
 
 		<!-- Panel sterowania (przyciski, textbox, targety) -->
 		<StackPanel Orientation="Vertical" Grid.Row="1" VerticalAlignment="Top" Grid.ColumnSpan="6">
-			<StackPanel Orientation="Horizontal">
+				<StackPanel Orientation="Horizontal">
 				<Button Content="ZM 1" Command="{Binding FilterShift1Command}"
 						        Background="#0B0A0F"
 								Foreground="WhiteSmoke"
@@ -106,13 +106,19 @@
 								FontSize="18"
 						        Margin="10, 5, 10, 5"
 								FontWeight="Bold"/>
-				<Button Content="TYDZIEŃ" Command="{Binding FilterWholeWeekCommand}"
-						        Background="#0B0A0F"
-								Foreground="WhiteSmoke"
-								FontSize="18"
-							    Margin="10, 5, 10, 5"
-								FontWeight="Bold"/>
-			</StackPanel>
+					<Button Content="TYDZIEŃ" Command="{Binding FilterWholeWeekCommand}"
+							        Background="#0B0A0F"
+									Foreground="WhiteSmoke"
+									FontSize="18"
+								    Margin="10, 5, 10, 5"
+									FontWeight="Bold"/>
+					<TextBlock Text="{Binding SelectedShiftRangeInfo}"
+							   VerticalAlignment="Center"
+							   Margin="20,0,0,0"
+							   Foreground="LightGray"
+							   FontSize="16"
+							   FontWeight="SemiBold"/>
+				</StackPanel>
 
 			<!-- Tabela wyników -->
 			<DataGrid ItemsSource="{Binding GroupedResultList}" AutoGenerateColumns="False" VerticalAlignment="Top"
