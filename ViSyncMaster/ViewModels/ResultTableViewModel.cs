@@ -222,20 +222,40 @@ namespace ViSyncMaster.ViewModels
         [RelayCommand]
         public async Task FilterYesterdayShift3Async()
         {
-            await FilterShiftByNumberAsync(3, DateTime.Today, forcePreviousDay: true);
+            var planKey = GetShiftPlanKey();
+            CurrentShift = 3;
+            var range = ShiftPlan.GetYesterdayShiftRange(planKey, 3, DateTime.Today, DateTime.Now);
+            await FilterByShiftPlanRangeAsync(range.Start, range.End);
+            SelectedShiftRangeInfo = BuildShiftRangeInfo(3, range.Start, range.End);
         }
 
         [RelayCommand]
         public async Task FilterWholeWeekAsync()
         {
-            var startOfWeek = DateTime.Today.AddDays(-(int)DateTime.Today.DayOfWeek + 1); // Monday
-            var endOfWeek = startOfWeek.AddDays(6);                                  // Sunday
+            var planKey = GetShiftPlanKey();
+            var now = DateTime.Now;
 
-            // 1) Filtruj oryginalne dane
+            // Jeśli wybrano zmianę, tydzień liczymy dla tej samej zmiany w każdym dniu tygodnia.
+            // Dzięki temu nie ma mieszania logiki "dzisiaj" z logiką tygodniową.
+            List<(DateTime Start, DateTime End)> ranges;
+            if (CurrentShift > 0)
+            {
+                ranges = ShiftPlan.GetWeeklyShiftRanges(planKey, CurrentShift, DateTime.Today)
+                    .Select(r => (r.Start, r.End > now ? now : r.End))
+                    .Where(r => r.End > r.Start)
+                    .ToList();
+            }
+            else
+            {
+                int daysFromMonday = ((int)DateTime.Today.DayOfWeek + 6) % 7;
+                var weekStart = DateTime.Today.AddDays(-daysFromMonday);
+                var weekEnd = weekStart.AddDays(7);
+                ranges = new List<(DateTime Start, DateTime End)> { (weekStart, weekEnd > now ? now : weekEnd) };
+            }
+
             var filtered = _originalResultTestList
                 .Where(x => x.StartTime.HasValue
-                         && x.StartTime.Value.Date >= startOfWeek
-                         && x.StartTime.Value.Date <= endOfWeek)
+                         && ranges.Any(r => x.StartTime.Value >= r.Start && x.StartTime.Value < r.End))
                 .ToList();
 
             // 2) Diff-update ResultTestList
@@ -247,6 +267,14 @@ namespace ViSyncMaster.ViewModels
                 RefreshGroupedResultList();
                 UpdateGroupedResultListWithTotal();
             });
+
+            if (ranges.Any())
+            {
+                var start = ranges.Min(r => r.Start);
+                var end = ranges.Max(r => r.End);
+                var prefix = CurrentShift > 0 ? $"Tydzień | {CurrentShift}ZM" : "Tydzień";
+                SelectedShiftRangeInfo = $"{prefix} | {start:yyyy-MM-dd HH:mm} – {end:yyyy-MM-dd HH:mm}";
+            }
             // 4) (opcjonalnie) wysyłka liczników pass/fail
             //await GroupByPassedFailedAndTotalCounterAsync(ResultTestList);
         }

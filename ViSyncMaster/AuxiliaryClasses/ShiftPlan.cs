@@ -165,6 +165,44 @@ namespace ViSyncMaster.AuxiliaryClasses
 
             return (start, end);
         }
+
+        public static (DateTime Start, DateTime End) GetYesterdayShiftRange(
+            string department,
+            int shiftNumber,
+            DateTime referenceDate,
+            DateTime now)
+        {
+            return GetShiftTimeRange(department, shiftNumber, referenceDate, now, forcePreviousDay: true);
+        }
+
+        /// <summary>
+        /// Zwraca zakresy tygodniowe dla jednej, wybranej zmiany (bez mieszania z innymi zmianami).
+        /// Tydzień liczony od poniedziałku.
+        /// </summary>
+        public static List<(DateTime Start, DateTime End)> GetWeeklyShiftRanges(
+            string department,
+            int shiftNumber,
+            DateTime referenceDate)
+        {
+            int daysFromMonday = ((int)referenceDate.DayOfWeek + 6) % 7;
+            var weekStart = referenceDate.Date.AddDays(-daysFromMonday); // Monday
+            var ranges = new List<(DateTime Start, DateTime End)>();
+
+            for (int i = 0; i < 7; i++)
+            {
+                var day = weekStart.AddDays(i);
+                // Dla zakresu tygodniowego bierzemy „kanoniczny” dzień zmiany (bez cofania na poprzedni dzień).
+                var range = GetShiftTimeRange(
+                    department,
+                    shiftNumber,
+                    day,
+                    day.AddDays(1), // gwarantuje brak fallbacku "jeszcze się nie zaczęła"
+                    forcePreviousDay: false);
+                ranges.Add(range);
+            }
+
+            return ranges;
+        }
     }
 
     /// <summary>

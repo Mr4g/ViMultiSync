@@ -66,7 +66,7 @@ namespace ViSyncMaster.nUnitTests
         [Test]
         public void Shift3_Yesterday_DoesNotFallbackToOtherShift()
         {
-            var range = ShiftPlan.GetShiftTimeRange("CHP", 3, new DateTime(2026, 4, 23), new DateTime(2026, 4, 23, 10, 0, 0), forcePreviousDay: true);
+            var range = ShiftPlan.GetYesterdayShiftRange("CHP", 3, new DateTime(2026, 4, 23), new DateTime(2026, 4, 23, 10, 0, 0));
             Assert.That(range.Start, Is.EqualTo(new DateTime(2026, 4, 22, 22, 0, 0)));
             Assert.That(range.End, Is.EqualTo(new DateTime(2026, 4, 23, 6, 0, 0)));
         }
@@ -77,6 +77,17 @@ namespace ViSyncMaster.nUnitTests
             var range = ShiftPlan.GetShiftTimeRange("ALT_PLAN", 1, new DateTime(2026, 4, 23), new DateTime(2026, 4, 23, 8, 0, 0));
             Assert.That(range.Start, Is.EqualTo(new DateTime(2026, 4, 23, 7, 0, 0)));
             Assert.That(range.End, Is.EqualTo(new DateTime(2026, 4, 23, 15, 0, 0)));
+        }
+
+        [Test]
+        public void WeeklyRanges_ForSelectedShift_ReturnSevenRangesWithoutFallbackMix()
+        {
+            var ranges = ShiftPlan.GetWeeklyShiftRanges("CHP", 2, new DateTime(2026, 4, 23));
+            Assert.That(ranges.Count, Is.EqualTo(7));
+            Assert.That(ranges[0].Start, Is.EqualTo(new DateTime(2026, 4, 20, 14, 0, 0))); // Monday
+            Assert.That(ranges[0].End, Is.EqualTo(new DateTime(2026, 4, 20, 22, 0, 0)));
+            Assert.That(ranges[6].Start, Is.EqualTo(new DateTime(2026, 4, 26, 14, 0, 0))); // Sunday
+            Assert.That(ranges[6].End, Is.EqualTo(new DateTime(2026, 4, 26, 22, 0, 0)));
         }
     }
 }
