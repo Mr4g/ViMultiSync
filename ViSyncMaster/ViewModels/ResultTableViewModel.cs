@@ -241,7 +241,7 @@ namespace ViSyncMaster.ViewModels
             if (CurrentShift > 0)
             {
                 ranges = ShiftPlan.GetWeeklyShiftRanges(planKey, CurrentShift, DateTime.Today)
-                    .Select(r => (r.Start, r.End > now ? now : r.End))
+                    .Select(r => (Start: r.Start, End: r.End > now ? now : r.End))
                     .Where(r => r.End > r.Start)
                     .ToList();
             }
@@ -250,7 +250,10 @@ namespace ViSyncMaster.ViewModels
                 int daysFromMonday = ((int)DateTime.Today.DayOfWeek + 6) % 7;
                 var weekStart = DateTime.Today.AddDays(-daysFromMonday);
                 var weekEnd = weekStart.AddDays(7);
-                ranges = new List<(DateTime Start, DateTime End)> { (weekStart, weekEnd > now ? now : weekEnd) };
+                ranges = new List<(DateTime Start, DateTime End)>
+                {
+                    (Start: weekStart, End: weekEnd > now ? now : weekEnd)
+                };
             }
 
             var filtered = _originalResultTestList
