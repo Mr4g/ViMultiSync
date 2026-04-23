@@ -37,6 +37,19 @@ namespace ViSyncMaster.ViewModels
         private bool _isUpdating = false;
         private bool _pendingUpdate = false;
         private MachineStatusGrouped _totalRow;
+        private bool _isManualShiftSelection;
+        private ShiftSelectionMode _currentSelectionMode = ShiftSelectionMode.SystemCurrent;
+        private long _lastSeenProductionMarkerTicks;
+
+        private enum ShiftSelectionMode
+        {
+            SystemCurrent,
+            Shift1,
+            Shift2,
+            Shift3,
+            Shift3Yesterday,
+            Week
+        }
 
 
 
@@ -96,6 +109,7 @@ namespace ViSyncMaster.ViewModels
             _productionEfficiency = new ProductionEfficiency();
             _originalResultTestList = resultTests ?? throw new ArgumentNullException(nameof(resultTests));
             ResultTestList = new ObservableCollection<MachineStatus>(_originalResultTestList);
+            _lastSeenProductionMarkerTicks = GetLatestProductionMarkerTicks();
 
             AutoSelectCurrentShiftAsync();
             InicializeChart();
@@ -197,41 +211,46 @@ namespace ViSyncMaster.ViewModels
         private async Task AutoSelectCurrentShiftAsync()
         {
             var plan = ShiftPlan.GetCurrent(GetShiftPlanKey(), DateTime.Now);
-            await FilterShiftByNumberAsync(plan.ShiftNumber, DateTime.Today);
+            var mode = plan.ShiftNumber switch
+            {
+                1 => ShiftSelectionMode.Shift1,
+                2 => ShiftSelectionMode.Shift2,
+                _ => ShiftSelectionMode.Shift3
+            };
+            await ApplySelectionModeAsync(mode, isManualSelection: false);
         }
 
         // I zmiana
         [RelayCommand]
         public async Task FilterShift1Async()
         {
-            await FilterShiftByNumberAsync(1, DateTime.Today);
+            await ApplySelectionModeAsync(ShiftSelectionMode.Shift1, isManualSelection: true);
         }
         // II zmiana
         [RelayCommand]
         public async Task FilterShift2Async()
         {
-            await FilterShiftByNumberAsync(2, DateTime.Today);
+            await ApplySelectionModeAsync(ShiftSelectionMode.Shift2, isManualSelection: true);
         }
         // III zmiana
         [RelayCommand]
         public async Task FilterShift3Async()
         {
-            await FilterShiftByNumberAsync(3, DateTime.Today);
+            await ApplySelectionModeAsync(ShiftSelectionMode.Shift3, isManualSelection: true);
         }
         // Zmiana III z wczoraj
         [RelayCommand]
         public async Task FilterYesterdayShift3Async()
         {
-            var planKey = GetShiftPlanKey();
-            CurrentShift = 3;
-            var range = ShiftPlan.GetYesterdayShiftRange(planKey, 3, DateTime.Today, DateTime.Now);
-            await FilterByShiftPlanRangeAsync(range.Start, range.End);
-            SelectedShiftRangeInfo = BuildShiftRangeInfo(3, range.Start, range.End);
+            await ApplySelectionModeAsync(ShiftSelectionMode.Shift3Yesterday, isManualSelection: true);
         }
 
         [RelayCommand]
         public async Task FilterWholeWeekAsync()
         {
+            _isManualShiftSelection = true;
+            _currentSelectionMode = ShiftSelectionMode.Week;
+
             var planKey = GetShiftPlanKey();
             var now = DateTime.Now;
 
@@ -280,6 +299,48 @@ namespace ViSyncMaster.ViewModels
             }
             // 4) (opcjonalnie) wysyłka liczników pass/fail
             //await GroupByPassedFailedAndTotalCounterAsync(ResultTestList);
+        }
+
+        private async Task ApplySelectionModeAsync(ShiftSelectionMode mode, bool isManualSelection)
+        {
+            _currentSelectionMode = mode;
+            _isManualShiftSelection = isManualSelection;
+
+            switch (mode)
+            {
+                case ShiftSelectionMode.Shift1:
+                    await FilterShiftByNumberAsync(1, DateTime.Today);
+                    break;
+                case ShiftSelectionMode.Shift2:
+                    await FilterShiftByNumberAsync(2, DateTime.Today);
+                    break;
+                case ShiftSelectionMode.Shift3:
+                    await FilterShiftByNumberAsync(3, DateTime.Today);
+                    break;
+                case ShiftSelectionMode.Shift3Yesterday:
+                    {
+                        var planKey = GetShiftPlanKey();
+                        CurrentShift = 3;
+                        var range = ShiftPlan.GetYesterdayShiftRange(planKey, 3, DateTime.Today, DateTime.Now);
+                        await FilterByShiftPlanRangeAsync(range.Start, range.End);
+                        SelectedShiftRangeInfo = BuildShiftRangeInfo(3, range.Start, range.End);
+                        break;
+                    }
+                case ShiftSelectionMode.Week:
+                    await FilterWholeWeekAsync();
+                    break;
+                case ShiftSelectionMode.SystemCurrent:
+                default:
+                    var currentPlan = ShiftPlan.GetCurrent(GetShiftPlanKey(), DateTime.Now);
+                    var currentShift = currentPlan.ShiftNumber switch
+                    {
+                        1 => 1,
+                        2 => 2,
+                        _ => 3
+                    };
+                    await FilterShiftByNumberAsync(currentShift, DateTime.Today);
+                    break;
+            }
         }
 
         [RelayCommand]
@@ -416,7 +477,7 @@ namespace ViSyncMaster.ViewModels
 
         private async Task UpdateChartData()
         {
-            await AutoSelectCurrentShiftAsync();
+            await RefreshSelectionOnUpdateAsync();
             await CalculateAndDisplayEfficiencyAsync();
 
             TotalPartsProducedChart.Value = TotalUnitsProduced;
@@ -443,7 +504,7 @@ namespace ViSyncMaster.ViewModels
                     _pendingUpdate = false;
                     await Dispatcher.UIThread.InvokeAsync(async () =>
                     {
-                        await AutoSelectCurrentShiftAsync();
+                        await RefreshSelectionOnUpdateAsync();
                         RefreshGroupedResultList();
                         UpdateGroupedResultListWithTotal();
                         await CalculateAndDisplayEfficiencyAsync();
@@ -540,6 +601,43 @@ namespace ViSyncMaster.ViewModels
                 $"TotalCounterFail: {grouped.TotalCounterFail}");
             await SendShiftCounterMqtt(grouped);
             return new ObservableCollection<MachineCounters> { grouped };
+        }
+
+        private async Task RefreshSelectionOnUpdateAsync()
+        {
+            // Timer/refresh nie może resetować ręcznego wyboru.
+            // Powrót do bieżącej zmiany tylko gdy wykryto nową aktywność produkcyjną.
+            var hasNewActivity = TryDetectNewProductionActivity();
+            if (_isManualShiftSelection && !hasNewActivity)
+            {
+                await ApplySelectionModeAsync(_currentSelectionMode, isManualSelection: true);
+                return;
+            }
+
+            if (_isManualShiftSelection && hasNewActivity)
+                _isManualShiftSelection = false;
+
+            await AutoSelectCurrentShiftAsync();
+        }
+
+        private bool TryDetectNewProductionActivity()
+        {
+            var currentMarker = GetLatestProductionMarkerTicks();
+            if (currentMarker <= _lastSeenProductionMarkerTicks)
+                return false;
+
+            _lastSeenProductionMarkerTicks = currentMarker;
+            return true;
+        }
+
+        private long GetLatestProductionMarkerTicks()
+        {
+            return _originalResultTestList
+                .Where(x => x.StartTime.HasValue
+                         && (x.Name == "S7.TestingPassed" || x.Name == "S7.TestingFailed"))
+                .Select(x => x.StartTime!.Value.Ticks)
+                .DefaultIfEmpty(0)
+                .Max();
         }
 
         private async Task SendShiftCounterMqtt(MachineCounters machineCounters)
