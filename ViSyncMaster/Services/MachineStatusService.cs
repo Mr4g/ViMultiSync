@@ -45,6 +45,9 @@ namespace ViSyncMaster.Services
         private DateTime _downtimeCacheEnd;
         private DateTime _lastDowntimeRefresh = DateTime.MinValue;
         private readonly TimeSpan _downtimeCacheDuration = TimeSpan.FromMinutes(1);
+        private readonly TimeSpan _closedDowntimeConfirmationInterval = TimeSpan.FromMinutes(15);
+        private readonly CancellationTokenSource _closedDowntimeLoopCts = new();
+        private readonly DowntimeCloseConfirmationState _downtimeCloseConfirmationState;
 
         // names of statuses treated as downtime
         private readonly string[] _downtimeNames = new[]
@@ -54,7 +57,6 @@ namespace ViSyncMaster.Services
             "S1.SettingMode_IPC",
             "S1.MachineDowntime_IPC"
         };
-
 
         // Konstruktor przyjmuje repozytoria generyczne dla obu tabel
         public MachineStatusService(GenericRepository<MachineStatus> repositoryMachineStatus,
@@ -81,6 +83,7 @@ namespace ViSyncMaster.Services
             _messageQueue = messageQueue;
             _database = database;
             _queueDebouncer = new Debouncer(3000, FlushQueue);
+            _downtimeCloseConfirmationState = new DowntimeCloseConfirmationState(_downtimeNames);
 
             Debug.WriteLine("Rejestracja subskrypcji CacheUpdated");
             _repositoryMachineStatusQueue.CacheUpdated += info => OnRepoUpdated(info);
@@ -88,6 +91,9 @@ namespace ViSyncMaster.Services
             _repositoryProductionEfficiency.CacheUpdated += info => OnRepoUpdated(info);
             _repositoryFirstPartQueue.CacheUpdated += info => OnRepoUpdated(info);
             _repositoryHourlyPlan.CacheUpdated += info => OnRepoUpdated(info);
+
+            // Jeden centralny scheduler: co 15 min potwierdza ostatnie zamknięcie awarii.
+            _ = Task.Run(() => ClosedDowntimeConfirmationLoopAsync(_closedDowntimeLoopCts.Token));
         }
 
         // Rozpoczęcie nowego statusu
@@ -105,6 +111,11 @@ namespace ViSyncMaster.Services
             await _repositoryMachineStatus.AddOrUpdate(machineStatus);
             var jsonMessage = JsonSerializer.Serialize(machineStatus.ToMqttFormat(stopsLine));
             await SendMessageMqtt(jsonMessage);
+
+            // Gdy pojawia się aktywna awaria, kończymy potwierdzanie poprzedniego close.
+            if (_downtimeCloseConfirmationState.IsDowntimeStatus(machineStatus))
+                ClearClosedDowntimeConfirmation(machineStatus, "downtime-start");
+
             return machineStatus;
         }
 
@@ -218,6 +229,11 @@ namespace ViSyncMaster.Services
             await _repositoryMachineStatus.AddOrUpdate(machineStatus);         
             var jsonMessage = JsonSerializer.Serialize(machineStatus.ToMqttFormat(stopsLine));
             await SendMessageMqtt(jsonMessage);
+
+            // Aktualizacja aktywnej awarii = nie potwierdzamy starego zamknięcia.
+            if (_downtimeCloseConfirmationState.IsDowntimeStatus(machineStatus) && machineStatus.EndTime == null)
+                ClearClosedDowntimeConfirmation(machineStatus, "downtime-update-active");
+
             return machineStatus;
         }
         public async Task<MessagePgToSplunk> SendPgMessage(MessagePgToSplunk machineStatus)
@@ -239,7 +255,55 @@ namespace ViSyncMaster.Services
             await _repositoryMachineStatus.AddOrUpdate(machineStatus);
             var jsonMessage = JsonSerializer.Serialize(machineStatus.ToMqttFormat(stopsLine));
             await SendMessageMqtt(jsonMessage);
+
+            if (_downtimeCloseConfirmationState.IsDowntimeStatus(machineStatus))
+            {
+                RegisterClosedDowntimeConfirmation(machineStatus, stopsLine);
+                Log.Information(
+                    "MQTT downtime close sent (primary). Id={Id}, Name={Name}, Status={Status}, EndTime={EndTime:O}",
+                    machineStatus.Id, machineStatus.Name, machineStatus.Status, machineStatus.EndTime);
+            }
             return machineStatus;
+        }
+
+        private async Task ClosedDowntimeConfirmationLoopAsync(CancellationToken token)
+        {
+            using var timer = new PeriodicTimer(_closedDowntimeConfirmationInterval);
+            while (await timer.WaitForNextTickAsync(token))
+            {
+                if (!_downtimeCloseConfirmationState.TryGetLastClosed(out var snapshot))
+                    continue;
+
+                try
+                {
+                    var confirmationPayload = JsonSerializer.Serialize(snapshot.StatusSnapshot.ToMqttFormat(snapshot.StopsLine));
+                    await SendMessageMqtt(confirmationPayload);
+                    Log.Information(
+                        "MQTT downtime close sent (confirmation heartbeat). Id={Id}, Name={Name}, Status={Status}, ClosedAtUtc={ClosedAtUtc:O}",
+                        snapshot.StatusSnapshot.Id, snapshot.StatusSnapshot.Name, snapshot.StatusSnapshot.Status, snapshot.ClosedAtUtc);
+                }
+                catch (Exception ex)
+                {
+                    Log.Warning(ex,
+                        "MQTT downtime close confirmation failed. Id={Id}, Name={Name}",
+                        snapshot.StatusSnapshot.Id, snapshot.StatusSnapshot.Name);
+                }
+            }
+        }
+
+        private void RegisterClosedDowntimeConfirmation(MachineStatus machineStatus, bool stopsLine)
+        {
+            _downtimeCloseConfirmationState.RegisterClosed(machineStatus, stopsLine);
+        }
+
+        private void ClearClosedDowntimeConfirmation(MachineStatus activeDowntimeStatus, string reason)
+        {
+            if (!_downtimeCloseConfirmationState.ClearForActiveDowntime())
+                return;
+
+            Log.Information(
+                "Stopped downtime close confirmation. Reason={Reason}, ActiveId={Id}, ActiveName={Name}, ActiveStatus={Status}",
+                reason, activeDowntimeStatus.Id, activeDowntimeStatus.Name, activeDowntimeStatus.Status);
         }
 
         private void OnRepoUpdated(DatabaseOperationInfo info)
@@ -376,4 +440,3 @@ namespace ViSyncMaster.Services
         public double GetDowntimeMinutes(DateTime start, DateTime end) => GetDowntimeMinutesAsync(start, end).GetAwaiter().GetResult();
     }
 }
-
