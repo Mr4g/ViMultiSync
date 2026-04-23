@@ -109,6 +109,29 @@ namespace ViSyncMaster.AuxiliaryClasses
             throw new InvalidOperationException(
                 "Nie udało się dopasować żadnej zmiany do bieżącego czasu.");
         }
+
+        /// <summary>
+        /// Zwraca plan konkretnej zmiany (1/2/3) dla wskazanego działu/line.
+        /// </summary>
+        /// <param name="department">Nazwa działu/line (musi odpowiadać departments[].name).</param>
+        /// <param name="shiftNumber">Numer zmiany.</param>
+        /// <returns>Plan wskazanej zmiany.</returns>
+        public static ShiftPlan GetByNumber(string department, int shiftNumber)
+        {
+            if (_allPlans == null)
+                throw new InvalidOperationException(
+                    "Plany zmian nie zostały wczytane. Wywołaj ShiftPlan.LoadFromJson().");
+
+            var shiftPlan = _allPlans.FirstOrDefault(s =>
+                string.Equals(s.Department, department, StringComparison.OrdinalIgnoreCase)
+                && s.ShiftNumber == shiftNumber);
+
+            if (shiftPlan == null)
+                throw new ArgumentException(
+                    $"Brak planu zmiany nr {shiftNumber} dla działu '{department}'.");
+
+            return shiftPlan;
+        }
     }
 
     /// <summary>

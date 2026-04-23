@@ -195,42 +195,33 @@ namespace ViSyncMaster.ViewModels
         }
         private async Task AutoSelectCurrentShiftAsync()
         {
-            var now = DateTime.Now.TimeOfDay;
-            if (now >= TimeSpan.Parse("05:40") && now < TimeSpan.Parse("13:40"))
-                await FilterShift1Async();
-            else if (now >= TimeSpan.Parse("13:40") && now < TimeSpan.Parse("21:40"))
-                await FilterShift2Async();
-            else if (now >= TimeSpan.Parse("21:40") || now < TimeSpan.Parse("05:40"))
-                await FilterShift3Async();
+            var plan = ShiftPlan.GetCurrent(_appConfig.Line, DateTime.Now);
+            await FilterShiftByNumberAsync(plan.ShiftNumber, DateTime.Today);
         }
 
         // I zmiana
         [RelayCommand]
         public async Task FilterShift1Async()
         {
-            CurrentShift = 1;
-            await FilterByTimeRangeAsync(DateTime.Today, TimeSpan.Parse("05:40"), TimeSpan.Parse("13:40"));
+            await FilterShiftByNumberAsync(1, DateTime.Today);
         }
         // II zmiana
         [RelayCommand]
         public async Task FilterShift2Async()
         {
-            CurrentShift = 2;
-            await FilterByTimeRangeAsync(DateTime.Today, TimeSpan.Parse("13:40"), TimeSpan.Parse("21:40"));
+            await FilterShiftByNumberAsync(2, DateTime.Today);
         }
         // III zmiana
         [RelayCommand]
         public async Task FilterShift3Async()
         {
-            CurrentShift = 3;
-            await FilterByTimeRangeAsync(DateTime.Today, TimeSpan.Parse("21:40"), TimeSpan.Parse("05:40"));
+            await FilterShiftByNumberAsync(3, DateTime.Today);
         }
         // Zmiana III z wczoraj
         [RelayCommand]
         public async Task FilterYesterdayShift3Async()
         {
-            CurrentShift = 3;
-            await FilterByTimeRangeAsync(DateTime.Today.AddDays(-1), TimeSpan.Parse("21:40"), TimeSpan.Parse("05:40"));
+            await FilterShiftByNumberAsync(3, DateTime.Today.AddDays(-1));
         }
 
         [RelayCommand]
@@ -278,19 +269,25 @@ namespace ViSyncMaster.ViewModels
             _efficiencyCalculator = new ProductionEfficiencyCalculator(plan, GetDowntimeMinutes);
         }
 
-        private bool IsInShift(TimeSpan time, TimeSpan start, TimeSpan end)
+        private async Task FilterShiftByNumberAsync(int shiftNumber, DateTime shiftStartDate)
         {
-            return start <= end
-                ? time >= start && time < end
-                : time >= start || time < end;
+            var shiftPlan = ShiftPlan.GetByNumber(_appConfig.Line, shiftNumber);
+            CurrentShift = shiftNumber;
+            await FilterByShiftPlanRangeAsync(shiftStartDate.Date, shiftPlan);
         }
 
-        private async Task FilterByTimeRangeAsync(DateTime date, TimeSpan start, TimeSpan end)
+        private async Task FilterByShiftPlanRangeAsync(DateTime shiftStartDate, ShiftPlan shiftPlan)
         {
+            DateTime start = shiftStartDate.Date.Add(shiftPlan.ShiftStart);
+            DateTime end = shiftStartDate.Date.Add(shiftPlan.ShiftEnd);
+
+            if (shiftPlan.ShiftEnd <= shiftPlan.ShiftStart)
+                end = end.AddDays(1);
+
             var filtered = _originalResultTestList
                 .Where(x => x.StartTime.HasValue
-                         && x.StartTime.Value.Date == date
-                         && IsInShift(x.StartTime.Value.TimeOfDay, start, end))
+                         && x.StartTime.Value >= start
+                         && x.StartTime.Value < end)
                 .ToList();
 
             ResultTestList.SyncWith(filtered, x => x.Id);
