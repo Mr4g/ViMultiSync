@@ -173,8 +173,8 @@
 			</Border>
 		</StackPanel>
 
-		<!-- Tabela planu -->
-		<ScrollViewer Grid.Row="3" Grid.Column="2" VerticalScrollBarVisibility="Auto">
+		<!-- Tabela planu (ukryta: aby w widoku Result renderowała się tylko jedna główna tabela wyników) -->
+		<ScrollViewer Grid.Row="3" Grid.Column="2" VerticalScrollBarVisibility="Auto" IsVisible="False">
 			<DataGrid ItemsSource="{Binding HourlyPlan}" AutoGenerateColumns="False" RowHeight="48" MaxHeight="700"
 						  IsReadOnly="True" GridLinesVisibility="None" Margin="10" Width="1100" 
 						  VerticalAlignment="Stretch"
