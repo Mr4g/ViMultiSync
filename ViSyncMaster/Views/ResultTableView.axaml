@@ -199,39 +199,15 @@
 						</lvc:PieChart>
 						<TextBlock Text="Wydajność [%]" HorizontalAlignment="Center" FontSize="16" Foreground="White"/>
 					</StackPanel>
-					<!-- Panel sterowania (przyciski, textbox, targety) -->
+						<!-- Panel sterowania (przyciski, textbox, targety) -->
 						<Border CornerRadius="10" Background="#0B0A0F" Margin="5" VerticalAlignment="Center" HorizontalAlignment="Center">
 							<StackPanel Orientation="Vertical">
-								<TextBlock Text="Aktualny produkt:" Foreground="WhiteSmoke" Margin="8,8,8,0"/>
-								<TextBlock Text="{Binding CurrentProductNumber}" Foreground="WhiteSmoke" FontWeight="SemiBold" Margin="8,0,8,2"/>
+								<TextBlock Text="Aktualny produkt (raw):" Foreground="WhiteSmoke" Margin="8,8,8,0"/>
+								<TextBlock Text="{Binding CurrentProductRawName}" Foreground="WhiteSmoke" FontWeight="SemiBold" Margin="8,0,8,2"/>
+								<TextBlock Text="Numer produktu (7 cyfr):" Foreground="LightGray" Margin="8,0,8,0"/>
+								<TextBlock Text="{Binding CurrentProductNumber}" Foreground="LightGray" FontWeight="SemiBold" Margin="8,0,8,2"/>
 								<TextBlock Text="Takt time:" Foreground="LightGray" Margin="8,0,8,0"/>
 								<TextBlock Text="{Binding CurrentProductTaktInfo}" Foreground="LightGray" FontWeight="SemiBold" Margin="8,0,8,8"/>
-								<TextBlock Text="Brak takt time w CSV — uzupełnij poniżej." Foreground="Orange" Margin="8,0,8,8" IsVisible="{Binding IsCurrentProductTaktMissing}"/>
-								<StackPanel Orientation="Horizontal">
-									<TextBox Width="120" Height="40" Margin="6"
-											 Text="{Binding PlannedQtyInput, Mode=TwoWay}"
-											 Watermark="Planned Qty"
-											 HorizontalAlignment="Center"
-											 FontSize="16"
-											 Padding="8"
-											 Background="DarkGray"
-											 Foreground="Black"
-											 BorderThickness="2"/>
-									<Button Content="Zapisz plan qty" Margin="6" Command="{Binding SaveSelectedProductPlanCommand}" Background="OrangeRed" Foreground="WhiteSmoke"/>
-								</StackPanel>
-								<StackPanel Orientation="Horizontal">
-									<TextBox Width="120" Height="40" Margin="6"
-											 Text="{Binding ManualTaktTimeInput, Mode=TwoWay}"
-											 Watermark="Takt [s]"
-											 HorizontalAlignment="Center"
-											 FontSize="16"
-											 Padding="8"
-											 Background="DarkGray"
-											 Foreground="Black"
-											 BorderThickness="2"/>
-									<Button Content="Zapisz takt do CSV" Margin="6" Command="{Binding SaveMissingTaktTimeCommand}" Background="#6A8DFF" Foreground="WhiteSmoke"/>
-								</StackPanel>
-								<TextBlock Text="{Binding PlanEditorMessage}" Foreground="LightGray" Margin="8,2,8,8"/>
 								<!-- Legacy fallback: global target -->
 								<StackPanel Orientation="Horizontal">
 									<TextBox Width="100" Height="40" Margin="6"
@@ -250,7 +226,7 @@
 				</Border>
 			</StackPanel>
 
-		<!-- Panel prawy: Wskaźniki kołowe -->
+			<!-- Panel prawy: Wskaźniki kołowe -->
 		<!--
 		<StackPanel Grid.Row="2" Grid.Column="5" Orientation="Vertical" HorizontalAlignment="Center" Margin="30">
 			-->
@@ -275,6 +251,40 @@
 				</StackPanel>
 			</Border>
                 </StackPanel>-->
+		<!-- Osobny dialog brakującego takt time -->
+		<Border IsVisible="{Binding IsMissingTaktDialogVisible}"
+				Background="#CC000000"
+				Grid.Row="0"
+				Grid.RowSpan="6"
+				Grid.Column="0"
+				Grid.ColumnSpan="6">
+			<Border Width="460"
+					HorizontalAlignment="Center"
+					VerticalAlignment="Center"
+					CornerRadius="12"
+					Background="#1D1F27"
+					BorderBrush="#3C3F47"
+					BorderThickness="1"
+					Padding="16">
+				<StackPanel>
+					<TextBlock Text="Brakuje takt time dla produktu:" Foreground="WhiteSmoke" FontSize="18" FontWeight="SemiBold"/>
+					<TextBlock Text="{Binding CurrentProductNumber}" Foreground="Orange" FontSize="24" FontWeight="Bold" Margin="0,4,0,8"/>
+					<TextBox Text="{Binding ManualTaktTimeInput, Mode=TwoWay}"
+							 Watermark="Takt [s]"
+							 Height="40"
+							 FontSize="16"
+							 Padding="8"
+							 Background="DarkGray"
+							 Foreground="Black"
+							 BorderThickness="2"/>
+					<TextBlock Text="{Binding PlanEditorMessage}" Foreground="LightGray" Margin="0,8,0,0"/>
+					<StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0">
+						<Button Content="Anuluj" Margin="0,0,8,0" Command="{Binding CancelMissingTaktDialogCommand}" Background="Gray" Foreground="WhiteSmoke"/>
+						<Button Content="Zapisz" Command="{Binding SaveMissingTaktTimeCommand}" Background="#6A8DFF" Foreground="WhiteSmoke"/>
+					</StackPanel>
+				</StackPanel>
+			</Border>
+		</Border>
 	</Grid>
 
 </UserControl>

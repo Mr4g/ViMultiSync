@@ -23,6 +23,7 @@ using System.Diagnostics;
 using System.ComponentModel.DataAnnotations;
 using System.Globalization;
 using System.IO;
+using System.Text.RegularExpressions;
 
 namespace ViSyncMaster.ViewModels
 {
@@ -93,9 +94,13 @@ namespace ViSyncMaster.ViewModels
         [ObservableProperty] private string _plannedQtyInput = string.Empty;
         [ObservableProperty] private string _manualTaktTimeInput = string.Empty;
         [ObservableProperty] private string _planEditorMessage = string.Empty;
+        [ObservableProperty] private string _currentProductRawName = "-";
         [ObservableProperty] private string _currentProductNumber = "-";
         [ObservableProperty] private string _currentProductTaktInfo = "Brak takt time";
         [ObservableProperty] private bool _isCurrentProductTaktMissing = true;
+        [ObservableProperty] private bool _isMissingTaktDialogVisible;
+
+        private string _dismissedMissingTaktForProduct = string.Empty;
 
         public IEnumerable<ISeries> Series { get; set; }
         public IEnumerable<ISeries> SeriesEfficiency { get; set; }
@@ -400,7 +405,17 @@ namespace ViSyncMaster.ViewModels
             PlanEditorMessage = $"Dodano/zaaktualizowano takt time={takt:0.###}s dla produktu {CurrentProductNumber}.";
             _isCurrentProductTaktMissing = false;
             CurrentProductTaktInfo = $"{takt:0.###} s";
+            IsMissingTaktDialogVisible = false;
+            _dismissedMissingTaktForProduct = string.Empty;
             _ = UpdateHourlyPlanDataAsync();
+        }
+
+        [RelayCommand]
+        private void CancelMissingTaktDialog()
+        {
+            IsMissingTaktDialogVisible = false;
+            _dismissedMissingTaktForProduct = CurrentProductNumber;
+            PlanEditorMessage = $"Brak takt time dla produktu {CurrentProductNumber}.";
         }
 
         partial void OnTargetChanged(int value)
@@ -754,20 +769,22 @@ namespace ViSyncMaster.ViewModels
 
         private void FillDynamicPlanFields(MachineStatusGrouped row, DateTime? productStartTime, DateTime? currentShiftEnd)
         {
-            var productNumber = row.ProductNumber;
+            var productNumber = NormalizeProductNumber(row.ProductName);
             var actualQty = row.ShiftCounterPass + row.ShiftCounterFail;
-            if (!_plannedQtyByProduct.ContainsKey(productNumber) && Target > 0)
+            if (!string.IsNullOrWhiteSpace(productNumber) && !_plannedQtyByProduct.ContainsKey(productNumber) && Target > 0)
                 _plannedQtyByProduct[productNumber] = Target; // fallback na istniejący target
 
-            _taktCsvService.TryGetTaktSeconds(productNumber, out var taktSeconds);
-            var plannedQty = _plannedQtyByProduct.TryGetValue(productNumber, out var pq) ? pq : 0;
+            var hasProductNumber = !string.IsNullOrWhiteSpace(productNumber);
+            double taktSeconds = 0;
+            var hasTakt = hasProductNumber && _taktCsvService.TryGetTaktSeconds(productNumber, out taktSeconds);
+            var plannedQty = hasProductNumber && _plannedQtyByProduct.TryGetValue(productNumber, out var pq) ? pq : 0;
 
-            row.TaktTimeSeconds = taktSeconds;
+            row.TaktTimeSeconds = hasTakt ? taktSeconds : 0;
             row.PlannedQty = plannedQty;
             row.ActualQty = actualQty;
             row.StartTime = productStartTime;
 
-            if (productStartTime.HasValue && taktSeconds > 0)
+            if (productStartTime.HasValue && hasTakt && taktSeconds > 0)
             {
                 var elapsedSeconds = Math.Max(0, (DateTime.Now - productStartTime.Value).TotalSeconds);
                 var expected = (int)Math.Floor(elapsedSeconds / taktSeconds);
@@ -778,13 +795,15 @@ namespace ViSyncMaster.ViewModels
                 row.ExpectedQty = 0;
             }
 
-            row.PlannedEndTime = (productStartTime.HasValue && plannedQty > 0 && taktSeconds > 0)
+            row.PlannedEndTime = (productStartTime.HasValue && plannedQty > 0 && hasTakt && taktSeconds > 0)
                 ? productStartTime.Value.AddSeconds(plannedQty * taktSeconds)
                 : null;
             row.Difference = row.ActualQty - row.ExpectedQty;
             row.IsPlanBeyondShift = row.PlannedEndTime.HasValue && currentShiftEnd.HasValue && row.PlannedEndTime.Value > currentShiftEnd.Value;
 
-            if (taktSeconds <= 0)
+            if (!hasProductNumber)
+                row.Status = "Brak numeru produktu (7 cyfr)";
+            else if (!hasTakt || taktSeconds <= 0)
                 row.Status = "Brak takt time (uzupełnij)";
             else if (plannedQty <= 0)
                 row.Status = "Wpisz Planned Qty";
@@ -841,21 +860,39 @@ namespace ViSyncMaster.ViewModels
                 .Select(d => d.ProductName)
                 .FirstOrDefault();
 
-            CurrentProductNumber = string.IsNullOrWhiteSpace(currentProduct) ? "-" : currentProduct;
+            CurrentProductRawName = string.IsNullOrWhiteSpace(currentProduct) ? "-" : currentProduct;
+            var normalizedProductNumber = NormalizeProductNumber(currentProduct);
+            CurrentProductNumber = string.IsNullOrWhiteSpace(normalizedProductNumber) ? "-" : normalizedProductNumber;
             double taktSeconds = 0;
-            var hasTakt = !string.IsNullOrWhiteSpace(currentProduct) &&
-                          _taktCsvService.TryGetTaktSeconds(currentProduct, out taktSeconds) &&
+            var hasTakt = !string.IsNullOrWhiteSpace(normalizedProductNumber) &&
+                          _taktCsvService.TryGetTaktSeconds(normalizedProductNumber, out taktSeconds) &&
                           taktSeconds > 0;
 
-            if (hasTakt)
+            if (string.IsNullOrWhiteSpace(currentProduct))
+            {
+                IsCurrentProductTaktMissing = false;
+                CurrentProductTaktInfo = "Brak danych produktu";
+                IsMissingTaktDialogVisible = false;
+            }
+            else if (string.IsNullOrWhiteSpace(normalizedProductNumber))
+            {
+                IsCurrentProductTaktMissing = false;
+                CurrentProductTaktInfo = "Nie znaleziono 7-cyfrowego numeru produktu";
+                IsMissingTaktDialogVisible = false;
+            }
+            else if (hasTakt)
             {
                 IsCurrentProductTaktMissing = false;
                 CurrentProductTaktInfo = $"{taktSeconds:0.###} s";
+                IsMissingTaktDialogVisible = false;
+                _dismissedMissingTaktForProduct = string.Empty;
             }
             else
             {
-                IsCurrentProductTaktMissing = !string.IsNullOrWhiteSpace(currentProduct);
+                IsCurrentProductTaktMissing = true;
                 CurrentProductTaktInfo = "Brak takt time";
+                if (_dismissedMissingTaktForProduct != normalizedProductNumber)
+                    IsMissingTaktDialogVisible = true;
             }
 
             var breakRanges = plan.Breaks
@@ -991,6 +1028,19 @@ namespace ViSyncMaster.ViewModels
                 await _machineStatusService.ReportHourlyPlanAsync(
                         new List<HourlyPlanMessage> { currentMessage }
                  );
+        }
+
+        private static string NormalizeProductNumber(string rawProductName)
+        {
+            if (string.IsNullOrWhiteSpace(rawProductName))
+                return string.Empty;
+
+            var matches = Regex.Matches(rawProductName, @"(?<!\d)\d{7}(?!\d)");
+            if (matches.Count == 0)
+                return string.Empty;
+
+            // Dla nazw zawierających kilka numerów preferujemy ostatni 7-cyfrowy numer.
+            return matches[^1].Value;
         }
 
         private (DateTime Start, DateTime End, ShiftPlan Plan) ResolveSelectedRangeAndPlan()
