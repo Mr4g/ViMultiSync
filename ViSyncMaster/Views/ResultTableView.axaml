@@ -80,7 +80,7 @@
 		</Grid.ColumnDefinitions>
 
 		<!-- Panel sterowania (przyciski, textbox, targety) -->
-		<StackPanel Orientation="Vertical" Grid.Row="1" VerticalAlignment="Top" Grid.ColumnSpan="6">
+		<StackPanel Orientation="Vertical" Grid.Row="0" VerticalAlignment="Top" Grid.ColumnSpan="6">
 				<StackPanel Orientation="Horizontal">
 				<Button Content="ZM 1" Command="{Binding FilterShift1Command}"
 						        Background="#0B0A0F"

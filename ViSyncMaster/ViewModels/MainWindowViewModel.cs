@@ -434,6 +434,8 @@ namespace ViSyncMaster.ViewModels
         private bool _userButtonIsVisible;
         [ObservableProperty]
         private bool _scadaButtonIsVisible;
+        [ObservableProperty]
+        private bool _tableResultButtonIsVisible;
 
         [ObservableProperty] private bool isTimeStampFromiPC = true;
 
@@ -2072,6 +2074,7 @@ namespace ViSyncMaster.ViewModels
                 case "VRSKT":
                     OpenSerialPortButtonIsVisible = true;
                     AdaptronicButtonIsVisible = true;
+                    TableResultButtonIsVisible = true;
                     GoogleDriveButtonIsVisible = true;
                     InstructionButtonIsVisible = true;
                     TargetPlanButtonIsVisible = true;
@@ -2082,6 +2085,7 @@ namespace ViSyncMaster.ViewModels
                 case "CUPP":
                     OpenSerialPortButtonIsVisible = false;
                     AdaptronicButtonIsVisible = false;
+                    TableResultButtonIsVisible = true;
                     GoogleDriveButtonIsVisible = false;
                     InstructionButtonIsVisible = false;
                     TargetPlanButtonIsVisible = false;
@@ -2092,6 +2096,7 @@ namespace ViSyncMaster.ViewModels
                 case "ODUSCADA":
                     OpenSerialPortButtonIsVisible = false;
                     AdaptronicButtonIsVisible = false;
+                    TableResultButtonIsVisible = true;
                     GoogleDriveButtonIsVisible = false;
                     InstructionButtonIsVisible = false;
                     TargetPlanButtonIsVisible = false;
@@ -2102,6 +2107,7 @@ namespace ViSyncMaster.ViewModels
                 default:
                     OpenSerialPortButtonIsVisible = true;
                     AdaptronicButtonIsVisible = true;
+                    TableResultButtonIsVisible = true;
                     GoogleDriveButtonIsVisible = true;
                     InstructionButtonIsVisible = true;
                     TargetPlanButtonIsVisible = true;

@@ -16,7 +16,14 @@ namespace ViSyncMaster.Services
         public ProductTaktTimeCsvService(string filePath)
         {
             _filePath = filePath;
-            Load();
+            try
+            {
+                Load();
+            }
+            catch
+            {
+                _cache.Clear();
+            }
         }
 
         public bool TryGetTaktSeconds(string productName, out double taktSeconds)
@@ -32,7 +39,14 @@ namespace ViSyncMaster.Services
                 throw new ArgumentException("taktSeconds must be > 0");
 
             _cache[productName.Trim()] = taktSeconds;
-            Save();
+            try
+            {
+                Save();
+            }
+            catch
+            {
+                // Nie blokuj działania tabeli Result gdy zapis CSV chwilowo się nie powiedzie.
+            }
         }
 
         private void Load()
