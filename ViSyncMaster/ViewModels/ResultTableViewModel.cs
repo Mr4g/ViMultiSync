@@ -842,8 +842,9 @@ namespace ViSyncMaster.ViewModels
                 .FirstOrDefault();
 
             CurrentProductNumber = string.IsNullOrWhiteSpace(currentProduct) ? "-" : currentProduct;
+            double taktSeconds = 0;
             var hasTakt = !string.IsNullOrWhiteSpace(currentProduct) &&
-                          _taktCsvService.TryGetTaktSeconds(currentProduct, out var taktSeconds) &&
+                          _taktCsvService.TryGetTaktSeconds(currentProduct, out taktSeconds) &&
                           taktSeconds > 0;
 
             if (hasTakt)
@@ -853,7 +854,6 @@ namespace ViSyncMaster.ViewModels
             }
             else
             {
-                taktSeconds = 0;
                 IsCurrentProductTaktMissing = !string.IsNullOrWhiteSpace(currentProduct);
                 CurrentProductTaktInfo = "Brak takt time";
             }
