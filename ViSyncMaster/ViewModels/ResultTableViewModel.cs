@@ -974,8 +974,9 @@ namespace ViSyncMaster.ViewModels
                     var productiveSeconds = Math.Max(0, durationSeconds - downtimeSeconds);
 
                     intervalProductNumber = ResolveIntervalProductNumber(data, startInterval, effectiveIntervalEnd);
+                    double intervalTaktSeconds = 0;
                     var hasIntervalTakt = !string.IsNullOrWhiteSpace(intervalProductNumber) &&
-                                          _taktCsvService.TryGetTaktSeconds(intervalProductNumber, out var intervalTaktSeconds) &&
+                                          _taktCsvService.TryGetTaktSeconds(intervalProductNumber, out intervalTaktSeconds) &&
                                           intervalTaktSeconds > 0;
 
                     if (hasIntervalTakt)
