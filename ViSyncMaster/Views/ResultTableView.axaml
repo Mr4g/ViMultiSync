@@ -120,30 +120,38 @@
 							   FontWeight="SemiBold"/>
 				</StackPanel>
 
-			<!-- Tabela wyników -->
-			<DataGrid ItemsSource="{Binding GroupedResultList}" SelectedItem="{Binding SelectedResultRow, Mode=TwoWay}" AutoGenerateColumns="False" VerticalAlignment="Top"
-					  CanUserResizeColumns="True" CanUserReorderColumns="True" IsReadOnly="true" MaxHeight="240"
-					  CanUserSortColumns="True" GridLinesVisibility="None" RowHeight="40" Margin="10">
+			<!-- Legacy tabela godzinowa Result -->
+			<DataGrid ItemsSource="{Binding HourlyPlan}" AutoGenerateColumns="False" RowHeight="48" MaxHeight="700"
+					  IsReadOnly="True" GridLinesVisibility="None" Margin="10" VerticalAlignment="Stretch">
 				<DataGrid.Columns>
-					<DataGridTextColumn Header="ProductName" Binding="{Binding ProductNumber, Mode=OneWay}" Width="*"/>
-					<DataGridTextColumn Header="Takt Time [s]" Binding="{Binding TaktTimeSeconds, StringFormat={}{0:0.###}}" Width="Auto"/>
-					<DataGridTextColumn Header="Planned Qty" Binding="{Binding PlannedQty}" Width="Auto"/>
-					<DataGridTextColumn Header="Actual Qty" Binding="{Binding ActualQty}" Width="Auto"/>
-					<DataGridTextColumn Header="Expected Qty" Binding="{Binding ExpectedQty}" Width="Auto"/>
-					<DataGridTextColumn Header="Start Time" Binding="{Binding StartTimeDisplay}" Width="Auto"/>
-					<DataGridTextColumn Header="Planned End Time" Binding="{Binding PlannedEndTimeDisplay}" Width="Auto"/>
-					<DataGridTextColumn Header="Difference" Binding="{Binding Difference}" Width="Auto"/>
-					<DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="Auto"/>
-					<DataGridTemplateColumn Header="Progress" Width="220">
+					<DataGridTextColumn Header="Czas" Binding="{Binding Period}" Width="Auto"/>
+					<DataGridTextColumn Header="Plan" Binding="{Binding ExpectedDisplay}" Width="Auto"/>
+					<DataGridTemplateColumn Header="Wykon" Width="220">
 						<DataGridTemplateColumn.CellTemplate>
 							<DataTemplate>
 								<Grid ClipToBounds="True">
-									<ProgressBar Minimum="0" Maximum="100" Value="{Binding ProgressPercent}" Height="18" Margin="2,0" />
-									<TextBlock Text="{Binding ProgressPercent, StringFormat={}{0:0.#}%}" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="WhiteSmoke"/>
+									<Grid IsVisible="{Binding IsBreak, Converter={StaticResource InverseBoolConverter}}" ClipToBounds="True">
+										<ProgressBar Minimum="0"
+											 Maximum="100"
+											 Value="{Binding ProgressPercent}"
+											 HorizontalAlignment="Stretch"
+											 Height="20"
+											 Margin="0,2"
+											 Foreground="Green"
+											 Background="#1D1F27"
+											 IsHitTestVisible="False"/>
+										<TextBlock Text="{Binding ProducedUnits}" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="WhiteSmoke" FontWeight="SemiBold"/>
+									</Grid>
+									<StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding IsBreak}">
+										<TextBlock Text="{Binding ProducedUnits}" Margin="5,0,0,0"/>
+									</StackPanel>
 								</Grid>
 							</DataTemplate>
 						</DataGridTemplateColumn.CellTemplate>
 					</DataGridTemplateColumn>
+					<DataGridTextColumn Header="Przestoje [min]" Binding="{Binding DowntimeDisplay}" Width="Auto"/>
+					<DataGridTextColumn Header="Stracone [szt]" Binding="{Binding LostUnitsDisplay}" Width="Auto"/>
+					<DataGridTextColumn Header="Efektywność [%]" Binding="{Binding EfficiencyDisplay}" Width="*"/>
 				</DataGrid.Columns>
 			</DataGrid>
 		</StackPanel>
@@ -173,49 +181,6 @@
 			</Border>
 		</StackPanel>
 
-		<!-- Tabela planu (ukryta: aby w widoku Result renderowała się tylko jedna główna tabela wyników) -->
-		<ScrollViewer Grid.Row="3" Grid.Column="2" VerticalScrollBarVisibility="Auto" IsVisible="False">
-			<DataGrid ItemsSource="{Binding HourlyPlan}" AutoGenerateColumns="False" RowHeight="48" MaxHeight="700"
-						  IsReadOnly="True" GridLinesVisibility="None" Margin="10" Width="1100" 
-						  VerticalAlignment="Stretch"
-					  >
-				<DataGrid.Columns>
-					<DataGridTextColumn Header="Czas" Binding="{Binding Period}" Width="Auto"/>
-					<DataGridTextColumn Header="Plan" Binding="{Binding ExpectedDisplay}" Width="Auto"/>
-					<DataGridTemplateColumn Header="Wykon" Width="220">
-						<DataGridTemplateColumn.CellTemplate>
-							<DataTemplate>
-								<Grid ClipToBounds="True">
-									<Grid IsVisible="{Binding IsBreak, Converter={StaticResource InverseBoolConverter}}" ClipToBounds="True">
-										<ProgressBar Minimum="0"
-											 Maximum="100"
-											 Value="{Binding ProgressPercent}"
-											 HorizontalAlignment="Stretch"
-											 Height="20"
-											 Margin="0,2"
-											 Foreground="Green"
-											 Background="#1D1F27"
-											 IsHitTestVisible="False"/>
-										<!-- Tekst nad paskiem: zawsze czytelny, niezależnie od poziomu progresu -->
-										<TextBlock Text="{Binding ProducedUnits}" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="WhiteSmoke" FontWeight="SemiBold"/>
-									</Grid>
-									<StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding IsBreak}">
-										<TextBlock Text="{Binding ProducedUnits}" Margin="5,0,0,0"/>
-									</StackPanel>
-								</Grid>
-							</DataTemplate>
-						</DataGridTemplateColumn.CellTemplate>
-					</DataGridTemplateColumn>
-					<DataGridTextColumn Header="Przestoje [min]" Binding="{Binding DowntimeDisplay}" Width="Auto"/>
-					<DataGridTextColumn Header="Stracone [szt]" Binding="{Binding LostUnitsDisplay}" Width="Auto"/>
-					<DataGridTextColumn Header="Efektywność [%]"
-										Binding="{Binding EfficiencyDisplay}"
-										Width="*"/>
-				</DataGrid.Columns>
-			</DataGrid>
-		</ScrollViewer>
-
-
 		<!-- Panel prawy: Wskaźniki kołowe -->
 		<StackPanel Grid.Row="3" Grid.Column="3" Grid.RowSpan="2" Orientation="Vertical" HorizontalAlignment="Center" Margin="10" VerticalAlignment="Center">
 			<!-- Wiersz z dwoma wykresami kołowymi -->
@@ -237,6 +202,11 @@
 					<!-- Panel sterowania (przyciski, textbox, targety) -->
 						<Border CornerRadius="10" Background="#0B0A0F" Margin="5" VerticalAlignment="Center" HorizontalAlignment="Center">
 							<StackPanel Orientation="Vertical">
+								<TextBlock Text="Aktualny produkt:" Foreground="WhiteSmoke" Margin="8,8,8,0"/>
+								<TextBlock Text="{Binding CurrentProductNumber}" Foreground="WhiteSmoke" FontWeight="SemiBold" Margin="8,0,8,2"/>
+								<TextBlock Text="Takt time:" Foreground="LightGray" Margin="8,0,8,0"/>
+								<TextBlock Text="{Binding CurrentProductTaktInfo}" Foreground="LightGray" FontWeight="SemiBold" Margin="8,0,8,8"/>
+								<TextBlock Text="Brak takt time w CSV — uzupełnij poniżej." Foreground="Orange" Margin="8,0,8,8" IsVisible="{Binding IsCurrentProductTaktMissing}"/>
 								<StackPanel Orientation="Horizontal">
 									<TextBox Width="120" Height="40" Margin="6"
 											 Text="{Binding PlannedQtyInput, Mode=TwoWay}"

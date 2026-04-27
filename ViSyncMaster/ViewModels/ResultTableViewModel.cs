@@ -93,6 +93,9 @@ namespace ViSyncMaster.ViewModels
         [ObservableProperty] private string _plannedQtyInput = string.Empty;
         [ObservableProperty] private string _manualTaktTimeInput = string.Empty;
         [ObservableProperty] private string _planEditorMessage = string.Empty;
+        [ObservableProperty] private string _currentProductNumber = "-";
+        [ObservableProperty] private string _currentProductTaktInfo = "Brak takt time";
+        [ObservableProperty] private bool _isCurrentProductTaktMissing = true;
 
         public IEnumerable<ISeries> Series { get; set; }
         public IEnumerable<ISeries> SeriesEfficiency { get; set; }
@@ -363,9 +366,9 @@ namespace ViSyncMaster.ViewModels
         [RelayCommand]
         private void SaveSelectedProductPlan()
         {
-            if (SelectedResultRow == null)
+            if (string.IsNullOrWhiteSpace(CurrentProductNumber) || CurrentProductNumber == "-")
             {
-                PlanEditorMessage = "Wybierz produkt w tabeli Result.";
+                PlanEditorMessage = "Brak aktywnego produktu do zapisu planu.";
                 return;
             }
             if (!int.TryParse(PlannedQtyInput, NumberStyles.Integer, CultureInfo.InvariantCulture, out var planned) || planned <= 0)
@@ -374,17 +377,17 @@ namespace ViSyncMaster.ViewModels
                 return;
             }
 
-            _plannedQtyByProduct[SelectedResultRow.ProductNumber] = planned;
-            PlanEditorMessage = $"Zapisano plan qty={planned} dla produktu {SelectedResultRow.ProductNumber}.";
+            _plannedQtyByProduct[CurrentProductNumber] = planned;
+            PlanEditorMessage = $"Zapisano plan qty={planned} dla produktu {CurrentProductNumber}.";
             RefreshGroupedResultList();
         }
 
         [RelayCommand]
         private void SaveMissingTaktTime()
         {
-            if (SelectedResultRow == null)
+            if (string.IsNullOrWhiteSpace(CurrentProductNumber) || CurrentProductNumber == "-")
             {
-                PlanEditorMessage = "Wybierz produkt w tabeli Result.";
+                PlanEditorMessage = "Brak aktywnego produktu do zapisu takt time.";
                 return;
             }
             if (!double.TryParse(ManualTaktTimeInput, NumberStyles.Float, CultureInfo.InvariantCulture, out var takt) || takt <= 0)
@@ -393,9 +396,11 @@ namespace ViSyncMaster.ViewModels
                 return;
             }
 
-            _taktCsvService.UpsertTaktSeconds(SelectedResultRow.ProductNumber, takt);
-            PlanEditorMessage = $"Dodano/zaaktualizowano takt time={takt:0.###}s dla produktu {SelectedResultRow.ProductNumber}.";
-            RefreshGroupedResultList();
+            _taktCsvService.UpsertTaktSeconds(CurrentProductNumber, takt);
+            PlanEditorMessage = $"Dodano/zaaktualizowano takt time={takt:0.###}s dla produktu {CurrentProductNumber}.";
+            _isCurrentProductTaktMissing = false;
+            CurrentProductTaktInfo = $"{takt:0.###} s";
+            _ = UpdateHourlyPlanDataAsync();
         }
 
         partial void OnTargetChanged(int value)
@@ -818,66 +823,67 @@ namespace ViSyncMaster.ViewModels
         private async Task UpdateHourlyPlanDataAsync()
         {
             HourlyPlan.Clear();
-            if (Target <= 0) return;
-
             var planMessages = new List<HourlyPlanMessage>();
 
-            // 1) Dane produkcji
             var data = ResultTestList
                 .Where(x => x.StartTime.HasValue)
-                .Select(x => (Time: x.StartTime!.Value, Passed: x.Name == "S7.TestingPassed" ? 1 : 0))
+                .Select(x => (Time: x.StartTime!.Value, Passed: x.Name == "S7.TestingPassed" ? 1 : 0, x.ProductName))
                 .OrderBy(x => x.Time)
                 .ToList();
-            if (!data.Any()) return;
 
-            // 2) Plan zmiany
-            var plan = ShiftPlan.GetCurrent(GetShiftPlanKey());
+            var (rangeStart, rangeEnd, plan) = ResolveSelectedRangeAndPlan();
+            if (rangeEnd <= rangeStart)
+                return;
 
-            // 3) Ustal daty uwzględniając północ
-            bool crossMidnight = plan.ShiftEnd < plan.ShiftStart;
-            DateTime shiftStartDate = DateTime.Today;
-            if (crossMidnight && DateTime.Now.TimeOfDay < plan.ShiftStart)
-                shiftStartDate = shiftStartDate.AddDays(-1);
-            DateTime ToDate(TimeSpan ts)
+            var currentProduct = data
+                .Where(d => d.Time >= rangeStart && d.Time < rangeEnd)
+                .OrderByDescending(d => d.Time)
+                .Select(d => d.ProductName)
+                .FirstOrDefault();
+
+            CurrentProductNumber = string.IsNullOrWhiteSpace(currentProduct) ? "-" : currentProduct;
+            var hasTakt = !string.IsNullOrWhiteSpace(currentProduct) &&
+                          _taktCsvService.TryGetTaktSeconds(currentProduct, out var taktSeconds) &&
+                          taktSeconds > 0;
+
+            if (hasTakt)
             {
-                var dt = shiftStartDate.Date.Add(ts);
-                if (crossMidnight && ts < plan.ShiftStart) dt = dt.AddDays(1);
-                return dt;
+                IsCurrentProductTaktMissing = false;
+                CurrentProductTaktInfo = $"{taktSeconds:0.###} s";
+            }
+            else
+            {
+                taktSeconds = 0;
+                IsCurrentProductTaktMissing = !string.IsNullOrWhiteSpace(currentProduct);
+                CurrentProductTaktInfo = "Brak takt time";
             }
 
-            // 4) Starty
-            var shiftActualStart = ToDate(plan.ShiftStart);
-            var planStartTime = ToDate(plan.PlanStart);
-            var firstPieceTime = data.Min(d => d.Time);
-            var scheduleStart = firstPieceTime > planStartTime ? firstPieceTime : planStartTime;
-            var scheduleEnd = ToDate(plan.ShutDown);
-
-            // 5) Przerwy
-            var breaks = plan.Breaks
-                .Select(b => (Start: ToDate(b.Start), End: ToDate(b.End)))
-                .Where(b => b.End > scheduleStart && b.Start < scheduleEnd)
+            var breakRanges = plan.Breaks
+                .Select(b => (
+                    Start: ToShiftDateTime(b.Start, rangeStart, plan.ShiftStart, plan.ShiftEnd <= plan.ShiftStart),
+                    End: ToShiftDateTime(b.End, rangeStart, plan.ShiftStart, plan.ShiftEnd <= plan.ShiftStart)))
+                .Where(b => b.End > rangeStart && b.Start < rangeEnd)
                 .OrderBy(b => b.Start)
                 .ToList();
 
-            // 6) Interwały
             var intervals = new List<(DateTime Start, DateTime End, bool IsBreak)>();
-            var cursor = scheduleStart;
-            while (cursor < scheduleEnd)
+            var cursor = rangeStart;
+            while (cursor < rangeEnd)
             {
                 var nextHour = new DateTime(cursor.Year, cursor.Month, cursor.Day, cursor.Hour, 0, 0).AddHours(1);
-                var nextBr = breaks.FirstOrDefault(b => b.Start >= cursor);
+                var nextBr = breakRanges.FirstOrDefault(b => b.Start >= cursor);
                 var nextBrStart = nextBr != default ? nextBr.Start : DateTime.MaxValue;
-                var boundary = new[] { nextHour, nextBrStart, scheduleEnd }.Min();
+                var boundary = new[] { nextHour, nextBrStart, rangeEnd }.Min();
 
                 if (boundary > cursor)
                     intervals.Add((cursor, boundary, false));
 
                 if (nextBr != default && boundary == nextBrStart)
                 {
-                    var brEnd = nextBr.End < scheduleEnd ? nextBr.End : scheduleEnd;
+                    var brEnd = nextBr.End < rangeEnd ? nextBr.End : rangeEnd;
                     intervals.Add((nextBr.Start, brEnd, true));
                     cursor = brEnd;
-                    breaks.Remove(nextBr);
+                    breakRanges.Remove(nextBr);
                 }
                 else
                 {
@@ -885,73 +891,47 @@ namespace ViSyncMaster.ViewModels
                 }
             }
 
-            // 7) Podstawowe wskaźniki
-            double totalWorkMinutes = intervals.Where(iv => !iv.IsBreak)
-                                               .Sum(iv => (iv.End - iv.Start).TotalMinutes);
-            double minutesPerUnit = totalWorkMinutes / Target;
-
-            double accumulatedExact = 0;
             int assignedSum = 0;
-            bool isFirstInterval = true;
+            int totalProducedNonBreak = 0;
 
-            foreach (var (start, end, isBreak) in intervals)
+            foreach (var (startInterval, endInterval, isBreak) in intervals)
             {
-                int produced = isFirstInterval
-                    ? data.Where(d => d.Time >= shiftActualStart && d.Time < end).Sum(d => d.Passed)
-                    : data.Where(d => d.Time >= start && d.Time < end).Sum(d => d.Passed);
+                int produced = data.Where(d => d.Time >= startInterval && d.Time < endInterval).Sum(d => d.Passed);
 
-                int downtime = 0, lostUnits = 0;
-                int rawAssigned = 0, netAssigned = 0;
+                int downtimeMinutes = 0;
+                int lostUnits = 0;
+                int intervalPlan = 0;
 
                 if (!isBreak)
                 {
-                    // 1) Proporcjonalny plan przed stratami
-                    double length = (end - start).TotalMinutes;
-                    accumulatedExact += Target * (length / totalWorkMinutes);
-                    rawAssigned = (int)Math.Round(accumulatedExact) - assignedSum;
+                    var durationSeconds = Math.Max(0, (endInterval - startInterval).TotalSeconds);
+                    downtimeMinutes = (int)Math.Round(await _machineStatusService.GetDowntimeMinutesAsync(startInterval, endInterval));
+                    var downtimeSeconds = Math.Max(0, downtimeMinutes * 60);
+                    var productiveSeconds = Math.Max(0, durationSeconds - downtimeSeconds);
 
-                    // 2) Nalicz straty
-                    downtime = (int)Math.Round(await _machineStatusService.GetDowntimeMinutesAsync(start, end));
-                    if (downtime > 0)
+                    if (taktSeconds > 0)
                     {
-                        lostUnits = (int)Math.Ceiling(downtime / minutesPerUnit);
-                        lostUnits = Math.Max(1, lostUnits);
+                        intervalPlan = (int)Math.Floor(productiveSeconds / taktSeconds);
+                        lostUnits = (int)Math.Floor(downtimeSeconds / taktSeconds);
                     }
 
-                    // 3) Pierwotny plan po stratach
-                    var initialNet = Math.Max(0, rawAssigned - lostUnits);
-
-                    // 4) Jeśli operator wyprodukował więcej niż initialNet,
-                    //    to zaczynamy odrabiać stracone sztuki:
-                    if (produced > initialNet)
-                    {
-                        var recoup = Math.Min(produced - initialNet, lostUnits);
-                        lostUnits -= recoup;                          // zmniejszamy liczbę pozostałych strat
-                        netAssigned = rawAssigned - lostUnits;        // plan = gross plan – pozostałe straty
-                    }
-                    else
-                    {
-                        netAssigned = initialNet;
-                    }
-
-                    // 5) Korekta akumulatora i sumy
-                    accumulatedExact -= (rawAssigned - netAssigned);
-                    assignedSum += netAssigned;
+                    assignedSum += intervalPlan;
+                    totalProducedNonBreak += produced;
                 }
 
-                double efficiency = netAssigned > 0
-                    ? (double)produced / netAssigned * 100
+                var efficiency = intervalPlan > 0
+                    ? (double)produced / intervalPlan * 100
                     : 0;
 
                 var hp = new HourlyPlan
                 {
-                    Period = $"{start:HH:mm}-{end:HH:mm}",
-                    ExpectedUnits = netAssigned,
+                    Period = $"{startInterval:HH:mm}-{endInterval:HH:mm}",
+                    ExpectedUnits = intervalPlan,
                     ProducedUnits = produced,
-                    DowntimeMinutes = downtime,
+                    DowntimeMinutes = downtimeMinutes,
                     LostUnitsDueToDowntime = lostUnits,
                     IsBreak = isBreak,
-                    IsBreakActive = isBreak && DateTime.Now >= start && DateTime.Now < end,
+                    IsBreakActive = isBreak && DateTime.Now >= startInterval && DateTime.Now < endInterval,
                     Efficiency = efficiency
                 };
                 HourlyPlan.Add(hp);
@@ -960,7 +940,7 @@ namespace ViSyncMaster.ViewModels
                 {
                     Period = hp.Period,
                     ExpectedUnits = hp.ExpectedUnits,
-                    Total = Target,
+                    Total = assignedSum,
                     ProducedUnits = hp.ProducedUnits,
                     DowntimeMinutes = hp.DowntimeMinutes,
                     LostUnitsDueToDowntime = hp.LostUnitsDueToDowntime,
@@ -968,30 +948,26 @@ namespace ViSyncMaster.ViewModels
                     IsBreakActive = hp.IsBreakActive,
                     Efficiency = hp.Efficiency
                 });
-
-                isFirstInterval = false;
             }
 
-            // 9) Wiersz TOTAL
-             HourlyPlan.Add(new HourlyPlan
+            HourlyPlan.Add(new HourlyPlan
             {
                 Period = "TOTAL",
                 ExpectedUnits = assignedSum,
-                ProducedUnits = HourlyPlan.Sum(p => p.ProducedUnits),
+                ProducedUnits = totalProducedNonBreak,
                 DowntimeMinutes = HourlyPlan.Sum(p => p.DowntimeMinutes),
                 LostUnitsDueToDowntime = HourlyPlan.Sum(p => p.LostUnitsDueToDowntime),
                 IsBreak = false,
                 IsBreakActive = false,
                 Efficiency = assignedSum > 0
-                    ? (double)HourlyPlan.Sum(p => p.ProducedUnits) / assignedSum * 100
+                    ? (double)totalProducedNonBreak / assignedSum * 100
                     : 0
             });
 
-            // 10) Aktualna wydajność na wskazówce
             var now = DateTime.Now;
             var relevant = intervals
                 .Zip(HourlyPlan.Take(intervals.Count), (iv, hp) => new { iv, hp })
-                .Where(x => x.iv.Start <= now)
+                .Where(x => !x.iv.IsBreak && x.iv.Start <= now)
                 .Select(x => x.hp);
 
             var sumExp = relevant.Sum(hp => hp.ExpectedUnits);
@@ -1001,7 +977,6 @@ namespace ViSyncMaster.ViewModels
                 : 0;
             Needle.Value = Math.Clamp(currEff, 0, 200);
 
-            // Wyślij tylko wiadomość dla bieżącego przedziału
             var currentMessage = planMessages.FirstOrDefault(pm =>
             {
                 var parts = pm.Period.Split('-');
@@ -1016,6 +991,53 @@ namespace ViSyncMaster.ViewModels
                 await _machineStatusService.ReportHourlyPlanAsync(
                         new List<HourlyPlanMessage> { currentMessage }
                  );
+        }
+
+        private (DateTime Start, DateTime End, ShiftPlan Plan) ResolveSelectedRangeAndPlan()
+        {
+            var planKey = GetShiftPlanKey();
+            var now = DateTime.Now;
+            int shiftNumber = CurrentShift > 0 ? CurrentShift : ShiftPlan.GetCurrent(planKey, now).ShiftNumber;
+
+            DateTime start;
+            DateTime end;
+
+            if (_currentSelectionMode == ShiftSelectionMode.Shift3Yesterday)
+            {
+                var yesterdayRange = ShiftPlan.GetYesterdayShiftRange(planKey, 3, DateTime.Today, now);
+                start = yesterdayRange.Start;
+                end = yesterdayRange.End;
+                shiftNumber = 3;
+            }
+            else
+            {
+                var range = ShiftPlan.GetShiftTimeRange(planKey, shiftNumber, DateTime.Today, now, false);
+                start = range.Start;
+                end = range.End;
+            }
+
+            if (_currentSelectionMode == ShiftSelectionMode.Week && ResultTestList.Any(x => x.StartTime.HasValue))
+            {
+                start = ResultTestList.Where(x => x.StartTime.HasValue).Min(x => x.StartTime!.Value);
+                end = ResultTestList.Where(x => x.StartTime.HasValue).Max(x => x.StartTime!.Value).AddMinutes(1);
+            }
+
+            if (end > now)
+                end = now;
+
+            return (start, end, ShiftPlan.GetByNumber(planKey, shiftNumber));
+        }
+
+        private static DateTime ToShiftDateTime(TimeSpan time, DateTime shiftStartDateTime, TimeSpan shiftStart, bool crossMidnight)
+        {
+            var shiftBaseDate = shiftStartDateTime.Date;
+            if (crossMidnight && shiftStartDateTime.TimeOfDay < shiftStart)
+                shiftBaseDate = shiftBaseDate.AddDays(-1);
+
+            var dt = shiftBaseDate.Add(time);
+            if (crossMidnight && time < shiftStart)
+                dt = dt.AddDays(1);
+            return dt;
         }
     }
 }
