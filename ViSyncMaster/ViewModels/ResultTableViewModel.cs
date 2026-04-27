@@ -56,6 +56,14 @@ namespace ViSyncMaster.ViewModels
             Week
         }
 
+        private sealed class ProductionPoint
+        {
+            public DateTime Time { get; init; }
+            public int Passed { get; init; }
+            public string ProductName { get; init; } = string.Empty;
+            public string ProductNumber { get; init; } = string.Empty;
+        }
+
 
 
         // Observable properties for binding
@@ -846,7 +854,13 @@ namespace ViSyncMaster.ViewModels
 
             var data = ResultTestList
                 .Where(x => x.StartTime.HasValue)
-                .Select(x => (Time: x.StartTime!.Value, Passed: x.Name == "S7.TestingPassed" ? 1 : 0, x.ProductName))
+                .Select(x => new ProductionPoint
+                {
+                    Time = x.StartTime!.Value,
+                    Passed = x.Name == "S7.TestingPassed" ? 1 : 0,
+                    ProductName = x.ProductName,
+                    ProductNumber = NormalizeProductNumber(x.ProductName)
+                })
                 .OrderBy(x => x.Time)
                 .ToList();
 
@@ -855,7 +869,7 @@ namespace ViSyncMaster.ViewModels
                 return;
 
             var currentProduct = data
-                .Where(d => d.Time >= rangeStart && d.Time < rangeEnd)
+                .Where(d => d.Time >= rangeStart && d.Time <= DateTime.Now)
                 .OrderByDescending(d => d.Time)
                 .Select(d => d.ProductName)
                 .FirstOrDefault();
@@ -930,26 +944,44 @@ namespace ViSyncMaster.ViewModels
 
             int assignedSum = 0;
             int totalProducedNonBreak = 0;
+            var now = DateTime.Now;
+            var isRangeInProgress = now >= rangeStart && now < rangeEnd;
 
             foreach (var (startInterval, endInterval, isBreak) in intervals)
             {
-                int produced = data.Where(d => d.Time >= startInterval && d.Time < endInterval).Sum(d => d.Passed);
+                var isFutureInterval = isRangeInProgress && startInterval >= now;
+                var effectiveIntervalEnd = endInterval;
+                if (isRangeInProgress && startInterval < now && endInterval > now)
+                    effectiveIntervalEnd = now;
+                if (isFutureInterval)
+                    effectiveIntervalEnd = startInterval;
+
+                int produced = isFutureInterval
+                    ? 0
+                    : data.Where(d => d.Time >= startInterval && d.Time < effectiveIntervalEnd).Sum(d => d.Passed);
 
                 int downtimeMinutes = 0;
                 int lostUnits = 0;
                 int intervalPlan = 0;
+                string intervalProductNumber = string.Empty;
 
                 if (!isBreak)
                 {
-                    var durationSeconds = Math.Max(0, (endInterval - startInterval).TotalSeconds);
-                    downtimeMinutes = (int)Math.Round(await _machineStatusService.GetDowntimeMinutesAsync(startInterval, endInterval));
+                    var durationSeconds = Math.Max(0, (effectiveIntervalEnd - startInterval).TotalSeconds);
+                    if (!isFutureInterval && durationSeconds > 0)
+                        downtimeMinutes = (int)Math.Round(await _machineStatusService.GetDowntimeMinutesAsync(startInterval, effectiveIntervalEnd));
                     var downtimeSeconds = Math.Max(0, downtimeMinutes * 60);
                     var productiveSeconds = Math.Max(0, durationSeconds - downtimeSeconds);
 
-                    if (taktSeconds > 0)
+                    intervalProductNumber = ResolveIntervalProductNumber(data, startInterval, effectiveIntervalEnd);
+                    var hasIntervalTakt = !string.IsNullOrWhiteSpace(intervalProductNumber) &&
+                                          _taktCsvService.TryGetTaktSeconds(intervalProductNumber, out var intervalTaktSeconds) &&
+                                          intervalTaktSeconds > 0;
+
+                    if (hasIntervalTakt)
                     {
-                        intervalPlan = (int)Math.Floor(productiveSeconds / taktSeconds);
-                        lostUnits = (int)Math.Floor(downtimeSeconds / taktSeconds);
+                        intervalPlan = (int)Math.Floor(productiveSeconds / intervalTaktSeconds);
+                        lostUnits = (int)Math.Floor(downtimeSeconds / intervalTaktSeconds);
                     }
 
                     assignedSum += intervalPlan;
@@ -1001,7 +1033,6 @@ namespace ViSyncMaster.ViewModels
                     : 0
             });
 
-            var now = DateTime.Now;
             var relevant = intervals
                 .Zip(HourlyPlan.Take(intervals.Count), (iv, hp) => new { iv, hp })
                 .Where(x => !x.iv.IsBreak && x.iv.Start <= now)
@@ -1043,6 +1074,26 @@ namespace ViSyncMaster.ViewModels
             return matches[^1].Value;
         }
 
+        private static string ResolveIntervalProductNumber(IEnumerable<ProductionPoint> data, DateTime intervalStart, DateTime intervalEnd)
+        {
+            var intervalProduct = data
+                .Where(d => d.Time >= intervalStart && d.Time < intervalEnd && !string.IsNullOrWhiteSpace(d.ProductNumber))
+                .GroupBy(d => d.ProductNumber)
+                .OrderByDescending(g => g.Count())
+                .ThenByDescending(g => g.Max(x => x.Time))
+                .Select(g => g.Key)
+                .FirstOrDefault();
+
+            if (!string.IsNullOrWhiteSpace(intervalProduct))
+                return intervalProduct;
+
+            return data
+                .Where(d => d.Time < intervalEnd && !string.IsNullOrWhiteSpace(d.ProductNumber))
+                .OrderByDescending(d => d.Time)
+                .Select(d => d.ProductNumber)
+                .FirstOrDefault() ?? string.Empty;
+        }
+
         private (DateTime Start, DateTime End, ShiftPlan Plan) ResolveSelectedRangeAndPlan()
         {
             var planKey = GetShiftPlanKey();
@@ -1071,9 +1122,6 @@ namespace ViSyncMaster.ViewModels
                 start = ResultTestList.Where(x => x.StartTime.HasValue).Min(x => x.StartTime!.Value);
                 end = ResultTestList.Where(x => x.StartTime.HasValue).Max(x => x.StartTime!.Value).AddMinutes(1);
             }
-
-            if (end > now)
-                end = now;
 
             return (start, end, ShiftPlan.GetByNumber(planKey, shiftNumber));
         }
