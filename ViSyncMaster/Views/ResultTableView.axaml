@@ -121,14 +121,29 @@
 				</StackPanel>
 
 			<!-- Tabela wyników -->
-			<DataGrid ItemsSource="{Binding GroupedResultList}" AutoGenerateColumns="False" VerticalAlignment="Top"
+			<DataGrid ItemsSource="{Binding GroupedResultList}" SelectedItem="{Binding SelectedResultRow, Mode=TwoWay}" AutoGenerateColumns="False" VerticalAlignment="Top"
 					  CanUserResizeColumns="True" CanUserReorderColumns="True" IsReadOnly="true" MaxHeight="240"
 					  CanUserSortColumns="True" GridLinesVisibility="None" RowHeight="40" Margin="10">
 				<DataGrid.Columns>
-					<DataGridTextColumn Header="Produkt" Binding="{Binding ProductNumber, Mode=OneWay}" Width="*"/>
-					<DataGridTextColumn Header="OK" Binding="{Binding ShiftCounterPass, Mode=OneWay}" Width="*"/>
-					<DataGridTextColumn Header="NOK" Binding="{Binding ShiftCounterFail, Mode=OneWay}" Width="*"/>
-					<DataGridTextColumn Header="Operator" Binding="{Binding Operators, Mode=OneWay}" Width="*"/>
+					<DataGridTextColumn Header="ProductName" Binding="{Binding ProductNumber, Mode=OneWay}" Width="*"/>
+					<DataGridTextColumn Header="Takt Time [s]" Binding="{Binding TaktTimeSeconds, StringFormat={}{0:0.###}}" Width="Auto"/>
+					<DataGridTextColumn Header="Planned Qty" Binding="{Binding PlannedQty}" Width="Auto"/>
+					<DataGridTextColumn Header="Actual Qty" Binding="{Binding ActualQty}" Width="Auto"/>
+					<DataGridTextColumn Header="Expected Qty" Binding="{Binding ExpectedQty}" Width="Auto"/>
+					<DataGridTextColumn Header="Start Time" Binding="{Binding StartTimeDisplay}" Width="Auto"/>
+					<DataGridTextColumn Header="Planned End Time" Binding="{Binding PlannedEndTimeDisplay}" Width="Auto"/>
+					<DataGridTextColumn Header="Difference" Binding="{Binding Difference}" Width="Auto"/>
+					<DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="Auto"/>
+					<DataGridTemplateColumn Header="Progress" Width="220">
+						<DataGridTemplateColumn.CellTemplate>
+							<DataTemplate>
+								<Grid ClipToBounds="True">
+									<ProgressBar Minimum="0" Maximum="100" Value="{Binding ProgressPercent}" Height="18" Margin="2,0" />
+									<TextBlock Text="{Binding ProgressPercent, StringFormat={}{0:0.#}%}" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="WhiteSmoke"/>
+								</Grid>
+							</DataTemplate>
+						</DataGridTemplateColumn.CellTemplate>
+					</DataGridTemplateColumn>
 				</DataGrid.Columns>
 			</DataGrid>
 		</StackPanel>
@@ -220,34 +235,50 @@
 						<TextBlock Text="Wydajność [%]" HorizontalAlignment="Center" FontSize="16" Foreground="White"/>
 					</StackPanel>
 					<!-- Panel sterowania (przyciski, textbox, targety) -->
-					<Border CornerRadius="10" Background="#0B0A0F" Margin="5" VerticalAlignment="Center" HorizontalAlignment="Center">
-						<StackPanel Orientation="Horizontal">
-
-							<!-- Tekstowe pole do wprowadzania targetu -->
-							<TextBox Width="100" Height="50" Margin="10"
-									 Text="{Binding Target, Mode=TwoWay}"
-									 Watermark="Wprowadź target"
-									 HorizontalAlignment="Center"
-									 FontSize="20"
-									 Padding="10"
-									 Background="DarkGray"
-									 Foreground="Black"
-									 BorderThickness="2"/>
-
-							<!-- Przycisk do zapisu targetu -->
-							<Button Content="Zapisz Target" MinWidth="100" MinHeight="40" HorizontalContentAlignment="Right" Margin="10"
-									Command="{Binding SaveTargetCommand}"
-									Background="OrangeRed"
-									Padding="10"
-									Foreground="WhiteSmoke"
-									FontSize="18"
-									FontWeight="Bold"
-									HorizontalAlignment="Right"/>
-						</StackPanel>
-					</Border>
-				</StackPanel>
-			</Border>
-		</StackPanel>
+						<Border CornerRadius="10" Background="#0B0A0F" Margin="5" VerticalAlignment="Center" HorizontalAlignment="Center">
+							<StackPanel Orientation="Vertical">
+								<StackPanel Orientation="Horizontal">
+									<TextBox Width="120" Height="40" Margin="6"
+											 Text="{Binding PlannedQtyInput, Mode=TwoWay}"
+											 Watermark="Planned Qty"
+											 HorizontalAlignment="Center"
+											 FontSize="16"
+											 Padding="8"
+											 Background="DarkGray"
+											 Foreground="Black"
+											 BorderThickness="2"/>
+									<Button Content="Zapisz plan qty" Margin="6" Command="{Binding SaveSelectedProductPlanCommand}" Background="OrangeRed" Foreground="WhiteSmoke"/>
+								</StackPanel>
+								<StackPanel Orientation="Horizontal">
+									<TextBox Width="120" Height="40" Margin="6"
+											 Text="{Binding ManualTaktTimeInput, Mode=TwoWay}"
+											 Watermark="Takt [s]"
+											 HorizontalAlignment="Center"
+											 FontSize="16"
+											 Padding="8"
+											 Background="DarkGray"
+											 Foreground="Black"
+											 BorderThickness="2"/>
+									<Button Content="Zapisz takt do CSV" Margin="6" Command="{Binding SaveMissingTaktTimeCommand}" Background="#6A8DFF" Foreground="WhiteSmoke"/>
+								</StackPanel>
+								<TextBlock Text="{Binding PlanEditorMessage}" Foreground="LightGray" Margin="8,2,8,8"/>
+								<!-- Legacy fallback: global target -->
+								<StackPanel Orientation="Horizontal">
+									<TextBox Width="100" Height="40" Margin="6"
+											 Text="{Binding Target, Mode=TwoWay}"
+											 Watermark="Fallback target"
+											 FontSize="14"
+											 Padding="8"
+											 Background="DarkGray"
+											 Foreground="Black"
+											 BorderThickness="2"/>
+									<Button Content="Zapisz Target" Margin="6" Command="{Binding SaveTargetCommand}" Background="Gray" Foreground="WhiteSmoke"/>
+								</StackPanel>
+							</StackPanel>
+						</Border>
+					</StackPanel>
+				</Border>
+			</StackPanel>
 
 		<!-- Panel prawy: Wskaźniki kołowe -->
 		<!--

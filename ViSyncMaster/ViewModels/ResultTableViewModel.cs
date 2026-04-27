@@ -21,6 +21,8 @@ using ViSyncMaster.ViewModels;
 using System.Threading.Tasks;
 using System.Diagnostics;
 using System.ComponentModel.DataAnnotations;
+using System.Globalization;
+using System.IO;
 
 namespace ViSyncMaster.ViewModels
 {
@@ -40,6 +42,8 @@ namespace ViSyncMaster.ViewModels
         private bool _isManualShiftSelection;
         private ShiftSelectionMode _currentSelectionMode = ShiftSelectionMode.SystemCurrent;
         private long _lastSeenProductionMarkerTicks;
+        private readonly ProductTaktTimeCsvService _taktCsvService;
+        private readonly Dictionary<string, int> _plannedQtyByProduct = new(StringComparer.OrdinalIgnoreCase);
 
         private enum ShiftSelectionMode
         {
@@ -85,6 +89,10 @@ namespace ViSyncMaster.ViewModels
         [ObservableProperty] private int _uniqueOperatorCount;
         [ObservableProperty] private int _uniqueProductCount;
         [ObservableProperty] private string _selectedShiftRangeInfo = "Brak wybranego zakresu";
+        [ObservableProperty] private MachineStatusGrouped _selectedResultRow;
+        [ObservableProperty] private string _plannedQtyInput = string.Empty;
+        [ObservableProperty] private string _manualTaktTimeInput = string.Empty;
+        [ObservableProperty] private string _planEditorMessage = string.Empty;
 
         public IEnumerable<ISeries> Series { get; set; }
         public IEnumerable<ISeries> SeriesEfficiency { get; set; }
@@ -109,6 +117,7 @@ namespace ViSyncMaster.ViewModels
             _productionEfficiency = new ProductionEfficiency();
             _originalResultTestList = resultTests ?? throw new ArgumentNullException(nameof(resultTests));
             ResultTestList = new ObservableCollection<MachineStatus>(_originalResultTestList);
+            _taktCsvService = new ProductTaktTimeCsvService(Path.Combine("C:", "ViSM", "ConfigFiles", "ProductTaktTimes.csv"));
             _lastSeenProductionMarkerTicks = GetLatestProductionMarkerTicks();
 
             AutoSelectCurrentShiftAsync();
@@ -349,6 +358,44 @@ namespace ViSyncMaster.ViewModels
             // Save the target and calculate efficiency
             Console.WriteLine($"Saved target: {Target}");
             UpdateChartData();
+        }
+
+        [RelayCommand]
+        private void SaveSelectedProductPlan()
+        {
+            if (SelectedResultRow == null)
+            {
+                PlanEditorMessage = "Wybierz produkt w tabeli Result.";
+                return;
+            }
+            if (!int.TryParse(PlannedQtyInput, NumberStyles.Integer, CultureInfo.InvariantCulture, out var planned) || planned <= 0)
+            {
+                PlanEditorMessage = "Planned Qty musi być liczbą dodatnią.";
+                return;
+            }
+
+            _plannedQtyByProduct[SelectedResultRow.ProductNumber] = planned;
+            PlanEditorMessage = $"Zapisano plan qty={planned} dla produktu {SelectedResultRow.ProductNumber}.";
+            RefreshGroupedResultList();
+        }
+
+        [RelayCommand]
+        private void SaveMissingTaktTime()
+        {
+            if (SelectedResultRow == null)
+            {
+                PlanEditorMessage = "Wybierz produkt w tabeli Result.";
+                return;
+            }
+            if (!double.TryParse(ManualTaktTimeInput, NumberStyles.Float, CultureInfo.InvariantCulture, out var takt) || takt <= 0)
+            {
+                PlanEditorMessage = "Takt Time musi być dodatnią liczbą.";
+                return;
+            }
+
+            _taktCsvService.UpsertTaktSeconds(SelectedResultRow.ProductNumber, takt);
+            PlanEditorMessage = $"Dodano/zaaktualizowano takt time={takt:0.###}s dla produktu {SelectedResultRow.ProductNumber}.";
+            RefreshGroupedResultList();
         }
 
         partial void OnTargetChanged(int value)
@@ -646,6 +693,8 @@ namespace ViSyncMaster.ViewModels
         }
         private void RefreshGroupedResultList()
         {
+            TryGetCurrentShiftRange(out var currentShiftStart, out var currentShiftEnd);
+
             // 1) Pobierz „nowe” dane z ResultTestList
             var newData = ResultTestList
                 .GroupBy(x => x.ProductName)
@@ -654,7 +703,8 @@ namespace ViSyncMaster.ViewModels
                     Name = g.Key,
                     Pass = g.Count(x => x.Name == "S7.TestingPassed" && x.Value == "true"),
                     Fail = g.Count(x => x.Name == "S7.TestingFailed" && x.Value == "true"),
-                    Operators = string.Join(", ", g.Select(x => x.OperatorId).Distinct())
+                    Operators = string.Join(", ", g.Select(x => x.OperatorId).Distinct()),
+                    StartTime = g.Where(x => x.StartTime.HasValue).Select(x => x.StartTime).Min()
                 })
                 .ToList();
 
@@ -672,16 +722,19 @@ namespace ViSyncMaster.ViewModels
                     exist.ShiftCounterPass = n.Pass;
                     exist.ShiftCounterFail = n.Fail;
                     exist.Operators = n.Operators;
+                    FillDynamicPlanFields(exist, n.StartTime, currentShiftEnd);
                 }
                 else
                 {
-                    GroupedResultList.Add(new MachineStatusGrouped
+                    var row = new MachineStatusGrouped
                     {
                         ProductName = n.Name,
                         ShiftCounterPass = n.Pass,
                         ShiftCounterFail = n.Fail,
                         Operators = n.Operators
-                    });
+                    };
+                    FillDynamicPlanFields(row, n.StartTime, currentShiftEnd);
+                    GroupedResultList.Add(row);
                 }
             }
             // 4) In-place aktualizacja totalRow
@@ -692,6 +745,75 @@ namespace ViSyncMaster.ViewModels
             if (GroupedResultList.Remove(_totalRow))
                 GroupedResultList.Add(_totalRow);
             // jeśli masz dodatkowe pola
+        }
+
+        private void FillDynamicPlanFields(MachineStatusGrouped row, DateTime? productStartTime, DateTime? currentShiftEnd)
+        {
+            var productNumber = row.ProductNumber;
+            var actualQty = row.ShiftCounterPass + row.ShiftCounterFail;
+            if (!_plannedQtyByProduct.ContainsKey(productNumber) && Target > 0)
+                _plannedQtyByProduct[productNumber] = Target; // fallback na istniejący target
+
+            _taktCsvService.TryGetTaktSeconds(productNumber, out var taktSeconds);
+            var plannedQty = _plannedQtyByProduct.TryGetValue(productNumber, out var pq) ? pq : 0;
+
+            row.TaktTimeSeconds = taktSeconds;
+            row.PlannedQty = plannedQty;
+            row.ActualQty = actualQty;
+            row.StartTime = productStartTime;
+
+            if (productStartTime.HasValue && taktSeconds > 0)
+            {
+                var elapsedSeconds = Math.Max(0, (DateTime.Now - productStartTime.Value).TotalSeconds);
+                var expected = (int)Math.Floor(elapsedSeconds / taktSeconds);
+                row.ExpectedQty = plannedQty > 0 ? Math.Min(expected, plannedQty) : expected;
+            }
+            else
+            {
+                row.ExpectedQty = 0;
+            }
+
+            row.PlannedEndTime = (productStartTime.HasValue && plannedQty > 0 && taktSeconds > 0)
+                ? productStartTime.Value.AddSeconds(plannedQty * taktSeconds)
+                : null;
+            row.Difference = row.ActualQty - row.ExpectedQty;
+            row.IsPlanBeyondShift = row.PlannedEndTime.HasValue && currentShiftEnd.HasValue && row.PlannedEndTime.Value > currentShiftEnd.Value;
+
+            if (taktSeconds <= 0)
+                row.Status = "Brak takt time (uzupełnij)";
+            else if (plannedQty <= 0)
+                row.Status = "Wpisz Planned Qty";
+            else if (row.Difference > 1)
+                row.Status = "Ahead";
+            else if (row.Difference < -1)
+                row.Status = "Behind";
+            else
+                row.Status = "On track";
+        }
+
+        private bool TryGetCurrentShiftRange(out DateTime? start, out DateTime? end)
+        {
+            start = null;
+            end = null;
+            var planKey = GetShiftPlanKey();
+
+            if (_currentSelectionMode == ShiftSelectionMode.Week)
+                return false;
+
+            int shiftNumber = CurrentShift > 0 ? CurrentShift : 0;
+            if (shiftNumber == 0)
+            {
+                var current = ShiftPlan.GetCurrent(planKey, DateTime.Now);
+                shiftNumber = current.ShiftNumber;
+            }
+
+            var range = _currentSelectionMode == ShiftSelectionMode.Shift3Yesterday
+                ? ShiftPlan.GetYesterdayShiftRange(planKey, 3, DateTime.Today, DateTime.Now)
+                : ShiftPlan.GetShiftTimeRange(planKey, shiftNumber, DateTime.Today, DateTime.Now, forcePreviousDay: false);
+
+            start = range.Start;
+            end = range.End;
+            return true;
         }
         private async Task UpdateHourlyPlanDataAsync()
         {
