@@ -120,13 +120,29 @@
 							   FontWeight="SemiBold"/>
 				</StackPanel>
 
-			<!-- Legacy tabela godzinowa Result -->
-			<DataGrid ItemsSource="{Binding HourlyPlan}" AutoGenerateColumns="False" RowHeight="48" MaxHeight="700"
-					  IsReadOnly="True" GridLinesVisibility="None" Margin="10" VerticalAlignment="Stretch">
+			<!-- Górna tabela ogólna (produktowa) -->
+			<DataGrid ItemsSource="{Binding GroupedResultList}" SelectedItem="{Binding SelectedResultRow, Mode=TwoWay}" AutoGenerateColumns="False"
+					  CanUserResizeColumns="True" CanUserReorderColumns="True" IsReadOnly="True"
+					  CanUserSortColumns="True" GridLinesVisibility="None" RowHeight="40" MaxHeight="220" Margin="10,10,10,4">
+				<DataGrid.Columns>
+					<DataGridTextColumn Header="Produkt" Binding="{Binding ProductNumber}" Width="*"/>
+					<DataGridTextColumn Header="Pass" Binding="{Binding ShiftCounterPass}" Width="Auto"/>
+					<DataGridTextColumn Header="Fail" Binding="{Binding ShiftCounterFail}" Width="Auto"/>
+					<DataGridTextColumn Header="Takt [s]" Binding="{Binding TaktTimeSeconds, StringFormat={}{0:0.###}}" Width="Auto"/>
+					<DataGridTextColumn Header="Target" Binding="{Binding PlannedQty}" Width="Auto"/>
+					<DataGridTextColumn Header="Actual" Binding="{Binding ActualQty}" Width="Auto"/>
+					<DataGridTextColumn Header="Expected" Binding="{Binding ExpectedQty}" Width="Auto"/>
+					<DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="Auto"/>
+				</DataGrid.Columns>
+			</DataGrid>
+
+			<!-- Dolna tabela planu godzinowego -->
+			<DataGrid ItemsSource="{Binding HourlyPlan}" AutoGenerateColumns="False" RowHeight="48" MaxHeight="430"
+					  IsReadOnly="True" GridLinesVisibility="None" Margin="10,4,10,10" VerticalAlignment="Stretch">
 				<DataGrid.Columns>
 					<DataGridTextColumn Header="Czas" Binding="{Binding Period}" Width="Auto"/>
 					<DataGridTextColumn Header="Plan" Binding="{Binding ExpectedDisplay}" Width="Auto"/>
-					<DataGridTemplateColumn Header="Wykon" Width="220">
+					<DataGridTemplateColumn Header="Wykon" Width="240">
 						<DataGridTemplateColumn.CellTemplate>
 							<DataTemplate>
 								<Grid ClipToBounds="True">
