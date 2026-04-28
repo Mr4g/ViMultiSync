@@ -381,7 +381,7 @@ namespace ViSyncMaster.ViewModels
         }
 
         [RelayCommand]
-        private void SaveSelectedProductPlan()
+        private async Task SaveSelectedProductPlanAsync()
         {
             if (string.IsNullOrWhiteSpace(CurrentProductNumber) || CurrentProductNumber == "-")
             {
@@ -400,7 +400,7 @@ namespace ViSyncMaster.ViewModels
             IsMissingTargetDialogVisible = false;
             _dismissedMissingTargetForProduct = string.Empty;
             RefreshGroupedResultList();
-            _ = UpdateHourlyPlanDataAsync();
+            await UpdateHourlyPlanDataAsync();
         }
 
         [RelayCommand]
