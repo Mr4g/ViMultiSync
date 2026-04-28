@@ -954,16 +954,8 @@ namespace ViSyncMaster.ViewModels
             if (string.IsNullOrWhiteSpace(defaultPlanProductNumber))
                 defaultPlanProductNumber = normalizedProductNumber;
 
-            var firstPieceByProduct = data
-                .Where(d => d.Time >= rangeStart && d.Time <= rangeEnd && d.Passed > 0 && !string.IsNullOrWhiteSpace(d.ProductNumber))
-                .GroupBy(d => d.ProductNumber)
-                .ToDictionary(g => g.Key, g => g.Min(x => x.Time), StringComparer.OrdinalIgnoreCase);
-
             var crossMidnight = plan.ShiftEnd <= plan.ShiftStart;
             var planStartDateTime = ToShiftDateTime(plan.PlanStart, rangeStart, plan.ShiftStart, crossMidnight);
-            var shutDownDateTime = ToShiftDateTime(plan.ShutDown, rangeStart, plan.ShiftStart, crossMidnight);
-            if (shutDownDateTime < planStartDateTime)
-                shutDownDateTime = shutDownDateTime.AddDays(1);
 
             var breakRanges = plan.Breaks
                 .Select(b => (
@@ -1032,24 +1024,10 @@ namespace ViSyncMaster.ViewModels
 
                     if (hasIntervalTakt)
                     {
-                        var firstPieceForProduct = firstPieceByProduct.TryGetValue(intervalProductNumber, out var fp)
-                            ? fp
-                            : DateTime.MaxValue;
-
-                        if (firstPieceForProduct == DateTime.MaxValue)
-                        {
-                            assignedSum += intervalPlan;
-                            totalProducedNonBreak += produced;
-                            goto FinalizeInterval;
-                        }
-
                         var effectivePlanStart = startInterval;
                         if (planStartDateTime > effectivePlanStart)
                             effectivePlanStart = planStartDateTime;
-                        if (firstPieceForProduct != DateTime.MaxValue && firstPieceForProduct > effectivePlanStart)
-                            effectivePlanStart = firstPieceForProduct;
-
-                        var effectivePlanEnd = endInterval < shutDownDateTime ? endInterval : shutDownDateTime;
+                        var effectivePlanEnd = endInterval;
                         var durationSeconds = Math.Max(0, (effectivePlanEnd - effectivePlanStart).TotalSeconds);
                         if (durationSeconds > 0)
                             downtimeMinutes = (int)Math.Round(await _machineStatusService.GetDowntimeMinutesAsync(effectivePlanStart, effectivePlanEnd));
@@ -1077,8 +1055,6 @@ namespace ViSyncMaster.ViewModels
                     assignedSum += intervalPlan;
                     totalProducedNonBreak += produced;
                 }
-
-            FinalizeInterval:
                 var efficiency = intervalPlan > 0
                     ? (double)produced / intervalPlan * 100
                     : 0;
