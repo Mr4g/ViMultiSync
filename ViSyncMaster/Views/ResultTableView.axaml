@@ -175,19 +175,26 @@
 			<!-- Wiersz z dwoma wykresami kołowymi -->
 			<Border CornerRadius="28" Background="#0B0A0F" HorizontalAlignment="Center">
 				<StackPanel Orientation="Vertical" HorizontalAlignment="Center">
-					<!-- Pierwszy wykres kołowy -->
-					<StackPanel Orientation="Vertical" HorizontalAlignment="Center" Margin="8,8,8,4">
-						<lvc:PieChart
-							Series="{Binding SeriesEfficiency}"
-							VisualElements="{Binding VisualElements}"
-							InitialRotation="-225"
-							Width="330"
-							Height="330"
-							MaxValue="200"
-							MaxAngle="270">
-						</lvc:PieChart>
-						<TextBlock Text="Wydajność [%]" HorizontalAlignment="Center" FontSize="16" Foreground="White" FontWeight="SemiBold"/>
+					<!-- Termometr wydajności -->
+					<StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="12,12,12,6">
+						<Border Width="44" Height="260" CornerRadius="22" Background="#1D1F27" BorderBrush="#3C3F47" BorderThickness="1" Padding="6">
+							<Slider Orientation="Vertical"
+									Minimum="0"
+									Maximum="200"
+									Value="{Binding CurrentEfficiencyValue}"
+									IsEnabled="False"
+									VerticalAlignment="Stretch"/>
+						</Border>
+						<StackPanel Margin="10,0,0,0" VerticalAlignment="Center" Spacing="6">
+							<TextBlock Text="200%" Foreground="LightGray"/>
+							<TextBlock Text="120%" Foreground="LightGray"/>
+							<TextBlock Text="100%" Foreground="WhiteSmoke" FontWeight="Bold"/>
+							<TextBlock Text="80%" Foreground="LightGray"/>
+							<TextBlock Text="0%" Foreground="LightGray"/>
+							<TextBlock Text="{Binding CurrentEfficiencyValue, StringFormat={}{0:0.0}%}" Foreground="WhiteSmoke" FontSize="20" FontWeight="Bold" Margin="0,8,0,0"/>
+						</StackPanel>
 					</StackPanel>
+					<TextBlock Text="Wydajność [%]" HorizontalAlignment="Center" FontSize="16" Foreground="White" FontWeight="SemiBold"/>
 					<!-- Panel informacji -->
 					<Border CornerRadius="10" Background="#11131A" Margin="8,4,8,10" VerticalAlignment="Center" HorizontalAlignment="Stretch" Padding="10">
 						<StackPanel Orientation="Vertical" Spacing="4">

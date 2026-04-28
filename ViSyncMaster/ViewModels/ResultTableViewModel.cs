@@ -97,6 +97,7 @@ namespace ViSyncMaster.ViewModels
         [ObservableProperty] private int _failedCount;
         [ObservableProperty] private int _uniqueOperatorCount;
         [ObservableProperty] private int _uniqueProductCount;
+        [ObservableProperty] private double _currentEfficiencyValue;
         [ObservableProperty] private string _selectedShiftRangeInfo = "Brak wybranego zakresu";
         [ObservableProperty] private MachineStatusGrouped _selectedResultRow;
         [ObservableProperty] private string _plannedQtyInput = string.Empty;
@@ -953,12 +954,6 @@ namespace ViSyncMaster.ViewModels
             if (string.IsNullOrWhiteSpace(defaultPlanProductNumber))
                 defaultPlanProductNumber = normalizedProductNumber;
 
-            var firstPieceTime = data
-                .Where(d => d.Time >= rangeStart && d.Time < rangeEnd && d.Passed > 0)
-                .Select(d => d.Time)
-                .DefaultIfEmpty(DateTime.MaxValue)
-                .Min();
-
             var breakRanges = plan.Breaks
                 .Select(b => (
                     Start: ToShiftDateTime(b.Start, rangeStart, plan.ShiftStart, plan.ShiftEnd <= plan.ShiftStart),
@@ -1001,15 +996,15 @@ namespace ViSyncMaster.ViewModels
             foreach (var (startInterval, endInterval, isBreak) in intervals)
             {
                 var isFutureInterval = isRangeInProgress && startInterval >= now;
-                var effectiveIntervalEnd = endInterval;
+                var effectiveProducedEnd = endInterval;
                 if (isRangeInProgress && startInterval < now && endInterval > now)
-                    effectiveIntervalEnd = now;
+                    effectiveProducedEnd = now;
                 if (isFutureInterval)
-                    effectiveIntervalEnd = startInterval;
+                    effectiveProducedEnd = startInterval;
 
                 int produced = isFutureInterval
                     ? 0
-                    : data.Where(d => d.Time >= startInterval && d.Time < effectiveIntervalEnd).Sum(d => d.Passed);
+                    : data.Where(d => d.Time >= startInterval && d.Time < effectiveProducedEnd).Sum(d => d.Passed);
 
                 int downtimeMinutes = 0;
                 int lostUnits = 0;
@@ -1018,42 +1013,35 @@ namespace ViSyncMaster.ViewModels
 
                 if (!isBreak)
                 {
-                    if (firstPieceTime != DateTime.MaxValue)
+                    var durationSeconds = Math.Max(0, (endInterval - startInterval).TotalSeconds);
+                    if (durationSeconds > 0)
+                        downtimeMinutes = (int)Math.Round(await _machineStatusService.GetDowntimeMinutesAsync(startInterval, endInterval));
+                    var downtimeSeconds = Math.Max(0, downtimeMinutes * 60);
+                    var productiveSeconds = Math.Max(0, durationSeconds - downtimeSeconds);
+
+                    intervalProductNumber = ResolveIntervalProductNumber(data, startInterval, endInterval, defaultPlanProductNumber);
+                    double intervalTaktSeconds = 0;
+                    var hasIntervalTakt = !string.IsNullOrWhiteSpace(intervalProductNumber) &&
+                                          _taktCsvService.TryGetTaktSeconds(intervalProductNumber, out intervalTaktSeconds) &&
+                                          intervalTaktSeconds > 0;
+
+                    if (hasIntervalTakt)
                     {
-                        var effectivePlanStart = startInterval;
-                        if (firstPieceTime > effectivePlanStart)
-                            effectivePlanStart = firstPieceTime;
+                        var rawIntervalPlan = (int)Math.Floor(productiveSeconds / intervalTaktSeconds);
+                        lostUnits = (int)Math.Floor(downtimeSeconds / intervalTaktSeconds);
 
-                        var durationSeconds = Math.Max(0, (effectiveIntervalEnd - effectivePlanStart).TotalSeconds);
-                        if (!isFutureInterval && durationSeconds > 0)
-                            downtimeMinutes = (int)Math.Round(await _machineStatusService.GetDowntimeMinutesAsync(effectivePlanStart, effectiveIntervalEnd));
-                        var downtimeSeconds = Math.Max(0, downtimeMinutes * 60);
-                        var productiveSeconds = Math.Max(0, durationSeconds - downtimeSeconds);
-
-                        intervalProductNumber = ResolveIntervalProductNumber(data, startInterval, effectiveIntervalEnd, defaultPlanProductNumber);
-                        double intervalTaktSeconds = 0;
-                        var hasIntervalTakt = !string.IsNullOrWhiteSpace(intervalProductNumber) &&
-                                              _taktCsvService.TryGetTaktSeconds(intervalProductNumber, out intervalTaktSeconds) &&
-                                              intervalTaktSeconds > 0;
-
-                        if (hasIntervalTakt)
+                        if (_plannedQtyByProduct.TryGetValue(intervalProductNumber, out var targetQty) && targetQty > 0)
                         {
-                            var rawIntervalPlan = (int)Math.Floor(productiveSeconds / intervalTaktSeconds);
-                            lostUnits = (int)Math.Floor(downtimeSeconds / intervalTaktSeconds);
-
-                            if (_plannedQtyByProduct.TryGetValue(intervalProductNumber, out var targetQty) && targetQty > 0)
-                            {
-                                var alreadyAssigned = assignedByProduct.TryGetValue(intervalProductNumber, out var assignedForProduct)
-                                    ? assignedForProduct
-                                    : 0;
-                                var remaining = Math.Max(0, targetQty - alreadyAssigned);
-                                intervalPlan = Math.Min(rawIntervalPlan, remaining);
-                                assignedByProduct[intervalProductNumber] = alreadyAssigned + intervalPlan;
-                            }
-                            else
-                            {
-                                intervalPlan = 0;
-                            }
+                            var alreadyAssigned = assignedByProduct.TryGetValue(intervalProductNumber, out var assignedForProduct)
+                                ? assignedForProduct
+                                : 0;
+                            var remaining = Math.Max(0, targetQty - alreadyAssigned);
+                            intervalPlan = Math.Min(rawIntervalPlan, remaining);
+                            assignedByProduct[intervalProductNumber] = alreadyAssigned + intervalPlan;
+                        }
+                        else
+                        {
+                            intervalPlan = 0;
                         }
                     }
 
@@ -1117,6 +1105,7 @@ namespace ViSyncMaster.ViewModels
                 ? Math.Round(sumProd / (double)sumExp * 100, 1)
                 : 0;
             Needle.Value = Math.Clamp(currEff, 0, 200);
+            CurrentEfficiencyValue = Math.Clamp(currEff, 0, 200);
 
             var currentMessage = planMessages.FirstOrDefault(pm =>
             {
