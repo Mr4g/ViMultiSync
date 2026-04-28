@@ -71,16 +71,13 @@
 		</Grid.RowDefinitions>
 
 		<Grid.ColumnDefinitions>
-			<ColumnDefinition Width="*"/>
-			<ColumnDefinition Width="Auto"/>
-			<ColumnDefinition Width="Auto"/>
-			<ColumnDefinition Width="Auto"/>
-			<ColumnDefinition Width="Auto"/>
-			<ColumnDefinition Width="*" />
+			<ColumnDefinition Width="4*" />
+			<ColumnDefinition Width="12" />
+			<ColumnDefinition Width="1.45*" />
 		</Grid.ColumnDefinitions>
 
 		<!-- Panel sterowania (przyciski, textbox, targety) -->
-		<StackPanel Orientation="Vertical" Grid.Row="0" VerticalAlignment="Top" Grid.ColumnSpan="3" HorizontalAlignment="Stretch" MaxWidth="1120">
+		<StackPanel Orientation="Vertical" Grid.Row="0" Grid.Column="0" VerticalAlignment="Top" HorizontalAlignment="Stretch">
 				<StackPanel Orientation="Horizontal">
 				<Button Content="ZM 1" Command="{Binding FilterShift1Command}"
 						        Background="#0B0A0F"
@@ -137,7 +134,7 @@
 			</DataGrid>
 
 			<!-- Dolna tabela planu godzinowego -->
-			<DataGrid ItemsSource="{Binding HourlyPlan}" AutoGenerateColumns="False" RowHeight="46" MaxHeight="320"
+			<DataGrid ItemsSource="{Binding HourlyPlan}" AutoGenerateColumns="False" RowHeight="46" MaxHeight="680"
 					  IsReadOnly="True" GridLinesVisibility="None" Margin="10,4,10,10" VerticalAlignment="Stretch">
 				<DataGrid.Columns>
 					<DataGridTextColumn Header="Czas" Binding="{Binding Period}" Width="Auto"/>
@@ -173,61 +170,47 @@
 		</StackPanel>
 
 
-		<!-- Panel prawy: Wskaźniki kołowe -->
-		<StackPanel Grid.Row="3" Grid.Column="1" Orientation="Vertical" HorizontalAlignment="Center" Margin="30" VerticalAlignment="Center">
-			<!-- Wiersz z dwoma wykresami kołowymi -->
-			<Border CornerRadius="28" Background="#0B0A0F" HorizontalAlignment="Center">
-				<StackPanel Orientation="Horizontal" HorizontalAlignment="Center" IsVisible ="false">
-					<!-- Pierwszy wykres kołowy -->
-					<StackPanel Orientation="Vertical" HorizontalAlignment="Center" Margin="10">
-						<lvc:PieChart
-						Series="{Binding Series}"
-						InitialRotation="135"
-						Width="400"
-						Height="400"
-						MaxValue="{Binding Target}"
-						LegendPosition="Bottom"
-						LegendTextPaint="{Binding LegendTextPaint}"
-						LegendTextSize="24"
-						MaxAngle="270">
-						</lvc:PieChart>
-						<TextBlock Text="Target" HorizontalAlignment="Center" FontSize="16" Foreground="White"/>
-					</StackPanel>
-				</StackPanel>
-			</Border>
-		</StackPanel>
-
-		<!-- Panel prawy: Wskaźniki kołowe -->
-		<StackPanel Grid.Row="0" Grid.Column="4" Grid.RowSpan="6" Orientation="Vertical" HorizontalAlignment="Center" Margin="8" VerticalAlignment="Top">
+		<!-- Panel prawy: Wydajność i podstawowe dane -->
+		<StackPanel Grid.Row="0" Grid.Column="2" Grid.RowSpan="6" Orientation="Vertical" HorizontalAlignment="Stretch" Margin="8,10,10,10" VerticalAlignment="Top">
 			<!-- Wiersz z dwoma wykresami kołowymi -->
 			<Border CornerRadius="28" Background="#0B0A0F" HorizontalAlignment="Center">
 				<StackPanel Orientation="Vertical" HorizontalAlignment="Center">
 					<!-- Pierwszy wykres kołowy -->
-					<StackPanel Orientation="Vertical" HorizontalAlignment="Center" Margin="4">
+					<StackPanel Orientation="Vertical" HorizontalAlignment="Center" Margin="8,8,8,4">
 						<lvc:PieChart
 							Series="{Binding SeriesEfficiency}"
 							VisualElements="{Binding VisualElements}"
 							InitialRotation="-225"
-							Width="280"
-							Height="280"
+							Width="330"
+							Height="330"
 							MaxValue="200"
 							MaxAngle="270">
 						</lvc:PieChart>
-						<TextBlock Text="Wydajność [%]" HorizontalAlignment="Center" FontSize="14" Foreground="White"/>
+						<TextBlock Text="Wydajność [%]" HorizontalAlignment="Center" FontSize="16" Foreground="White" FontWeight="SemiBold"/>
 					</StackPanel>
-						<!-- Panel sterowania (przyciski, textbox, targety) -->
-						<Border CornerRadius="10" Background="#0B0A0F" Margin="4" VerticalAlignment="Center" HorizontalAlignment="Center" Width="300">
-							<StackPanel Orientation="Vertical">
-								<TextBlock Text="Aktualny produkt (raw):" Foreground="WhiteSmoke" Margin="8,8,8,0" FontSize="12"/>
-								<TextBlock Text="{Binding CurrentProductRawName}" Foreground="WhiteSmoke" FontWeight="SemiBold" Margin="8,0,8,2" FontSize="12" TextWrapping="Wrap" MaxHeight="36"/>
-								<TextBlock Text="Numer produktu (7 cyfr):" Foreground="LightGray" Margin="8,0,8,0"/>
-								<TextBlock Text="{Binding CurrentProductNumber}" Foreground="LightGray" FontWeight="SemiBold" Margin="8,0,8,2"/>
-								<TextBlock Text="Takt time:" Foreground="LightGray" Margin="8,0,8,0"/>
-								<TextBlock Text="{Binding CurrentProductTaktInfo}" Foreground="LightGray" FontWeight="SemiBold" Margin="8,0,8,8"/>
-								<TextBlock Text="Target (RAM):" Foreground="LightGray" Margin="8,0,8,0"/>
-								<TextBlock Text="{Binding CurrentProductTargetInfo}" Foreground="LightGray" FontWeight="SemiBold" Margin="8,0,8,8"/>
+					<!-- Panel informacji -->
+					<Border CornerRadius="10" Background="#11131A" Margin="8,4,8,10" VerticalAlignment="Center" HorizontalAlignment="Stretch" Padding="10">
+						<StackPanel Orientation="Vertical" Spacing="4">
+							<TextBlock Text="Aktualny produkt (raw):" Foreground="#AAB3C2" FontSize="12"/>
+							<TextBlock Text="{Binding CurrentProductRawName}" Foreground="WhiteSmoke" FontWeight="SemiBold" FontSize="13" TextWrapping="Wrap" MaxHeight="36"/>
+							<TextBlock Text="Numer produktu: " Foreground="#AAB3C2" FontSize="12"/>
+							<TextBlock Text="{Binding CurrentProductNumber}" Foreground="WhiteSmoke" FontWeight="SemiBold" FontSize="18"/>
+							<Grid ColumnDefinitions="Auto,*" Margin="0,4,0,0">
+								<TextBlock Grid.Column="0" Text="Takt:" Foreground="#AAB3C2" FontSize="12" Margin="0,0,6,0"/>
+								<TextBlock Grid.Column="1" Text="{Binding CurrentProductTaktInfo}" Foreground="WhiteSmoke" FontWeight="SemiBold"/>
+							</Grid>
+							<Grid ColumnDefinitions="Auto,*">
+								<TextBlock Grid.Column="0" Text="Target:" Foreground="#AAB3C2" FontSize="12" Margin="0,0,6,0"/>
+								<TextBlock Grid.Column="1" Text="{Binding CurrentProductTargetInfo}" Foreground="WhiteSmoke" FontWeight="SemiBold"/>
+							</Grid>
+							<StackPanel Orientation="Horizontal" HorizontalAlignment="Stretch" Margin="0,6,0,0">
+								<TextBox Width="110" Height="36" Text="{Binding PlannedQtyInput, Mode=TwoWay}" Watermark="Target"
+										 FontSize="14" Padding="6" Background="DarkGray" Foreground="Black" BorderThickness="2"/>
+								<Button Content="Zapisz Target" Margin="8,0,0,0" Command="{Binding SaveSelectedProductPlanCommand}"
+										Background="#FF5A1F" Foreground="WhiteSmoke" FontWeight="Bold"/>
 							</StackPanel>
-						</Border>
+						</StackPanel>
+					</Border>
 					</StackPanel>
 				</Border>
 			</StackPanel>
@@ -263,7 +246,7 @@
 				Grid.Row="0"
 				Grid.RowSpan="6"
 				Grid.Column="0"
-				Grid.ColumnSpan="6">
+				Grid.ColumnSpan="3">
 			<Border Width="460"
 					HorizontalAlignment="Center"
 					VerticalAlignment="Center"
@@ -296,7 +279,7 @@
 				Grid.Row="0"
 				Grid.RowSpan="6"
 				Grid.Column="0"
-				Grid.ColumnSpan="6">
+				Grid.ColumnSpan="3">
 			<Border Width="460"
 					HorizontalAlignment="Center"
 					VerticalAlignment="Center"
