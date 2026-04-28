@@ -80,7 +80,7 @@
 		</Grid.ColumnDefinitions>
 
 		<!-- Panel sterowania (przyciski, textbox, targety) -->
-		<StackPanel Orientation="Vertical" Grid.Row="0" VerticalAlignment="Top" Grid.ColumnSpan="6">
+		<StackPanel Orientation="Vertical" Grid.Row="0" VerticalAlignment="Top" Grid.ColumnSpan="3" HorizontalAlignment="Stretch" MaxWidth="1120">
 				<StackPanel Orientation="Horizontal">
 				<Button Content="ZM 1" Command="{Binding FilterShift1Command}"
 						        Background="#0B0A0F"
@@ -123,7 +123,7 @@
 			<!-- Górna tabela ogólna (produktowa) -->
 			<DataGrid ItemsSource="{Binding GroupedResultList}" SelectedItem="{Binding SelectedResultRow, Mode=TwoWay}" AutoGenerateColumns="False"
 					  CanUserResizeColumns="True" CanUserReorderColumns="True" IsReadOnly="True"
-					  CanUserSortColumns="True" GridLinesVisibility="None" RowHeight="40" MaxHeight="220" Margin="10,10,10,4">
+					  CanUserSortColumns="True" GridLinesVisibility="None" RowHeight="40" MaxHeight="180" Margin="10,10,10,4">
 				<DataGrid.Columns>
 					<DataGridTextColumn Header="Produkt" Binding="{Binding ProductNumber}" Width="*"/>
 					<DataGridTextColumn Header="Pass" Binding="{Binding ShiftCounterPass}" Width="Auto"/>
@@ -137,12 +137,12 @@
 			</DataGrid>
 
 			<!-- Dolna tabela planu godzinowego -->
-			<DataGrid ItemsSource="{Binding HourlyPlan}" AutoGenerateColumns="False" RowHeight="48" MaxHeight="430"
+			<DataGrid ItemsSource="{Binding HourlyPlan}" AutoGenerateColumns="False" RowHeight="46" MaxHeight="320"
 					  IsReadOnly="True" GridLinesVisibility="None" Margin="10,4,10,10" VerticalAlignment="Stretch">
 				<DataGrid.Columns>
 					<DataGridTextColumn Header="Czas" Binding="{Binding Period}" Width="Auto"/>
 					<DataGridTextColumn Header="Plan" Binding="{Binding ExpectedDisplay}" Width="Auto"/>
-					<DataGridTemplateColumn Header="Wykon" Width="240">
+					<DataGridTemplateColumn Header="Wykon" Width="190">
 						<DataGridTemplateColumn.CellTemplate>
 							<DataTemplate>
 								<Grid ClipToBounds="True">
@@ -198,46 +198,34 @@
 		</StackPanel>
 
 		<!-- Panel prawy: Wskaźniki kołowe -->
-		<StackPanel Grid.Row="3" Grid.Column="3" Grid.RowSpan="2" Orientation="Vertical" HorizontalAlignment="Center" Margin="10" VerticalAlignment="Center">
+		<StackPanel Grid.Row="0" Grid.Column="4" Grid.RowSpan="6" Orientation="Vertical" HorizontalAlignment="Center" Margin="8" VerticalAlignment="Top">
 			<!-- Wiersz z dwoma wykresami kołowymi -->
 			<Border CornerRadius="28" Background="#0B0A0F" HorizontalAlignment="Center">
 				<StackPanel Orientation="Vertical" HorizontalAlignment="Center">
 					<!-- Pierwszy wykres kołowy -->
-					<StackPanel Orientation="Vertical" HorizontalAlignment="Center" Margin="5">
+					<StackPanel Orientation="Vertical" HorizontalAlignment="Center" Margin="4">
 						<lvc:PieChart
 							Series="{Binding SeriesEfficiency}"
 							VisualElements="{Binding VisualElements}"
 							InitialRotation="-225"
-							Width="400"
-							Height="400"
+							Width="280"
+							Height="280"
 							MaxValue="200"
 							MaxAngle="270">
 						</lvc:PieChart>
-						<TextBlock Text="Wydajność [%]" HorizontalAlignment="Center" FontSize="16" Foreground="White"/>
+						<TextBlock Text="Wydajność [%]" HorizontalAlignment="Center" FontSize="14" Foreground="White"/>
 					</StackPanel>
 						<!-- Panel sterowania (przyciski, textbox, targety) -->
-						<Border CornerRadius="10" Background="#0B0A0F" Margin="5" VerticalAlignment="Center" HorizontalAlignment="Center">
+						<Border CornerRadius="10" Background="#0B0A0F" Margin="4" VerticalAlignment="Center" HorizontalAlignment="Center" Width="300">
 							<StackPanel Orientation="Vertical">
-								<TextBlock Text="Aktualny produkt (raw):" Foreground="WhiteSmoke" Margin="8,8,8,0"/>
-								<TextBlock Text="{Binding CurrentProductRawName}" Foreground="WhiteSmoke" FontWeight="SemiBold" Margin="8,0,8,2"/>
+								<TextBlock Text="Aktualny produkt (raw):" Foreground="WhiteSmoke" Margin="8,8,8,0" FontSize="12"/>
+								<TextBlock Text="{Binding CurrentProductRawName}" Foreground="WhiteSmoke" FontWeight="SemiBold" Margin="8,0,8,2" FontSize="12" TextWrapping="Wrap" MaxHeight="36"/>
 								<TextBlock Text="Numer produktu (7 cyfr):" Foreground="LightGray" Margin="8,0,8,0"/>
 								<TextBlock Text="{Binding CurrentProductNumber}" Foreground="LightGray" FontWeight="SemiBold" Margin="8,0,8,2"/>
 								<TextBlock Text="Takt time:" Foreground="LightGray" Margin="8,0,8,0"/>
 								<TextBlock Text="{Binding CurrentProductTaktInfo}" Foreground="LightGray" FontWeight="SemiBold" Margin="8,0,8,8"/>
 								<TextBlock Text="Target (RAM):" Foreground="LightGray" Margin="8,0,8,0"/>
 								<TextBlock Text="{Binding CurrentProductTargetInfo}" Foreground="LightGray" FontWeight="SemiBold" Margin="8,0,8,8"/>
-								<!-- Legacy fallback: global target -->
-								<StackPanel Orientation="Horizontal">
-									<TextBox Width="100" Height="40" Margin="6"
-											 Text="{Binding Target, Mode=TwoWay}"
-											 Watermark="Fallback target"
-											 FontSize="14"
-											 Padding="8"
-											 Background="DarkGray"
-											 Foreground="Black"
-											 BorderThickness="2"/>
-									<Button Content="Zapisz Target" Margin="6" Command="{Binding SaveTargetCommand}" Background="Gray" Foreground="WhiteSmoke"/>
-								</StackPanel>
 							</StackPanel>
 						</Border>
 					</StackPanel>
