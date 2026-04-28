@@ -954,6 +954,17 @@ namespace ViSyncMaster.ViewModels
             if (string.IsNullOrWhiteSpace(defaultPlanProductNumber))
                 defaultPlanProductNumber = normalizedProductNumber;
 
+            var firstPieceByProduct = data
+                .Where(d => d.Time >= rangeStart && d.Time <= rangeEnd && d.Passed > 0 && !string.IsNullOrWhiteSpace(d.ProductNumber))
+                .GroupBy(d => d.ProductNumber)
+                .ToDictionary(g => g.Key, g => g.Min(x => x.Time), StringComparer.OrdinalIgnoreCase);
+
+            var crossMidnight = plan.ShiftEnd <= plan.ShiftStart;
+            var planStartDateTime = ToShiftDateTime(plan.PlanStart, rangeStart, plan.ShiftStart, crossMidnight);
+            var shutDownDateTime = ToShiftDateTime(plan.ShutDown, rangeStart, plan.ShiftStart, crossMidnight);
+            if (shutDownDateTime < planStartDateTime)
+                shutDownDateTime = shutDownDateTime.AddDays(1);
+
             var breakRanges = plan.Breaks
                 .Select(b => (
                     Start: ToShiftDateTime(b.Start, rangeStart, plan.ShiftStart, plan.ShiftEnd <= plan.ShiftStart),
@@ -1013,12 +1024,6 @@ namespace ViSyncMaster.ViewModels
 
                 if (!isBreak)
                 {
-                    var durationSeconds = Math.Max(0, (endInterval - startInterval).TotalSeconds);
-                    if (durationSeconds > 0)
-                        downtimeMinutes = (int)Math.Round(await _machineStatusService.GetDowntimeMinutesAsync(startInterval, endInterval));
-                    var downtimeSeconds = Math.Max(0, downtimeMinutes * 60);
-                    var productiveSeconds = Math.Max(0, durationSeconds - downtimeSeconds);
-
                     intervalProductNumber = ResolveIntervalProductNumber(data, startInterval, endInterval, defaultPlanProductNumber);
                     double intervalTaktSeconds = 0;
                     var hasIntervalTakt = !string.IsNullOrWhiteSpace(intervalProductNumber) &&
@@ -1027,6 +1032,30 @@ namespace ViSyncMaster.ViewModels
 
                     if (hasIntervalTakt)
                     {
+                        var firstPieceForProduct = firstPieceByProduct.TryGetValue(intervalProductNumber, out var fp)
+                            ? fp
+                            : DateTime.MaxValue;
+
+                        if (firstPieceForProduct == DateTime.MaxValue)
+                        {
+                            assignedSum += intervalPlan;
+                            totalProducedNonBreak += produced;
+                            goto FinalizeInterval;
+                        }
+
+                        var effectivePlanStart = startInterval;
+                        if (planStartDateTime > effectivePlanStart)
+                            effectivePlanStart = planStartDateTime;
+                        if (firstPieceForProduct != DateTime.MaxValue && firstPieceForProduct > effectivePlanStart)
+                            effectivePlanStart = firstPieceForProduct;
+
+                        var effectivePlanEnd = endInterval < shutDownDateTime ? endInterval : shutDownDateTime;
+                        var durationSeconds = Math.Max(0, (effectivePlanEnd - effectivePlanStart).TotalSeconds);
+                        if (durationSeconds > 0)
+                            downtimeMinutes = (int)Math.Round(await _machineStatusService.GetDowntimeMinutesAsync(effectivePlanStart, effectivePlanEnd));
+                        var downtimeSeconds = Math.Max(0, downtimeMinutes * 60);
+                        var productiveSeconds = Math.Max(0, durationSeconds - downtimeSeconds);
+
                         var rawIntervalPlan = (int)Math.Floor(productiveSeconds / intervalTaktSeconds);
                         lostUnits = (int)Math.Floor(downtimeSeconds / intervalTaktSeconds);
 
@@ -1049,6 +1078,7 @@ namespace ViSyncMaster.ViewModels
                     totalProducedNonBreak += produced;
                 }
 
+            FinalizeInterval:
                 var efficiency = intervalPlan > 0
                     ? (double)produced / intervalPlan * 100
                     : 0;
