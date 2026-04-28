@@ -946,6 +946,13 @@ namespace ViSyncMaster.ViewModels
                     IsMissingTaktDialogVisible = true;
             }
 
+            var defaultPlanProductNumber = data
+                .Where(d => d.Time >= rangeStart && d.Time <= rangeEnd && !string.IsNullOrWhiteSpace(d.ProductNumber))
+                .Select(d => d.ProductNumber)
+                .FirstOrDefault();
+            if (string.IsNullOrWhiteSpace(defaultPlanProductNumber))
+                defaultPlanProductNumber = normalizedProductNumber;
+
             var breakRanges = plan.Breaks
                 .Select(b => (
                     Start: ToShiftDateTime(b.Start, rangeStart, plan.ShiftStart, plan.ShiftEnd <= plan.ShiftStart),
@@ -1011,7 +1018,7 @@ namespace ViSyncMaster.ViewModels
                     var downtimeSeconds = Math.Max(0, downtimeMinutes * 60);
                     var productiveSeconds = Math.Max(0, durationSeconds - downtimeSeconds);
 
-                    intervalProductNumber = ResolveIntervalProductNumber(data, startInterval, effectiveIntervalEnd);
+                    intervalProductNumber = ResolveIntervalProductNumber(data, startInterval, effectiveIntervalEnd, defaultPlanProductNumber);
                     double intervalTaktSeconds = 0;
                     var hasIntervalTakt = !string.IsNullOrWhiteSpace(intervalProductNumber) &&
                                           _taktCsvService.TryGetTaktSeconds(intervalProductNumber, out intervalTaktSeconds) &&
@@ -1127,7 +1134,7 @@ namespace ViSyncMaster.ViewModels
             return matches[^1].Value;
         }
 
-        private static string ResolveIntervalProductNumber(IEnumerable<ProductionPoint> data, DateTime intervalStart, DateTime intervalEnd)
+        private static string ResolveIntervalProductNumber(IEnumerable<ProductionPoint> data, DateTime intervalStart, DateTime intervalEnd, string fallbackProductNumber)
         {
             var intervalProduct = data
                 .Where(d => d.Time >= intervalStart && d.Time < intervalEnd && !string.IsNullOrWhiteSpace(d.ProductNumber))
@@ -1144,7 +1151,7 @@ namespace ViSyncMaster.ViewModels
                 .Where(d => d.Time < intervalEnd && !string.IsNullOrWhiteSpace(d.ProductNumber))
                 .OrderByDescending(d => d.Time)
                 .Select(d => d.ProductNumber)
-                .FirstOrDefault() ?? string.Empty;
+                .FirstOrDefault() ?? (fallbackProductNumber ?? string.Empty);
         }
 
         private (DateTime Start, DateTime End, ShiftPlan Plan) ResolveSelectedRangeAndPlan()

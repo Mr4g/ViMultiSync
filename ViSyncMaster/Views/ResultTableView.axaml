@@ -37,7 +37,7 @@
 			<Setter Property="Background" Value="Transparent"/>
 			<Setter Property="Foreground" Value="White"/>
 			<Setter Property="Padding" Value="10"/>
-			<Setter Property="FontSize" Value="24"/>
+			<Setter Property="FontSize" Value="18"/>
 			<Setter Property="TextBlock.TextAlignment" Value="Center"/>
 		</Style>
 
