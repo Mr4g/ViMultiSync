@@ -150,7 +150,7 @@
 											 HorizontalAlignment="Stretch"
 											 Height="20"
 											 Margin="0,2"
-											 Foreground="Green"
+											 Foreground="{Binding ProgressBrush}"
 											 Background="#1D1F27"
 											 IsHitTestVisible="False"/>
 										<TextBlock Text="{Binding ProducedUnits}" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="WhiteSmoke" FontWeight="SemiBold"/>

@@ -23,6 +23,15 @@ namespace ViSyncMaster.DataModel
         public string DowntimeDisplay => IsBreak ? "PRZERWA" : DowntimeMinutes.ToString();
         public string LostUnitsDisplay => IsBreak ? "PRZERWA" : LostUnitsDueToDowntime.ToString();
         public string EfficiencyDisplay =>IsBreak ? "PRZERWA" : $"{Efficiency:0.0} %";
+        public string ProgressBrush
+        {
+            get
+            {
+                if (IsBreak) return "#4A4F5A";
+                if (ExpectedUnits <= 0) return "#4A4F5A";
+                return ProducedUnits < ExpectedUnits ? "#D63A3A" : "#13A10E";
+            }
+        }
         // Clamp progress to <0..1> to avoid UI glitches for edge-cases (target=0, produced>expected, negative values).
         public double ProgressRatio
         {
@@ -52,6 +61,7 @@ namespace ViSyncMaster.DataModel
             OnPropertyChanged(nameof(EfficiencyDisplay));
             OnPropertyChanged(nameof(ProgressRatio));
             OnPropertyChanged(nameof(ProgressPercent));
+            OnPropertyChanged(nameof(ProgressBrush));
         }
 
         partial void OnExpectedUnitsChanged(int value)
@@ -59,6 +69,7 @@ namespace ViSyncMaster.DataModel
             OnPropertyChanged(nameof(ExpectedDisplay));
             OnPropertyChanged(nameof(ProgressRatio));
             OnPropertyChanged(nameof(ProgressPercent));
+            OnPropertyChanged(nameof(ProgressBrush));
         }
 
         partial void OnProducedUnitsChanged(int value)
@@ -66,6 +77,7 @@ namespace ViSyncMaster.DataModel
             OnPropertyChanged(nameof(ProducedDisplay));
             OnPropertyChanged(nameof(ProgressRatio));
             OnPropertyChanged(nameof(ProgressPercent));
+            OnPropertyChanged(nameof(ProgressBrush));
         }
 
         partial void OnDowntimeMinutesChanged(int value) => OnPropertyChanged(nameof(DowntimeDisplay));
