@@ -105,10 +105,13 @@ namespace ViSyncMaster.ViewModels
         [ObservableProperty] private string _currentProductRawName = "-";
         [ObservableProperty] private string _currentProductNumber = "-";
         [ObservableProperty] private string _currentProductTaktInfo = "Brak takt time";
+        [ObservableProperty] private string _currentProductTargetInfo = "Brak targetu";
         [ObservableProperty] private bool _isCurrentProductTaktMissing = true;
         [ObservableProperty] private bool _isMissingTaktDialogVisible;
+        [ObservableProperty] private bool _isMissingTargetDialogVisible;
 
         private string _dismissedMissingTaktForProduct = string.Empty;
+        private string _dismissedMissingTargetForProduct = string.Empty;
 
         public IEnumerable<ISeries> Series { get; set; }
         public IEnumerable<ISeries> SeriesEfficiency { get; set; }
@@ -392,7 +395,11 @@ namespace ViSyncMaster.ViewModels
 
             _plannedQtyByProduct[CurrentProductNumber] = planned;
             PlanEditorMessage = $"Zapisano plan qty={planned} dla produktu {CurrentProductNumber}.";
+            CurrentProductTargetInfo = planned.ToString(CultureInfo.InvariantCulture);
+            IsMissingTargetDialogVisible = false;
+            _dismissedMissingTargetForProduct = string.Empty;
             RefreshGroupedResultList();
+            _ = UpdateHourlyPlanDataAsync();
         }
 
         [RelayCommand]
@@ -424,6 +431,15 @@ namespace ViSyncMaster.ViewModels
             IsMissingTaktDialogVisible = false;
             _dismissedMissingTaktForProduct = CurrentProductNumber;
             PlanEditorMessage = $"Brak takt time dla produktu {CurrentProductNumber}.";
+        }
+
+        [RelayCommand]
+        private void CancelMissingTargetDialog()
+        {
+            IsMissingTargetDialogVisible = false;
+            _dismissedMissingTargetForProduct = CurrentProductNumber;
+            CurrentProductTargetInfo = "Brak targetu";
+            PlanEditorMessage = $"Brak targetu dla produktu {CurrentProductNumber}.";
         }
 
         partial void OnTargetChanged(int value)
@@ -887,12 +903,16 @@ namespace ViSyncMaster.ViewModels
                 IsCurrentProductTaktMissing = false;
                 CurrentProductTaktInfo = "Brak danych produktu";
                 IsMissingTaktDialogVisible = false;
+                CurrentProductTargetInfo = "Brak targetu";
+                IsMissingTargetDialogVisible = false;
             }
             else if (string.IsNullOrWhiteSpace(normalizedProductNumber))
             {
                 IsCurrentProductTaktMissing = false;
                 CurrentProductTaktInfo = "Nie znaleziono 7-cyfrowego numeru produktu";
                 IsMissingTaktDialogVisible = false;
+                CurrentProductTargetInfo = "Brak targetu";
+                IsMissingTargetDialogVisible = false;
             }
             else if (hasTakt)
             {
@@ -900,11 +920,28 @@ namespace ViSyncMaster.ViewModels
                 CurrentProductTaktInfo = $"{taktSeconds:0.###} s";
                 IsMissingTaktDialogVisible = false;
                 _dismissedMissingTaktForProduct = string.Empty;
+
+                var hasTarget = _plannedQtyByProduct.TryGetValue(normalizedProductNumber, out var currentTarget) && currentTarget > 0;
+                if (hasTarget)
+                {
+                    CurrentProductTargetInfo = currentTarget.ToString(CultureInfo.InvariantCulture);
+                    IsMissingTargetDialogVisible = false;
+                    _dismissedMissingTargetForProduct = string.Empty;
+                }
+                else
+                {
+                    CurrentProductTargetInfo = "Brak targetu";
+                    IsMissingTargetDialogVisible = false;
+                    if (_dismissedMissingTargetForProduct != normalizedProductNumber)
+                        IsMissingTargetDialogVisible = true;
+                }
             }
             else
             {
                 IsCurrentProductTaktMissing = true;
                 CurrentProductTaktInfo = "Brak takt time";
+                CurrentProductTargetInfo = "Brak targetu";
+                IsMissingTargetDialogVisible = false;
                 if (_dismissedMissingTaktForProduct != normalizedProductNumber)
                     IsMissingTaktDialogVisible = true;
             }
@@ -944,6 +981,7 @@ namespace ViSyncMaster.ViewModels
 
             int assignedSum = 0;
             int totalProducedNonBreak = 0;
+            var assignedByProduct = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
             var now = DateTime.Now;
             var isRangeInProgress = now >= rangeStart && now < rangeEnd;
 
@@ -981,8 +1019,22 @@ namespace ViSyncMaster.ViewModels
 
                     if (hasIntervalTakt)
                     {
-                        intervalPlan = (int)Math.Floor(productiveSeconds / intervalTaktSeconds);
+                        var rawIntervalPlan = (int)Math.Floor(productiveSeconds / intervalTaktSeconds);
                         lostUnits = (int)Math.Floor(downtimeSeconds / intervalTaktSeconds);
+
+                        if (_plannedQtyByProduct.TryGetValue(intervalProductNumber, out var targetQty) && targetQty > 0)
+                        {
+                            var alreadyAssigned = assignedByProduct.TryGetValue(intervalProductNumber, out var assignedForProduct)
+                                ? assignedForProduct
+                                : 0;
+                            var remaining = Math.Max(0, targetQty - alreadyAssigned);
+                            intervalPlan = Math.Min(rawIntervalPlan, remaining);
+                            assignedByProduct[intervalProductNumber] = alreadyAssigned + intervalPlan;
+                        }
+                        else
+                        {
+                            intervalPlan = 0;
+                        }
                     }
 
                     assignedSum += intervalPlan;
