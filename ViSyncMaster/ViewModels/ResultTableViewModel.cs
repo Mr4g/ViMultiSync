@@ -954,6 +954,11 @@ namespace ViSyncMaster.ViewModels
             if (string.IsNullOrWhiteSpace(defaultPlanProductNumber))
                 defaultPlanProductNumber = normalizedProductNumber;
 
+            var firstPieceByProduct = data
+                .Where(d => d.Time >= rangeStart && d.Time <= rangeEnd && d.Passed > 0 && !string.IsNullOrWhiteSpace(d.ProductNumber))
+                .GroupBy(d => d.ProductNumber)
+                .ToDictionary(g => g.Key, g => g.Min(x => x.Time), StringComparer.OrdinalIgnoreCase);
+
             var crossMidnight = plan.ShiftEnd <= plan.ShiftStart;
             var planStartDateTime = ToShiftDateTime(plan.PlanStart, rangeStart, plan.ShiftStart, crossMidnight);
 
@@ -1024,9 +1029,22 @@ namespace ViSyncMaster.ViewModels
 
                     if (hasIntervalTakt)
                     {
+                        var firstPieceForProduct = firstPieceByProduct.TryGetValue(intervalProductNumber, out var fp)
+                            ? fp
+                            : DateTime.MaxValue;
+
+                        if (firstPieceForProduct == DateTime.MaxValue)
+                        {
+                            assignedSum += intervalPlan;
+                            totalProducedNonBreak += produced;
+                            goto FinalizeInterval;
+                        }
+
                         var effectivePlanStart = startInterval;
                         if (planStartDateTime > effectivePlanStart)
                             effectivePlanStart = planStartDateTime;
+                        if (firstPieceForProduct > effectivePlanStart)
+                            effectivePlanStart = firstPieceForProduct;
                         var effectivePlanEnd = endInterval;
                         var durationSeconds = Math.Max(0, (effectivePlanEnd - effectivePlanStart).TotalSeconds);
                         if (durationSeconds > 0)
@@ -1055,6 +1073,7 @@ namespace ViSyncMaster.ViewModels
                     assignedSum += intervalPlan;
                     totalProducedNonBreak += produced;
                 }
+            FinalizeInterval:
                 var efficiency = intervalPlan > 0
                     ? (double)produced / intervalPlan * 100
                     : 0;
