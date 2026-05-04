@@ -1533,9 +1533,11 @@
 					</ItemsControl>
 					<Button Classes="PopupButton" Content="Anuluj" Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).CancelVrsktQualityReportCommand}" />
 				</StackPanel>
-				<StackPanel IsVisible="{Binding VrsktQualityReasonSelectionVisible}" Spacing="10">
-					<TextBlock Text="Wybierz powód jakościowy" HorizontalAlignment="Center"/>
-					<TextBlock Text="{Binding SelectedVrsktQualityElementType, StringFormat=Wybrana kategoria: {0}}" HorizontalAlignment="Center" FontWeight="Bold"/>
+					<StackPanel IsVisible="{Binding VrsktQualityReasonSelectionVisible}" Spacing="10">
+						<TextBlock Text="Wybierz powód jakościowy" HorizontalAlignment="Center"/>
+						<Border Background="#3A3F4B" CornerRadius="10" Padding="10" HorizontalAlignment="Center">
+							<TextBlock Text="{Binding SelectedVrsktQualityElementType, StringFormat=Wybrana kategoria: {0}}" HorizontalAlignment="Center" FontWeight="Bold"/>
+						</Border>
 					<ItemsControl ItemsSource="{Binding VrsktQualityReasons}">
 						<ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Rows="4" Columns="3"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
 						<ItemsControl.ItemTemplate><DataTemplate x:DataType="x:String"><Button Classes="PopupButton" Content="{Binding}" Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).SubmitVrsktQualityReasonCommand}" CommandParameter="{Binding}"/></DataTemplate></ItemsControl.ItemTemplate>

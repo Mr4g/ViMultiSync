@@ -170,11 +170,12 @@ namespace ViSyncMaster.Views
 
             var positionProductionIssuesButton = mProductionIssuesPanelButton.TranslatePoint(new Point(), MainGrid) ??
                              throw new ArgumentException("Cannot get TranslatePoint from Configuration");
-
+            var positionDowntimeButton = mDowntimePanelButton.TranslatePoint(new Point(), MainGrid) ??
+                             throw new ArgumentException("Cannot get TranslatePoint from DowntimePanelButton");
 
             mProductionIssuesPanelPopup.Margin = new Thickness(
                 positionProductionIssuesButton.X + mProductionIssuesPanelButton.Bounds.Right,
-                positionProductionIssuesButton.Y,
+                positionDowntimeButton.Y,
                 0,
                 20);
 
@@ -204,7 +205,7 @@ namespace ViSyncMaster.Views
                 positionInfoButton.X,
                 positionInfoButton.Y + mInfoPanelButton.Bounds.Height,
                 0,
-                0); // Margines od do³u
+                0); // Margines od doÂ³u
         }
 
         private void InputElement_OnPointerPressed(object? sender, PointerPressedEventArgs e) =>
@@ -223,7 +224,7 @@ namespace ViSyncMaster.Views
 
                 if (textBox.Name == "NumberStationTextBox" || textBox.Name == "VinHeatPumpTextBox")
                 {
-                    // Je¿eli nazwa TextBox jest taka, jakiej nie chcesz obs³ugiwaæ, opuœæ metodê
+                    // JeÂ¿eli nazwa TextBox jest taka, jakiej nie chcesz obsÂ³ugiwaÃ¦, opuÂœÃ¦ metodÃª
                     return;
                 }
                 bool isPasswordChar = false;
