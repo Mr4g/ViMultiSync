@@ -1510,7 +1510,7 @@
 		</controls:AnimatedPopup>
 
 		<!-- ProductionIssues Panel Popup Open-->
-
+//
 		<controls:AnimatedPopup
             Grid.Row="0"
             Grid.RowSpan="3"
