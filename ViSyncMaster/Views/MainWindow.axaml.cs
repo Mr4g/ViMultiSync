@@ -171,10 +171,12 @@ namespace ViSyncMaster.Views
             var positionProductionIssuesButton = mProductionIssuesPanelButton.TranslatePoint(new Point(), MainGrid) ??
                              throw new ArgumentException("Cannot get TranslatePoint from Configuration");
 
+            var positionDowntimeButton = mDowntimePanelButton.TranslatePoint(new Point(), MainGrid) ??
+                             throw new ArgumentException("Cannot get TranslatePoint from DowntimePanelButton");
 
             mProductionIssuesPanelPopup.Margin = new Thickness(
                 positionProductionIssuesButton.X + mProductionIssuesPanelButton.Bounds.Right,
-                positionProductionIssuesButton.Y,
+                positionDowntimeButton.Y,
                 0,
                 20);
 
