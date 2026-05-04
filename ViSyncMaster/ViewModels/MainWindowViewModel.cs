@@ -587,6 +587,7 @@ namespace ViSyncMaster.ViewModels
         private ProductionIssuesPanelItem? _selectedProductionIssuesPanelItem;
         [ObservableProperty] private bool _vrsktQualityElementSelectionVisible;
         [ObservableProperty] private bool _vrsktQualityReasonSelectionVisible;
+        [ObservableProperty] private bool _vrsktQualityFlowActive;
         [ObservableProperty] private bool _legacyProductionIssuesVisible = true;
         [ObservableProperty] private string _vrsktQualityConfirmationText = string.Empty;
         [ObservableProperty] private bool _vrsktQualityConfirmationVisible;
@@ -1931,6 +1932,7 @@ namespace ViSyncMaster.ViewModels
             VrsktQualityReasons = new ObservableCollection<string>();
             VrsktQualityElementSelectionVisible = true;
             VrsktQualityReasonSelectionVisible = false;
+            VrsktQualityFlowActive = true;
             LegacyProductionIssuesVisible = false;
             SelectedVrsktQualityElementType = null;
             SelectedVrsktQualityReason = null;
@@ -1944,6 +1946,7 @@ namespace ViSyncMaster.ViewModels
         {
             VrsktQualityElementSelectionVisible = false;
             VrsktQualityReasonSelectionVisible = false;
+            VrsktQualityFlowActive = false;
             LegacyProductionIssuesVisible = true;
             SelectedVrsktQualityElementType = null;
             SelectedVrsktQualityReason = null;
