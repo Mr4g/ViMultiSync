@@ -1522,7 +1522,8 @@
             Background="#232228"
             Open="{Binding ProductionIssuesPanelIsOpen, Mode=TwoWay}"
             DuringOpening="{Binding ControlPanelVisible, Mode=TwoWay}">
-			<Border Background="#232228" Padding="20" CornerRadius="24">
+			<Border Background="#232228" Padding="20" CornerRadius="24" MaxHeight="700" VerticalAlignment="Center">
+				<ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
 				<Grid>
 					<StackPanel IsVisible="{Binding VrsktQualityElementSelectionVisible}" Spacing="10">
 					<TextBlock Text="Wybierz typ elementu" HorizontalAlignment="Center"/>
@@ -1571,6 +1572,7 @@
 					</ItemsControl.ItemTemplate>
 					</ItemsControl>
 				</Grid>
+				</ScrollViewer>
 			</Border>
 		</controls:AnimatedPopup>
 
