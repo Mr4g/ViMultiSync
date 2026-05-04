@@ -1522,7 +1522,7 @@
             Background="#232228"
             Open="{Binding ProductionIssuesPanelIsOpen, Mode=TwoWay}"
             DuringOpening="{Binding ControlPanelVisible, Mode=TwoWay}">
-			<Border Background="#232228" Padding="20" CornerRadius="24" MaxHeight="700" VerticalAlignment="Center">
+			<Border Background="#232228" Padding="20" CornerRadius="24" MaxHeight="760" VerticalAlignment="Top" Margin="0,40,0,0">
 				<ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
 				<Grid>
 					<StackPanel IsVisible="{Binding VrsktQualityElementSelectionVisible}" Spacing="10">
