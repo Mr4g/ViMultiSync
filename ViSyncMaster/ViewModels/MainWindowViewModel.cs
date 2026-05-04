@@ -449,6 +449,8 @@ namespace ViSyncMaster.ViewModels
         private bool _userButtonIsVisible;
         [ObservableProperty]
         private bool _scadaButtonIsVisible;
+        [ObservableProperty]
+        private bool _qualityIssuesTabIsVisible;
 
         [ObservableProperty] private bool isTimeStampFromiPC = true;
 
@@ -2239,6 +2241,7 @@ namespace ViSyncMaster.ViewModels
                     TargetPlanButtonIsVisible = true;
                     UserButtonIsVisible = false;
                     ScadaButtonIsVisible = false;
+                    QualityIssuesTabIsVisible = true;
                     break;
 
                 case "CUPP":
@@ -2249,6 +2252,7 @@ namespace ViSyncMaster.ViewModels
                     TargetPlanButtonIsVisible = false;
                     UserButtonIsVisible = true;
                     ScadaButtonIsVisible = false;
+                    QualityIssuesTabIsVisible = false;
                     break;
 
                 case "ODUSCADA":
@@ -2259,6 +2263,7 @@ namespace ViSyncMaster.ViewModels
                     TargetPlanButtonIsVisible = false;
                     UserButtonIsVisible = true;
                     ScadaButtonIsVisible = true;
+                    QualityIssuesTabIsVisible = false;
                     break;
 
                 default:
@@ -2268,6 +2273,7 @@ namespace ViSyncMaster.ViewModels
                     InstructionButtonIsVisible = true;
                     TargetPlanButtonIsVisible = true;
                     UserButtonIsVisible = true;
+                    QualityIssuesTabIsVisible = false;
                     break;
             }
         }

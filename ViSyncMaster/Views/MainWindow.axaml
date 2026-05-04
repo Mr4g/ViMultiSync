@@ -2093,10 +2093,16 @@
 						<TextBlock Text="Logistyka"/>
 					</StackPanel>
 				</Button>
-				<Button Classes="NavigationButton" Name="ProductionIssuesPanelButton" Command="{Binding OpenProductionIssuesFlowCommand}">
+				<Button Classes="NavigationButton" Name="ProductionIssuesPanelButton" Command="{Binding #ProductionIssuesPanelPopup.BeginOpen}">
 					<StackPanel Orientation="Horizontal" HorizontalAlignment="Left"  Margin="5">
 						<Image HorizontalAlignment="Left" Source="{SvgImage /Assets/icons/productionIssues.svg}"/>
 						<TextBlock Text="Produkcja"/>
+					</StackPanel>
+				</Button>
+				<Button Classes="NavigationButton" IsVisible="{Binding QualityIssuesTabIsVisible}" Name="QualityIssuesPanelButton" Command="{Binding OpenProductionIssuesFlowCommand}">
+					<StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="5">
+						<Image HorizontalAlignment="Left" Source="{SvgImage /Assets/icons/qa.svg}"/>
+						<TextBlock Text="Wady"/>
 					</StackPanel>
 				</Button>
 			</StackPanel>
