@@ -168,6 +168,7 @@ namespace ViSyncMaster.Views
                 0,
                 20);
 
+            //Otwiera siê z prawej strony, ale jest problem z pozycjonowaniem, bo jest za wysoko, a powinien byæ na tej samej wysokoœci co przycisk
             var positionProductionIssuesButton = mProductionIssuesPanelButton.TranslatePoint(new Point(), MainGrid) ??
                              throw new ArgumentException("Cannot get TranslatePoint from Configuration");
             var positionDowntimeButton = mDowntimePanelButton.TranslatePoint(new Point(), MainGrid) ??
