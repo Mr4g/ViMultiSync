@@ -1523,7 +1523,8 @@
             Open="{Binding ProductionIssuesPanelIsOpen, Mode=TwoWay}"
             DuringOpening="{Binding ControlPanelVisible, Mode=TwoWay}">
 			<Border Background="#232228" Padding="20" CornerRadius="24">
-				<StackPanel IsVisible="{Binding VrsktQualityElementSelectionVisible}" Spacing="10">
+				<Grid>
+					<StackPanel IsVisible="{Binding VrsktQualityElementSelectionVisible}" Spacing="10">
 					<TextBlock Text="Wybierz typ elementu" HorizontalAlignment="Center"/>
 					<ItemsControl ItemsSource="{Binding VrsktQualityElementTypes}">
 						<ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Rows="4" Columns="3"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
@@ -1545,7 +1546,7 @@
 					</StackPanel>
 					<TextBlock IsVisible="{Binding VrsktQualityConfirmationVisible}" Text="{Binding VrsktQualityConfirmationText}" HorizontalAlignment="Center"/>
 				</StackPanel>
-				<ItemsControl IsVisible="{Binding LegacyProductionIssuesVisible}" ItemsSource="{Binding ProductionIssuesStatusPanel}">
+					<ItemsControl IsVisible="{Binding LegacyProductionIssuesVisible}" ItemsSource="{Binding ProductionIssuesStatusPanel}">
 					<ItemsControl.ItemTemplate>
 						<DataTemplate>
 							<ItemsControl ItemsSource="{Binding}">
@@ -1568,7 +1569,8 @@
 							</ItemsControl>
 						</DataTemplate>
 					</ItemsControl.ItemTemplate>
-				</ItemsControl>
+					</ItemsControl>
+				</Grid>
 			</Border>
 		</controls:AnimatedPopup>
 
