@@ -1509,7 +1509,7 @@
 			</Border>
 		</controls:AnimatedPopup>
 
-		<!-- ProductionIssues Panel Popup Open-->
+		<!-- ProductionIssues Panel Popup Opennnn-->
 
 		<controls:AnimatedPopup
             Grid.Row="0"
@@ -1522,8 +1522,57 @@
             Background="#232228"
             Open="{Binding ProductionIssuesPanelIsOpen, Mode=TwoWay}"
             DuringOpening="{Binding ControlPanelVisible, Mode=TwoWay}">
-			<Border Background="#232228" Padding="20" CornerRadius="24">
-				<ItemsControl ItemsSource="{Binding ProductionIssuesStatusPanel}">
+			<Border Background="#232228" Padding="20" CornerRadius="24" MaxHeight="760" VerticalAlignment="Top" Margin="0,40,0,0">
+				<ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+				<Grid>
+						<Grid IsVisible="{Binding VrsktQualityFlowActive}" ColumnDefinitions="*,20,*">
+							<StackPanel Grid.Column="0" Spacing="10">
+							<TextBlock Text="Wybierz typ elementu" HorizontalAlignment="Center"/>
+							<Border IsVisible="{Binding VrsktQualityReasonSelectionVisible}" Background="#3A3F4B" CornerRadius="10" Padding="8" HorizontalAlignment="Center">
+								<TextBlock Text="{Binding SelectedVrsktQualityElementType, StringFormat=Wybrano: {0}}" FontWeight="Bold"/>
+							</Border>
+								<ItemsControl ItemsSource="{Binding VrsktQualityElementTypes}">
+									<ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Rows="4" Columns="3"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+									<ItemsControl.ItemTemplate>
+										<DataTemplate x:DataType="x:String">
+											<Grid>
+												<Button Classes="PopupButton" Content="{Binding}" Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).SelectVrsktQualityElementTypeCommand}" CommandParameter="{Binding}"/>
+												<Border BorderBrush="#F28C28" BorderThickness="3" CornerRadius="18" IsHitTestVisible="False">
+													<Border.IsVisible>
+														<MultiBinding Converter="{StaticResource StringPairEqualsConverter}">
+															<Binding Path="$parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).SelectedVrsktQualityElementType"/>
+															<Binding/>
+														</MultiBinding>
+													</Border.IsVisible>
+												</Border>
+											</Grid>
+										</DataTemplate>
+									</ItemsControl.ItemTemplate>
+								</ItemsControl>
+								<Button Classes="PopupButton" Content="Anuluj" Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).CancelVrsktQualityReportCommand}" />
+							</StackPanel>
+							<Border Grid.Column="1" Width="1" Background="#6B6F78" HorizontalAlignment="Center" VerticalAlignment="Stretch"/>
+
+						<StackPanel Grid.Column="2" IsVisible="{Binding VrsktQualityReasonSelectionVisible}" Spacing="10">
+							<TextBlock Text="Wybierz powód jakościowy" HorizontalAlignment="Center"/>
+							<Border Background="#3A3F4B" CornerRadius="10" Padding="10" HorizontalAlignment="Center">
+								<TextBlock Text="{Binding SelectedVrsktQualityElementType, StringFormat=Wybrana kategoria: {0}}" HorizontalAlignment="Center" FontWeight="Bold"/>
+							</Border>
+							<ItemsControl ItemsSource="{Binding VrsktQualityReasons}">
+								<ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Rows="4" Columns="3"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+								<ItemsControl.ItemTemplate><DataTemplate x:DataType="x:String"><Button Classes="PopupButton" Content="{Binding}" Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).SubmitVrsktQualityReasonCommand}" CommandParameter="{Binding}"/></DataTemplate></ItemsControl.ItemTemplate>
+							</ItemsControl>
+							<TextBox IsVisible="{Binding VrsktQualityCustomDescriptionVisible}" Watermark="Własny opis" Text="{Binding VrsktQualityCustomDescription, Mode=TwoWay}" />
+							<Button IsVisible="{Binding VrsktQualityCustomDescriptionVisible}" Classes="PopupButton" Content="Wyślij zgłoszenie" Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).SubmitVrsktQualityCustomDescriptionCommand}" />
+							<StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10">
+								<Button Classes="PopupButton" Content="Wstecz" Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).BackVrsktQualityToCategoryCommand}" />
+								<Button Classes="PopupButton" Content="Anuluj" Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).CancelVrsktQualityReportCommand}" />
+							</StackPanel>
+							<TextBlock IsVisible="{Binding VrsktQualityConfirmationVisible}" Text="{Binding VrsktQualityConfirmationText}" HorizontalAlignment="Center"/>
+						</StackPanel>
+					</Grid>
+
+					<ItemsControl IsVisible="{Binding LegacyProductionIssuesVisible}" ItemsSource="{Binding ProductionIssuesStatusPanel}">
 					<ItemsControl.ItemTemplate>
 						<DataTemplate>
 							<ItemsControl ItemsSource="{Binding}">
@@ -1546,7 +1595,9 @@
 							</ItemsControl>
 						</DataTemplate>
 					</ItemsControl.ItemTemplate>
-				</ItemsControl>
+					</ItemsControl>
+				</Grid>
+				</ScrollViewer>
 			</Border>
 		</controls:AnimatedPopup>
 
@@ -2073,6 +2124,12 @@
 					<StackPanel Orientation="Horizontal" HorizontalAlignment="Left"  Margin="5">
 						<Image HorizontalAlignment="Left" Source="{SvgImage /Assets/icons/productionIssues.svg}"/>
 						<TextBlock Text="Produkcja"/>
+					</StackPanel>
+				</Button>
+				<Button Classes="NavigationButton" IsVisible="{Binding QualityIssuesTabIsVisible}" Name="QualityIssuesPanelButton" Command="{Binding OpenProductionIssuesFlowCommand}">
+					<StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="5">
+						<Image HorizontalAlignment="Left" Source="{SvgImage /Assets/icons/qa.svg}"/>
+						<TextBlock Text="Wady"/>
 					</StackPanel>
 				</Button>
 			</StackPanel>

@@ -65,6 +65,7 @@ namespace ViSyncMaster.ViewModels
         private TestingPassedMessage _messageToSplunkPassed;
         private ConnectedMessage _messageToSplunkConnected;
         private Rs232DataProcessor _rs232Processor;
+        private Rs232Data? _lastRs232Data;
         private MessagePgToSplunk _messageToSplunkPg;
         private int _machineStatusCounter = 6;
         private GenericSplunkLogger<IEntity> _splunkLogger;
@@ -104,6 +105,20 @@ namespace ViSyncMaster.ViewModels
        
 
         private List<CallForServicePanelItem> _allCallForServicePanelData = new List<CallForServicePanelItem>();
+        private readonly Dictionary<string, List<string>> _vrsktQualityCategoryReasons = new()
+        {
+            ["Kabel"] = new() { "Uszkodzenia mechaniczne", "Długości", "Materiał" },
+            ["Zacisk"] = new() { "Uszkodzenia mechaniczne", "Materiał", "Brak", "Pomiary", "Jakość" },
+            ["Wtyczka"] = new() { "Uszkodzenia mechaniczne", "Materiał", "Brak", "Pomiary", "Jakość", "Montaż", "Nadruk" },
+            ["Tulejka"] = new() { "Uszkodzenia mechaniczne", "Materiał", "Brak", "Montaż" },
+            ["Binder"] = new() { "Uszkodzenia mechaniczne", "Odległość", "Materiał", "Brak", "Montaż" },
+            ["Wtrysk"] = new() { "Uszkodzenia mechaniczne", "Odległość", "Materiał", "Brak", "Wady odlewu", "Pomiary" },
+            ["Etykiety"] = new() { "Uszkodzenia mechaniczne", "Odległość", "Materiał", "Brak", "Nadruk" },
+            ["Termokurcz"] = new() { "Uszkodzenia mechaniczne", "Długości", "Odległość", "Materiał", "Brak" },
+            ["Sensory, komponenty"] = new() { "Uszkodzenia mechaniczne", "Materiał", "Odległość", "Brak", "Pomiary", "Jakość", "Montaż", "Nadruk", "Rezystancja" },
+            ["Wady dostawców"] = new() { "Uszkodzenia mechaniczne", "Materiał", "Długości", "Brak", "Pomiary", "Jakość", "Montaż", "Nadruk", "Rezystancja" },
+            ["Inne"] = new() { "Własny opis" }
+        };
 
         /// <summary>
         /// Klasa odpowiedzialna za wysyłanie danych, zarządzanie kolejką wiadomości oraz zapisywanie i odczytywanie statusów maszyn.
@@ -434,6 +449,8 @@ namespace ViSyncMaster.ViewModels
         private bool _userButtonIsVisible;
         [ObservableProperty]
         private bool _scadaButtonIsVisible;
+        [ObservableProperty]
+        private bool _qualityIssuesTabIsVisible;
 
         [ObservableProperty] private bool isTimeStampFromiPC = true;
 
@@ -568,6 +585,18 @@ namespace ViSyncMaster.ViewModels
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(ProductionIssuesPanelButtonText))]
         private ProductionIssuesPanelItem? _selectedProductionIssuesPanelItem;
+        [ObservableProperty] private bool _vrsktQualityElementSelectionVisible;
+        [ObservableProperty] private bool _vrsktQualityReasonSelectionVisible;
+        [ObservableProperty] private bool _vrsktQualityFlowActive;
+        [ObservableProperty] private bool _legacyProductionIssuesVisible = true;
+        [ObservableProperty] private string _vrsktQualityConfirmationText = string.Empty;
+        [ObservableProperty] private bool _vrsktQualityConfirmationVisible;
+        [ObservableProperty] private ObservableCollection<string> _vrsktQualityElementTypes = new();
+        [ObservableProperty] private ObservableCollection<string> _vrsktQualityReasons = new();
+        [ObservableProperty] private string? _selectedVrsktQualityElementType;
+        [ObservableProperty] private string? _selectedVrsktQualityReason;
+        [ObservableProperty] private string? _vrsktQualityCustomDescription;
+        [ObservableProperty] private bool _vrsktQualityCustomDescriptionVisible;
 
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(ReasonDowntimeMechanicalPanelButtonText))]
@@ -666,6 +695,115 @@ namespace ViSyncMaster.ViewModels
 
         [RelayCommand]
         public void ProductionIssuesPanelButtonPressed() => ProductionIssuesPanelIsOpen ^= true;
+
+        [RelayCommand]
+        public void OpenProductionIssuesFlow()
+        {
+            if (string.Equals(appConfig.AppMode, "VRSKT", StringComparison.OrdinalIgnoreCase))
+            {
+                InitializeVrsktQualityFlow();
+                ProductionIssuesPanelIsOpen = true;
+                ControlPanelVisible = true;
+                return;
+            }
+            ProductionIssuesPanelButtonPressed();
+        }
+
+        [RelayCommand]
+        public void SelectVrsktQualityElementType(string elementType)
+        {
+            if (!string.Equals(appConfig.AppMode, "VRSKT", StringComparison.OrdinalIgnoreCase)) return;
+            SelectedVrsktQualityElementType = elementType;
+            VrsktQualityReasons = new ObservableCollection<string>(_vrsktQualityCategoryReasons.GetValueOrDefault(elementType, new List<string>()));
+            VrsktQualityElementSelectionVisible = false;
+            VrsktQualityReasonSelectionVisible = true;
+            VrsktQualityCustomDescriptionVisible = false;
+            VrsktQualityCustomDescription = string.Empty;
+        }
+
+        [RelayCommand]
+        public void BackVrsktQualityToCategory()
+        {
+            if (!string.Equals(appConfig.AppMode, "VRSKT", StringComparison.OrdinalIgnoreCase)) return;
+            VrsktQualityReasonSelectionVisible = false;
+            VrsktQualityElementSelectionVisible = true;
+            SelectedVrsktQualityReason = null;
+            VrsktQualityCustomDescriptionVisible = false;
+            VrsktQualityCustomDescription = string.Empty;
+        }
+
+        [RelayCommand]
+        public void CancelVrsktQualityReport()
+        {
+            ProductionIssuesPanelIsOpen = false;
+            ControlPanelVisible = false;
+            ResetVrsktQualityFlowState();
+        }
+
+        [RelayCommand]
+        public async Task SubmitVrsktQualityReason(string qualityReason)
+        {
+            if (!string.Equals(appConfig.AppMode, "VRSKT", StringComparison.OrdinalIgnoreCase)) return;
+            SelectedVrsktQualityReason = qualityReason;
+            VrsktQualityCustomDescriptionVisible = string.Equals(SelectedVrsktQualityElementType, "Inne", StringComparison.OrdinalIgnoreCase);
+            if (VrsktQualityCustomDescriptionVisible)
+            {
+                return;
+            }
+            await SendVrsktQualityReportAsync();
+        }
+
+        [RelayCommand]
+        public async Task SubmitVrsktQualityCustomDescription()
+        {
+            if (!string.Equals(appConfig.AppMode, "VRSKT", StringComparison.OrdinalIgnoreCase)) return;
+            await SendVrsktQualityReportAsync();
+        }
+
+        private async Task SendVrsktQualityReportAsync()
+        {
+            var activeProductNumber = _lastRs232Data?.ProductName;
+
+            if (string.IsNullOrWhiteSpace(activeProductNumber) ||
+                string.IsNullOrWhiteSpace(SelectedVrsktQualityElementType) ||
+                string.IsNullOrWhiteSpace(SelectedVrsktQualityReason))
+            {
+                VrsktQualityConfirmationText = "Brak wymaganych danych zgłoszenia jakościowego.";
+                VrsktQualityConfirmationVisible = true;
+                await Task.Delay(TimeSpan.FromSeconds(3));
+                VrsktQualityConfirmationVisible = false;
+                return;
+            }
+            if (VrsktQualityCustomDescriptionVisible && string.IsNullOrWhiteSpace(VrsktQualityCustomDescription))
+            {
+                VrsktQualityConfirmationText = "Dla kategorii Inne wymagany jest własny opis.";
+                VrsktQualityConfirmationVisible = true;
+                await Task.Delay(TimeSpan.FromSeconds(3));
+                VrsktQualityConfirmationVisible = false;
+                return;
+            }
+
+            var qualityReport = new QualityIssueReportMessage
+            {
+                AppMode = "VRSKT",
+                ActiveProductNumber = activeProductNumber,
+                ElementType = SelectedVrsktQualityElementType,
+                QualityReason = SelectedVrsktQualityReason,
+                CustomDescription = VrsktQualityCustomDescriptionVisible ? VrsktQualityCustomDescription : null,
+                EventType = "QualityIssueReported",
+                ReportNature = "InformationalOnly_NoMachineOrProcessImpact",
+                TimestampUtc = DateTime.UtcNow
+            };
+
+            await SendMessageToSplunk(qualityReport);
+            VrsktQualityConfirmationText = "Zgłoszenie jakościowe wysłane poprawnie";
+            VrsktQualityConfirmationVisible = true;
+            await Task.Delay(TimeSpan.FromSeconds(3));
+            VrsktQualityConfirmationVisible = false;
+            ProductionIssuesPanelIsOpen = false;
+            ControlPanelVisible = false;
+            ResetVrsktQualityFlowState();
+        }
 
         [RelayCommand]
         public void ReasonDowntimeMechanicalPanelButtonPressed() => ReasonDowntimeMechanicalPanelIsOpen ^= true;
@@ -1769,6 +1907,7 @@ namespace ViSyncMaster.ViewModels
         private async void OnFrameReceived(object sender, Rs232Data testData)
         {
             if (testData == null) return;
+            _lastRs232Data = testData;
 
             testData.Producing = testData.Producing?.ToLower();
             testData.TestingPassed = testData.TestingPassed?.ToLower();
@@ -1785,6 +1924,34 @@ namespace ViSyncMaster.ViewModels
 
             // Nowa logika – delegujemy analizę danych do Rs232DataProcessor
             _rs232Processor.Process(testData);
+        }
+
+        private void InitializeVrsktQualityFlow()
+        {
+            VrsktQualityElementTypes = new ObservableCollection<string>(_vrsktQualityCategoryReasons.Keys);
+            VrsktQualityReasons = new ObservableCollection<string>();
+            VrsktQualityElementSelectionVisible = true;
+            VrsktQualityReasonSelectionVisible = false;
+            VrsktQualityFlowActive = true;
+            LegacyProductionIssuesVisible = false;
+            SelectedVrsktQualityElementType = null;
+            SelectedVrsktQualityReason = null;
+            VrsktQualityCustomDescription = string.Empty;
+            VrsktQualityCustomDescriptionVisible = false;
+            VrsktQualityConfirmationVisible = false;
+            VrsktQualityConfirmationText = string.Empty;
+        }
+
+        private void ResetVrsktQualityFlowState()
+        {
+            VrsktQualityElementSelectionVisible = false;
+            VrsktQualityReasonSelectionVisible = false;
+            VrsktQualityFlowActive = false;
+            LegacyProductionIssuesVisible = true;
+            SelectedVrsktQualityElementType = null;
+            SelectedVrsktQualityReason = null;
+            VrsktQualityCustomDescription = string.Empty;
+            VrsktQualityCustomDescriptionVisible = false;
         }
 
         private void OnProducingStarted(object sender, Rs232Data data)
@@ -2077,6 +2244,7 @@ namespace ViSyncMaster.ViewModels
                     TargetPlanButtonIsVisible = true;
                     UserButtonIsVisible = false;
                     ScadaButtonIsVisible = false;
+                    QualityIssuesTabIsVisible = true;
                     break;
 
                 case "CUPP":
@@ -2087,6 +2255,7 @@ namespace ViSyncMaster.ViewModels
                     TargetPlanButtonIsVisible = false;
                     UserButtonIsVisible = true;
                     ScadaButtonIsVisible = false;
+                    QualityIssuesTabIsVisible = false;
                     break;
 
                 case "ODUSCADA":
@@ -2097,6 +2266,7 @@ namespace ViSyncMaster.ViewModels
                     TargetPlanButtonIsVisible = false;
                     UserButtonIsVisible = true;
                     ScadaButtonIsVisible = true;
+                    QualityIssuesTabIsVisible = false;
                     break;
 
                 default:
@@ -2106,6 +2276,7 @@ namespace ViSyncMaster.ViewModels
                     InstructionButtonIsVisible = true;
                     TargetPlanButtonIsVisible = true;
                     UserButtonIsVisible = true;
+                    QualityIssuesTabIsVisible = false;
                     break;
             }
         }
