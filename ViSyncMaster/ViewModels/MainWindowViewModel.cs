@@ -763,6 +763,15 @@ namespace ViSyncMaster.ViewModels
         private async Task SendVrsktQualityReportAsync()
         {
             var activeProductNumber = _lastRs232Data?.ProductName;
+            if (string.IsNullOrWhiteSpace(activeProductNumber))
+            {
+                var resultHistory = await _repositoryTestingResult.GetFromCacheTestResult();
+                activeProductNumber = resultHistory?
+                    .Where(x => !string.IsNullOrWhiteSpace(x.ProductName))
+                    .OrderByDescending(x => x.Id)
+                    .Select(x => x.ProductName)
+                    .FirstOrDefault();
+            }
 
             if (string.IsNullOrWhiteSpace(activeProductNumber) ||
                 string.IsNullOrWhiteSpace(SelectedVrsktQualityElementType) ||
