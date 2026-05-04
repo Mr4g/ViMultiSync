@@ -1525,7 +1525,7 @@
 			<Border Background="#232228" Padding="20" CornerRadius="24" MaxHeight="760" VerticalAlignment="Top" Margin="0,40,0,0">
 				<ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
 				<Grid>
-					<Grid IsVisible="{Binding VrsktQualityFlowActive}" ColumnDefinitions="*,*" ColumnSpacing="20">
+					<Grid IsVisible="{Binding VrsktQualityFlowActive}" ColumnDefinitions="*,20,*">
 						<StackPanel Grid.Column="0" Spacing="10">
 							<TextBlock Text="Wybierz typ elementu" HorizontalAlignment="Center"/>
 							<Border IsVisible="{Binding VrsktQualityReasonSelectionVisible}" Background="#3A3F4B" CornerRadius="10" Padding="8" HorizontalAlignment="Center">
@@ -1538,7 +1538,7 @@
 							<Button Classes="PopupButton" Content="Anuluj" Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).CancelVrsktQualityReportCommand}" />
 						</StackPanel>
 
-						<StackPanel Grid.Column="1" IsVisible="{Binding VrsktQualityReasonSelectionVisible}" Spacing="10">
+						<StackPanel Grid.Column="2" IsVisible="{Binding VrsktQualityReasonSelectionVisible}" Spacing="10">
 							<TextBlock Text="Wybierz powód jakościowy" HorizontalAlignment="Center"/>
 							<Border Background="#3A3F4B" CornerRadius="10" Padding="10" HorizontalAlignment="Center">
 								<TextBlock Text="{Binding SelectedVrsktQualityElementType, StringFormat=Wybrana kategoria: {0}}" HorizontalAlignment="Center" FontWeight="Bold"/>
