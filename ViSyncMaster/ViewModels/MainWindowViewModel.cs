@@ -768,7 +768,23 @@ namespace ViSyncMaster.ViewModels
                 string.IsNullOrWhiteSpace(SelectedVrsktQualityElementType) ||
                 string.IsNullOrWhiteSpace(SelectedVrsktQualityReason))
             {
-                ShowMessageBox("Brak wymaganych danych zgłoszenia jakościowego.");
+                var missingFields = new List<string>();
+
+                if (string.IsNullOrWhiteSpace(activeProductNumber))
+                {
+                    missingFields.Add("numer aktualnie produkowanej sztuki (ActiveProductNumber)");
+                }
+                if (string.IsNullOrWhiteSpace(SelectedVrsktQualityElementType))
+                {
+                    missingFields.Add("typ elementu");
+                }
+                if (string.IsNullOrWhiteSpace(SelectedVrsktQualityReason))
+                {
+                    missingFields.Add("powód jakościowy");
+                }
+
+                var details = string.Join(Environment.NewLine, missingFields.Select(field => $"- {field}"));
+                ShowMessageBox($"Brak wymaganych danych zgłoszenia jakościowego:{Environment.NewLine}{details}");
                 return;
             }
             if (VrsktQualityCustomDescriptionVisible && string.IsNullOrWhiteSpace(VrsktQualityCustomDescription))
