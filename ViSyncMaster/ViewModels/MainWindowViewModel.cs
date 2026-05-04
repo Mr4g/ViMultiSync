@@ -768,18 +768,12 @@ namespace ViSyncMaster.ViewModels
                 string.IsNullOrWhiteSpace(SelectedVrsktQualityElementType) ||
                 string.IsNullOrWhiteSpace(SelectedVrsktQualityReason))
             {
-                VrsktQualityConfirmationText = "Brak wymaganych danych zgłoszenia jakościowego.";
-                VrsktQualityConfirmationVisible = true;
-                await Task.Delay(TimeSpan.FromSeconds(3));
-                VrsktQualityConfirmationVisible = false;
+                ShowMessageBox("Brak wymaganych danych zgłoszenia jakościowego.");
                 return;
             }
             if (VrsktQualityCustomDescriptionVisible && string.IsNullOrWhiteSpace(VrsktQualityCustomDescription))
             {
-                VrsktQualityConfirmationText = "Dla kategorii Inne wymagany jest własny opis.";
-                VrsktQualityConfirmationVisible = true;
-                await Task.Delay(TimeSpan.FromSeconds(3));
-                VrsktQualityConfirmationVisible = false;
+                ShowMessageBox("Dla kategorii Inne wymagany jest własny opis.");
                 return;
             }
 
@@ -798,11 +792,6 @@ namespace ViSyncMaster.ViewModels
             await SendMessageToSplunk(qualityReport);
             VrsktQualityConfirmationText = "Zgłoszenie jakościowe wysłane poprawnie";
             VrsktQualityConfirmationVisible = true;
-            await Task.Delay(TimeSpan.FromSeconds(3));
-            VrsktQualityConfirmationVisible = false;
-            ProductionIssuesPanelIsOpen = false;
-            ControlPanelVisible = false;
-            ResetVrsktQualityFlowState();
         }
 
         [RelayCommand]

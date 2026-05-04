@@ -1522,7 +1522,7 @@
             Background="#232228"
             Open="{Binding ProductionIssuesPanelIsOpen, Mode=TwoWay}"
             DuringOpening="{Binding ControlPanelVisible, Mode=TwoWay}">
-			<Border Background="#232228" Padding="20" CornerRadius="24" MaxHeight="760" VerticalAlignment="Top" Margin="0,40,0,0">
+				<Border Background="#232228" Padding="20" CornerRadius="24" MaxHeight="860" VerticalAlignment="Top" Margin="0,40,0,0">
 				<ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
 				<Grid>
 						<Grid IsVisible="{Binding VrsktQualityFlowActive}" ColumnDefinitions="*,20,*">
@@ -1535,17 +1535,7 @@
 									<ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Rows="4" Columns="3"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
 									<ItemsControl.ItemTemplate>
 										<DataTemplate x:DataType="x:String">
-											<Grid>
 												<Button Classes="PopupButton" Content="{Binding}" Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).SelectVrsktQualityElementTypeCommand}" CommandParameter="{Binding}"/>
-												<Border BorderBrush="#F28C28" BorderThickness="3" CornerRadius="18" IsHitTestVisible="False">
-													<Border.IsVisible>
-														<MultiBinding Converter="{StaticResource StringPairEqualsConverter}">
-															<Binding Path="$parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).SelectedVrsktQualityElementType"/>
-															<Binding/>
-														</MultiBinding>
-													</Border.IsVisible>
-												</Border>
-											</Grid>
 										</DataTemplate>
 									</ItemsControl.ItemTemplate>
 								</ItemsControl>
@@ -1568,9 +1558,11 @@
 								<Button Classes="PopupButton" Content="Wstecz" Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).BackVrsktQualityToCategoryCommand}" />
 								<Button Classes="PopupButton" Content="Anuluj" Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).CancelVrsktQualityReportCommand}" />
 							</StackPanel>
-							<TextBlock IsVisible="{Binding VrsktQualityConfirmationVisible}" Text="{Binding VrsktQualityConfirmationText}" HorizontalAlignment="Center"/>
-						</StackPanel>
-					</Grid>
+								<Border IsVisible="{Binding VrsktQualityConfirmationVisible}" Background="#1E7D32" CornerRadius="10" Padding="10" HorizontalAlignment="Stretch">
+									<TextBlock Text="{Binding VrsktQualityConfirmationText}" HorizontalAlignment="Center" Foreground="WhiteSmoke" FontWeight="Bold"/>
+								</Border>
+							</StackPanel>
+						</Grid>
 
 					<ItemsControl IsVisible="{Binding LegacyProductionIssuesVisible}" ItemsSource="{Binding ProductionIssuesStatusPanel}">
 					<ItemsControl.ItemTemplate>
