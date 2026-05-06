@@ -1576,10 +1576,11 @@
 										   Foreground="WhiteSmoke"
 										   FontWeight="Bold"
 										   FontSize="24"/>
+								</Border>
 							</Border>
-							<Border IsVisible="{Binding VrsktQualityCustomDescriptionVisible}"
-									Background="#90000000"
-									CornerRadius="18"
+								<Border IsVisible="{Binding VrsktQualityCustomDescriptionVisible}"
+										Background="#90000000"
+										CornerRadius="18"
 									ZIndex="999">
 								<Border HorizontalAlignment="Center"
 										VerticalAlignment="Center"
@@ -1598,9 +1599,8 @@
 											<Button Classes="PopupButton" Content="Wstecz" Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).BackVrsktQualityToCategoryCommand}" />
 										</StackPanel>
 									</StackPanel>
+									</Border>
 								</Border>
-							</Border>
-						</Border>
 
 					<ItemsControl IsVisible="{Binding LegacyProductionIssuesVisible}" ItemsSource="{Binding ProductionIssuesStatusPanel}">
 					<ItemsControl.ItemTemplate>
