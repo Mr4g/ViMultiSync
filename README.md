@@ -52,6 +52,11 @@ Zgłoszenie jakościowe (`QualityIssueReportMessage`) jest wysyłane **bezpośre
 
 Dla samych zgłoszeń jakościowych nie ma pośredniego zapisu „do DB i dopiero wysyłka”.
 
+W payloadzie jakościowym:
+
+- `activeProductNumber` jest normalizowany do **pierwszych 7 cyfr** (jeśli są dostępne),
+- `activeProductNumber`, `elementType` i `qualityReason` są wysyłane jako pola `event` (wysoko w ramce eventu), aby były łatwiejsze do raportowania w Splunku.
+
 > Uwaga: aplikacja może odczytywać dane pomocnicze (np. numer produktu) z już dostępnych danych runtime/cache, ale samo zgłoszenie jakościowe wysyłane jest ścieżką direct-to-Splunk.
 
 ---

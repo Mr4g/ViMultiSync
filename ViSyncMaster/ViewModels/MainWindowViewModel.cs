@@ -805,7 +805,7 @@ namespace ViSyncMaster.ViewModels
             var qualityReport = new QualityIssueReportMessage
             {
                 AppMode = "VRSKT",
-                ActiveProductNumber = activeProductNumber,
+                ActiveProductNumber = NormalizeActiveProductNumber(activeProductNumber),
                 ElementType = SelectedVrsktQualityElementType,
                 QualityReason = SelectedVrsktQualityReason,
                 CustomDescription = VrsktQualityCustomDescriptionVisible ? VrsktQualityCustomDescription : null,
@@ -817,6 +817,22 @@ namespace ViSyncMaster.ViewModels
             await SendMessageToSplunk(qualityReport);
             VrsktQualityConfirmationText = "Zgłoszenie jakościowe wysłane poprawnie";
             VrsktQualityConfirmationVisible = true;
+        }
+
+        private static string NormalizeActiveProductNumber(string productNumber)
+        {
+            if (string.IsNullOrWhiteSpace(productNumber))
+            {
+                return string.Empty;
+            }
+
+            var digitsOnly = new string(productNumber.Where(char.IsDigit).ToArray());
+            if (digitsOnly.Length >= 7)
+            {
+                return digitsOnly[..7];
+            }
+
+            return productNumber.Trim();
         }
 
         [RelayCommand]
