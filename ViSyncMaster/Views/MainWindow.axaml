@@ -1539,7 +1539,7 @@
 											<DataTemplate x:DataType="x:String">
 												<Grid>
 													<Button Classes="PopupButton" Content="{Binding}" Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).SelectVrsktQualityElementTypeCommand}" CommandParameter="{Binding}"/>
-													<Border Background="OrangeRed" CornerRadius="18" BorderBrush="Black" BorderThickness="3" IsHitTestVisible="False">
+														<Border Background="OrangeRed" CornerRadius="18" BorderBrush="Black" BorderThickness="3" Margin="20" IsHitTestVisible="False">
 														<Border.IsVisible>
 															<MultiBinding Converter="{StaticResource StringPairEqualsConverter}">
 																<Binding Path="$parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).SelectedVrsktQualityElementType"/>
@@ -1567,7 +1567,7 @@
 													<DataTemplate x:DataType="x:String">
 														<Grid>
 															<Button Classes="PopupButton" Content="{Binding}" Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).SelectVrsktQualityElementTypeCommand}" CommandParameter="{Binding}"/>
-															<Border Background="OrangeRed" CornerRadius="18" BorderBrush="Black" BorderThickness="3" IsHitTestVisible="False">
+																<Border Background="OrangeRed" CornerRadius="18" BorderBrush="Black" BorderThickness="3" Margin="20" IsHitTestVisible="False">
 																<Border.IsVisible>
 																	<MultiBinding Converter="{StaticResource StringPairEqualsConverter}">
 																		<Binding Path="$parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).SelectedVrsktQualityElementType"/>
@@ -1607,15 +1607,16 @@
 									VerticalAlignment="Center"
 										Background="{Binding VrsktQualityOverlayBackground}"
 									CornerRadius="18"
-									Padding="28,20"
-									MinWidth="520"
-									MaxWidth="760">
-								<TextBlock Text="{Binding VrsktQualityConfirmationText}"
-										   HorizontalAlignment="Center"
-										   TextAlignment="Center"
-										   Foreground="WhiteSmoke"
-										   FontWeight="Bold"
-										   FontSize="24"/>
+										Padding="28,20"
+										MinWidth="700"
+										MaxWidth="980">
+									<TextBlock Text="{Binding VrsktQualityConfirmationText}"
+											   HorizontalAlignment="Center"
+											   TextAlignment="Center"
+											   TextWrapping="Wrap"
+											   Foreground="WhiteSmoke"
+											   FontWeight="Bold"
+											   FontSize="22"/>
 								</Border>
 							</Border>
 								<Border IsVisible="{Binding VrsktQualityCustomDescriptionVisible}"
