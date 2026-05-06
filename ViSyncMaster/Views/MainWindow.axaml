@@ -1538,7 +1538,7 @@
 										<ItemsControl.ItemTemplate>
 											<DataTemplate x:DataType="x:String">
 												<Grid>
-													<Button Classes="PopupButton" Content="{Binding}" Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).SelectVrsktQualityElementTypeCommand}" CommandParameter="{Binding}"/>
+														<Button Classes="PopupButton" Content="{Binding}" TextElement.TextTransform="Uppercase" Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).SelectVrsktQualityElementTypeCommand}" CommandParameter="{Binding}"/>
 														<Border Background="OrangeRed" CornerRadius="18" BorderBrush="Black" BorderThickness="3" Margin="20" IsHitTestVisible="False">
 														<Border.IsVisible>
 															<MultiBinding Converter="{StaticResource StringPairEqualsConverter}">
@@ -1566,7 +1566,7 @@
 												<ItemsControl.ItemTemplate>
 													<DataTemplate x:DataType="x:String">
 														<Grid>
-															<Button Classes="PopupButton" Content="{Binding}" Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).SelectVrsktQualityElementTypeCommand}" CommandParameter="{Binding}"/>
+																<Button Classes="PopupButton" Content="{Binding}" TextElement.TextTransform="Uppercase" Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).SelectVrsktQualityElementTypeCommand}" CommandParameter="{Binding}"/>
 																<Border Background="OrangeRed" CornerRadius="18" BorderBrush="Black" BorderThickness="3" Margin="20" IsHitTestVisible="False">
 																<Border.IsVisible>
 																	<MultiBinding Converter="{StaticResource StringPairEqualsConverter}">
@@ -1590,7 +1590,7 @@
 								</Border>
 							<ItemsControl ItemsSource="{Binding VrsktQualityReasons}">
 								<ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Rows="4" Columns="3"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
-								<ItemsControl.ItemTemplate><DataTemplate x:DataType="x:String"><Button Classes="PopupButton" Content="{Binding}" Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).SubmitVrsktQualityReasonCommand}" CommandParameter="{Binding}"/></DataTemplate></ItemsControl.ItemTemplate>
+									<ItemsControl.ItemTemplate><DataTemplate x:DataType="x:String"><Button Classes="PopupButton" Content="{Binding}" TextElement.TextTransform="Uppercase" Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).SubmitVrsktQualityReasonCommand}" CommandParameter="{Binding}"/></DataTemplate></ItemsControl.ItemTemplate>
 							</ItemsControl>
 								<StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10">
 									<Button Classes="PopupButton" Content="Wstecz" Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).BackVrsktQualityToCategoryCommand}" />
