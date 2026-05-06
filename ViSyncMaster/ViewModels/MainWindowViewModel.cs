@@ -1968,6 +1968,18 @@ namespace ViSyncMaster.ViewModels
             VrsktQualityCustomDescriptionVisible = false;
         }
 
+        public void ResetVrsktQualityFlowAfterPopupDismiss()
+        {
+            if (!VrsktQualityFlowActive)
+            {
+                return;
+            }
+
+            ResetVrsktQualityFlowState();
+            VrsktQualityConfirmationVisible = false;
+            VrsktQualityConfirmationText = string.Empty;
+        }
+
         private void OnProducingStarted(object sender, Rs232Data data)
         {
             Log.Information("Produkcja rozpoczęta: " + data.ProductName);

@@ -42,10 +42,10 @@
 
 		<!-- Info Panel Popup Open -->
 
-		<controls:AnimatedPopup
-				Grid.Row="0"
-				Grid.RowSpan="3"
-				Grid.ColumnSpan="6"
+			<controls:AnimatedPopup
+	            Grid.Row="0"
+	            Grid.RowSpan="3"
+	            Grid.ColumnSpan="6"
 				Margin="20"
 				AnimationTime="0.3"
 				UnderlayOpacity="0.2"
@@ -1518,10 +1518,11 @@
             Margin="20"
             AnimationTime="0.3"
             UnderlayOpacity="0.2"
-            Name="ProductionIssuesPanelPopup"
-            Background="#232228"
-            Open="{Binding ProductionIssuesPanelIsOpen, Mode=TwoWay}"
-            DuringOpening="{Binding ControlPanelVisible, Mode=TwoWay}">
+	            Name="ProductionIssuesPanelPopup"
+	            Background="#232228"
+	            Open="{Binding ProductionIssuesPanelIsOpen, Mode=TwoWay}"
+	            Closed="ProductionIssuesPanelPopup_OnClosed"
+	            DuringOpening="{Binding ControlPanelVisible, Mode=TwoWay}">
 				<Border Background="#232228" Padding="20" CornerRadius="24" MaxHeight="860" VerticalAlignment="Top" Margin="0,40,0,0">
 				<ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
 				<Grid>

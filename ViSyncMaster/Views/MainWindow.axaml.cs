@@ -212,6 +212,14 @@ namespace ViSyncMaster.Views
         private void InputElement_OnPointerPressed(object? sender, PointerPressedEventArgs e) =>
             ((MainWindowViewModel)DataContext).DowntimePanelButtonPressedCommand.Execute(null);
 
+        private void ProductionIssuesPanelPopup_OnClosed(object? sender, EventArgs e)
+        {
+            if (DataContext is MainWindowViewModel vm)
+            {
+                vm.ResetVrsktQualityFlowAfterPopupDismiss();
+            }
+        }
+
         private void openVirtualKeyboard(object? sender, GotFocusEventArgs e)
         {
             //if (e.Source.GetType() == typeof(TextBox))
