@@ -30,6 +30,18 @@ Jeżeli czegoś brakuje, aplikacja pokaże popup z listą brakujących pól.
 
 ---
 
+### 2.1) Format tekstów wad (spacje w nazwach)
+
+Dla zgłoszeń jakościowych aplikacja zachowuje oryginalne nazwy z UI, np.:
+
+- `Uszkodzenia mechaniczne`
+- `Wady dostawców`
+- `Sensory, komponenty`
+
+Czyli raport do Splunka zawiera normalne spacje w nazwach typu/powodu (bez „sklejania” słów).
+
+---
+
 ### 3) Wysyłka do Splunka (bezpośrednio, bez zapisu do DB)
 
 Zgłoszenie jakościowe (`QualityIssueReportMessage`) jest wysyłane **bezpośrednio do Splunka** przez:
