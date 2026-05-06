@@ -20,6 +20,7 @@
         <Setter Property="HorizontalAlignment" Value="Stretch" />
         <Setter Property="BorderBrush" Value="Black"/>
         <Setter Property="BorderThickness" Value="3"/>
+        <Setter Property="FocusAdorner" Value="{x:Null}"/>
 		<Setter Property="Background">
             <Setter.Value>
                 <ConicGradientBrush Center="0.5,0.5">

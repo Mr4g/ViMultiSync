@@ -1535,11 +1535,21 @@
 								</Border>
 								<ItemsControl ItemsSource="{Binding VrsktQualityElementTypes}">
 									<ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Rows="4" Columns="3"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
-									<ItemsControl.ItemTemplate>
-										<DataTemplate x:DataType="x:String">
-												<Button Classes="PopupButton" Content="{Binding}" Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).SelectVrsktQualityElementTypeCommand}" CommandParameter="{Binding}"/>
-										</DataTemplate>
-									</ItemsControl.ItemTemplate>
+										<ItemsControl.ItemTemplate>
+											<DataTemplate x:DataType="x:String">
+												<Grid>
+													<Button Classes="PopupButton" Content="{Binding}" Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).SelectVrsktQualityElementTypeCommand}" CommandParameter="{Binding}"/>
+													<Border Background="OrangeRed" Opacity="0.45" CornerRadius="18" IsHitTestVisible="False">
+														<Border.IsVisible>
+															<MultiBinding Converter="{StaticResource StringPairEqualsConverter}">
+																<Binding Path="$parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).SelectedVrsktQualityElementType"/>
+																<Binding/>
+															</MultiBinding>
+														</Border.IsVisible>
+													</Border>
+												</Grid>
+											</DataTemplate>
+										</ItemsControl.ItemTemplate>
 									</ItemsControl>
 									<Button Classes="PopupButton" Content="Anuluj" Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).CancelVrsktQualityReportCommand}" />
 									</StackPanel>
@@ -1552,7 +1562,21 @@
 										</Border>
 										<ItemsControl ItemsSource="{Binding VrsktQualityElementTypes}">
 											<ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Rows="4" Columns="3"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
-											<ItemsControl.ItemTemplate><DataTemplate x:DataType="x:String"><Button Classes="PopupButton" Content="{Binding}" Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).SelectVrsktQualityElementTypeCommand}" CommandParameter="{Binding}"/></DataTemplate></ItemsControl.ItemTemplate>
+												<ItemsControl.ItemTemplate>
+													<DataTemplate x:DataType="x:String">
+														<Grid>
+															<Button Classes="PopupButton" Content="{Binding}" Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).SelectVrsktQualityElementTypeCommand}" CommandParameter="{Binding}"/>
+															<Border Background="OrangeRed" Opacity="0.45" CornerRadius="18" IsHitTestVisible="False">
+																<Border.IsVisible>
+																	<MultiBinding Converter="{StaticResource StringPairEqualsConverter}">
+																		<Binding Path="$parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).SelectedVrsktQualityElementType"/>
+																		<Binding/>
+																	</MultiBinding>
+																</Border.IsVisible>
+															</Border>
+														</Grid>
+													</DataTemplate>
+												</ItemsControl.ItemTemplate>
 										</ItemsControl>
 										<Button Classes="PopupButton" Content="Anuluj" Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).CancelVrsktQualityReportCommand}" />
 									</StackPanel>
