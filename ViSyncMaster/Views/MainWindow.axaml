@@ -1528,10 +1528,10 @@
 				<Grid>
 						<Grid IsVisible="{Binding VrsktQualityFlowActive}" ColumnDefinitions="*,20,*">
 							<StackPanel Grid.Column="0" Spacing="10">
-							<TextBlock Text="Wybierz typ elementu" HorizontalAlignment="Center"/>
-							<Border IsVisible="{Binding VrsktQualityReasonSelectionVisible}" Background="#3A3F4B" CornerRadius="10" Padding="8" HorizontalAlignment="Center">
-								<TextBlock Text="{Binding SelectedVrsktQualityElementType, StringFormat=Wybrano: {0}}" FontWeight="Bold"/>
-							</Border>
+								<TextBlock Text="Wybierz typ elementu" HorizontalAlignment="Center" Foreground="WhiteSmoke" FontSize="26" FontWeight="SemiBold"/>
+								<Border IsVisible="{Binding VrsktQualityReasonSelectionVisible}" Background="#4D5A75" BorderBrush="#8EA0C4" BorderThickness="2" CornerRadius="12" Padding="10" HorizontalAlignment="Center">
+									<TextBlock Text="{Binding SelectedVrsktQualityElementType, StringFormat=Wybrano: {0}}" Foreground="WhiteSmoke" FontSize="20" FontWeight="Bold"/>
+								</Border>
 								<ItemsControl ItemsSource="{Binding VrsktQualityElementTypes}">
 									<ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Rows="4" Columns="3"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
 									<ItemsControl.ItemTemplate>
@@ -1545,24 +1545,22 @@
 							<Border Grid.Column="1" Width="1" Background="#6B6F78" HorizontalAlignment="Center" VerticalAlignment="Stretch"/>
 
 						<StackPanel Grid.Column="2" IsVisible="{Binding VrsktQualityReasonSelectionVisible}" Spacing="10">
-							<TextBlock Text="Wybierz powód jakościowy" HorizontalAlignment="Center"/>
-							<Border Background="#3A3F4B" CornerRadius="10" Padding="10" HorizontalAlignment="Center">
-								<TextBlock Text="{Binding SelectedVrsktQualityElementType, StringFormat=Wybrana kategoria: {0}}" HorizontalAlignment="Center" FontWeight="Bold"/>
-							</Border>
+								<TextBlock Text="Wybierz powód jakościowy" HorizontalAlignment="Center" Foreground="WhiteSmoke" FontSize="26" FontWeight="SemiBold"/>
+								<Border Background="#4D5A75" BorderBrush="#8EA0C4" BorderThickness="2" CornerRadius="12" Padding="10" HorizontalAlignment="Center">
+									<TextBlock Text="{Binding SelectedVrsktQualityElementType, StringFormat=Wybrana kategoria: {0}}" HorizontalAlignment="Center" Foreground="WhiteSmoke" FontSize="20" FontWeight="Bold"/>
+								</Border>
 							<ItemsControl ItemsSource="{Binding VrsktQualityReasons}">
 								<ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Rows="4" Columns="3"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
 								<ItemsControl.ItemTemplate><DataTemplate x:DataType="x:String"><Button Classes="PopupButton" Content="{Binding}" Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).SubmitVrsktQualityReasonCommand}" CommandParameter="{Binding}"/></DataTemplate></ItemsControl.ItemTemplate>
 							</ItemsControl>
-							<TextBox IsVisible="{Binding VrsktQualityCustomDescriptionVisible}" Watermark="Własny opis" Text="{Binding VrsktQualityCustomDescription, Mode=TwoWay}" />
-							<Button IsVisible="{Binding VrsktQualityCustomDescriptionVisible}" Classes="PopupButton" Content="Wyślij zgłoszenie" Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).SubmitVrsktQualityCustomDescriptionCommand}" />
-							<StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10">
-								<Button Classes="PopupButton" Content="Wstecz" Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).BackVrsktQualityToCategoryCommand}" />
-								<Button Classes="PopupButton" Content="Anuluj" Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).CancelVrsktQualityReportCommand}" />
+								<StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10">
+									<Button Classes="PopupButton" Content="Wstecz" Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).BackVrsktQualityToCategoryCommand}" />
+									<Button Classes="PopupButton" Content="Anuluj" Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).CancelVrsktQualityReportCommand}" />
 							</StackPanel>
 							</StackPanel>
 						</Grid>
-						<Border IsVisible="{Binding VrsktQualitySuccessOverlayVisible}"
-								Background="#90000000"
+							<Border IsVisible="{Binding VrsktQualitySuccessOverlayVisible}"
+									Background="#90000000"
 								CornerRadius="18"
 								ZIndex="1000">
 							<Border HorizontalAlignment="Center"
@@ -1578,6 +1576,29 @@
 										   Foreground="WhiteSmoke"
 										   FontWeight="Bold"
 										   FontSize="24"/>
+							</Border>
+							<Border IsVisible="{Binding VrsktQualityCustomDescriptionVisible}"
+									Background="#90000000"
+									CornerRadius="18"
+									ZIndex="999">
+								<Border HorizontalAlignment="Center"
+										VerticalAlignment="Center"
+										Background="#2C3140"
+										BorderBrush="#8EA0C4"
+										BorderThickness="2"
+										CornerRadius="18"
+										Padding="24"
+										MinWidth="700"
+										MaxWidth="900">
+									<StackPanel Spacing="16">
+										<TextBlock Text="Wpisz własny opis wady" HorizontalAlignment="Center" Foreground="WhiteSmoke" FontSize="28" FontWeight="Bold"/>
+										<TextBox Watermark="Własny opis" Text="{Binding VrsktQualityCustomDescription, Mode=TwoWay}" MinHeight="100" TextWrapping="Wrap" AcceptsReturn="True"/>
+										<StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="16">
+											<Button Classes="PopupButton" Content="Wyślij zgłoszenie" Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).SubmitVrsktQualityCustomDescriptionCommand}" />
+											<Button Classes="PopupButton" Content="Wstecz" Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).BackVrsktQualityToCategoryCommand}" />
+										</StackPanel>
+									</StackPanel>
+								</Border>
 							</Border>
 						</Border>
 
