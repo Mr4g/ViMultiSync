@@ -592,6 +592,7 @@ namespace ViSyncMaster.ViewModels
         [ObservableProperty] private string _vrsktQualityConfirmationText = string.Empty;
         [ObservableProperty] private bool _vrsktQualityConfirmationVisible;
         [ObservableProperty] private bool _vrsktQualitySuccessOverlayVisible;
+        [ObservableProperty] private string _vrsktQualityOverlayBackground = "#1E7D32";
         [ObservableProperty] private ObservableCollection<string> _vrsktQualityElementTypes = new();
         [ObservableProperty] private ObservableCollection<string> _vrsktQualityReasons = new();
         [ObservableProperty] private string? _selectedVrsktQualityElementType;
@@ -815,10 +816,26 @@ namespace ViSyncMaster.ViewModels
                 TimestampUtc = DateTime.UtcNow
             };
 
-            await SendMessageToSplunk(qualityReport);
-            VrsktQualityConfirmationText = "Zgłoszenie jakościowe wysłane poprawnie";
+            VrsktQualityConfirmationText = "Wysyłanie zgłoszenia jakościowego...";
+            VrsktQualityOverlayBackground = "#3A3F4B";
             VrsktQualityConfirmationVisible = true;
             VrsktQualitySuccessOverlayVisible = true;
+
+            var sendTask = SendMessageToSplunk(qualityReport);
+            var completedTask = await Task.WhenAny(sendTask, Task.Delay(TimeSpan.FromSeconds(5)));
+            if (completedTask != sendTask)
+            {
+                VrsktQualityConfirmationText = "Błąd wysyłki: brak potwierdzenia do 5 sekund. Sprawdź połączenie i spróbuj ponownie.";
+                VrsktQualityOverlayBackground = "#B3261E";
+                await Task.Delay(TimeSpan.FromSeconds(3));
+                VrsktQualitySuccessOverlayVisible = false;
+                VrsktQualityConfirmationVisible = false;
+                return;
+            }
+
+            await sendTask;
+            VrsktQualityConfirmationText = "Zgłoszenie jakościowe wysłane poprawnie";
+            VrsktQualityOverlayBackground = "#1E7D32";
             await Task.Delay(TimeSpan.FromSeconds(3));
             VrsktQualitySuccessOverlayVisible = false;
             VrsktQualityConfirmationVisible = false;
@@ -1979,6 +1996,7 @@ namespace ViSyncMaster.ViewModels
             VrsktQualityConfirmationVisible = false;
             VrsktQualityConfirmationText = string.Empty;
             VrsktQualitySuccessOverlayVisible = false;
+            VrsktQualityOverlayBackground = "#1E7D32";
         }
 
         private void ResetVrsktQualityFlowState()
@@ -2003,6 +2021,7 @@ namespace ViSyncMaster.ViewModels
             ResetVrsktQualityFlowState();
             VrsktQualityConfirmationVisible = false;
             VrsktQualityConfirmationText = string.Empty;
+            VrsktQualityOverlayBackground = "#1E7D32";
         }
 
         private void OnProducingStarted(object sender, Rs232Data data)

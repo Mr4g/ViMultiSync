@@ -1530,7 +1530,7 @@
 								<Grid IsVisible="{Binding VrsktQualityElementSelectionVisible}">
 									<StackPanel Spacing="10">
 								<TextBlock Text="Wybierz typ elementu" HorizontalAlignment="Center" Foreground="WhiteSmoke" FontSize="26" FontWeight="SemiBold"/>
-								<Border IsVisible="{Binding VrsktQualityReasonSelectionVisible}" Background="OrangeRed" BorderBrush="#FFB980" BorderThickness="2" CornerRadius="12" Padding="10" HorizontalAlignment="Center">
+									<Border IsVisible="{Binding VrsktQualityReasonSelectionVisible}" Background="OrangeRed" BorderThickness="0" CornerRadius="12" Padding="10" HorizontalAlignment="Center">
 									<TextBlock Text="{Binding SelectedVrsktQualityElementType, StringFormat=Wybrano: {0}}" Foreground="WhiteSmoke" FontSize="20" FontWeight="Bold"/>
 								</Border>
 								<ItemsControl ItemsSource="{Binding VrsktQualityElementTypes}">
@@ -1546,7 +1546,7 @@
 																<Binding/>
 															</MultiBinding>
 														</Border.IsVisible>
-														<TextBlock Text="{Binding}" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="WhiteSmoke" FontSize="28"/>
+															<TextBlock Text="{Binding}" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="WhiteSmoke"/>
 													</Border>
 												</Grid>
 											</DataTemplate>
@@ -1558,7 +1558,7 @@
 								<Grid IsVisible="{Binding VrsktQualityReasonSelectionVisible}" ColumnDefinitions="*,20,*">
 									<StackPanel Grid.Column="0" Spacing="10">
 										<TextBlock Text="Wybierz typ elementu" HorizontalAlignment="Center" Foreground="WhiteSmoke" FontSize="26" FontWeight="SemiBold"/>
-										<Border Background="OrangeRed" BorderBrush="#FFB980" BorderThickness="2" CornerRadius="12" Padding="10" HorizontalAlignment="Center">
+											<Border Background="OrangeRed" BorderThickness="0" CornerRadius="12" Padding="10" HorizontalAlignment="Center">
 											<TextBlock Text="{Binding SelectedVrsktQualityElementType, StringFormat=Wybrano: {0}}" Foreground="WhiteSmoke" FontSize="20" FontWeight="Bold"/>
 										</Border>
 										<ItemsControl ItemsSource="{Binding VrsktQualityElementTypes}">
@@ -1574,7 +1574,7 @@
 																		<Binding/>
 																	</MultiBinding>
 																</Border.IsVisible>
-																<TextBlock Text="{Binding}" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="WhiteSmoke" FontSize="28"/>
+																	<TextBlock Text="{Binding}" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="WhiteSmoke"/>
 															</Border>
 														</Grid>
 													</DataTemplate>
@@ -1585,7 +1585,7 @@
 									<Border Grid.Column="1" Width="1" Background="#6B6F78" HorizontalAlignment="Center" VerticalAlignment="Stretch"/>
 							<StackPanel Grid.Column="2" Spacing="10">
 								<TextBlock Text="Wybierz powód jakościowy" HorizontalAlignment="Center" Foreground="WhiteSmoke" FontSize="26" FontWeight="SemiBold"/>
-								<Border Background="OrangeRed" BorderBrush="#FFB980" BorderThickness="2" CornerRadius="12" Padding="10" HorizontalAlignment="Center">
+								<Border Background="OrangeRed" BorderThickness="0" CornerRadius="12" Padding="10" HorizontalAlignment="Center">
 									<TextBlock Text="{Binding SelectedVrsktQualityElementType, StringFormat=Wybrana kategoria: {0}}" HorizontalAlignment="Center" Foreground="WhiteSmoke" FontSize="20" FontWeight="Bold"/>
 								</Border>
 							<ItemsControl ItemsSource="{Binding VrsktQualityReasons}">
@@ -1605,7 +1605,7 @@
 								ZIndex="1000">
 							<Border HorizontalAlignment="Center"
 									VerticalAlignment="Center"
-									Background="#1E7D32"
+										Background="{Binding VrsktQualityOverlayBackground}"
 									CornerRadius="18"
 									Padding="28,20"
 									MinWidth="520"
