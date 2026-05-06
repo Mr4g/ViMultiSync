@@ -1526,10 +1526,11 @@
 				<Border Background="#232228" Padding="20" CornerRadius="24" MaxHeight="860" VerticalAlignment="Top" Margin="0,40,0,0">
 				<ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
 				<Grid>
-						<Grid IsVisible="{Binding VrsktQualityFlowActive}" ColumnDefinitions="*,20,*">
-							<StackPanel Grid.Column="0" Spacing="10">
+							<Grid IsVisible="{Binding VrsktQualityFlowActive}">
+								<Grid IsVisible="{Binding VrsktQualityElementSelectionVisible}">
+									<StackPanel Spacing="10">
 								<TextBlock Text="Wybierz typ elementu" HorizontalAlignment="Center" Foreground="WhiteSmoke" FontSize="26" FontWeight="SemiBold"/>
-								<Border IsVisible="{Binding VrsktQualityReasonSelectionVisible}" Background="#4D5A75" BorderBrush="#8EA0C4" BorderThickness="2" CornerRadius="12" Padding="10" HorizontalAlignment="Center">
+								<Border IsVisible="{Binding VrsktQualityReasonSelectionVisible}" Background="OrangeRed" BorderBrush="#FFB980" BorderThickness="2" CornerRadius="12" Padding="10" HorizontalAlignment="Center">
 									<TextBlock Text="{Binding SelectedVrsktQualityElementType, StringFormat=Wybrano: {0}}" Foreground="WhiteSmoke" FontSize="20" FontWeight="Bold"/>
 								</Border>
 								<ItemsControl ItemsSource="{Binding VrsktQualityElementTypes}">
@@ -1539,14 +1540,26 @@
 												<Button Classes="PopupButton" Content="{Binding}" Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).SelectVrsktQualityElementTypeCommand}" CommandParameter="{Binding}"/>
 										</DataTemplate>
 									</ItemsControl.ItemTemplate>
-								</ItemsControl>
-								<Button Classes="PopupButton" Content="Anuluj" Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).CancelVrsktQualityReportCommand}" />
-							</StackPanel>
-							<Border Grid.Column="1" Width="1" Background="#6B6F78" HorizontalAlignment="Center" VerticalAlignment="Stretch"/>
-
-						<StackPanel Grid.Column="2" IsVisible="{Binding VrsktQualityReasonSelectionVisible}" Spacing="10">
+									</ItemsControl>
+									<Button Classes="PopupButton" Content="Anuluj" Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).CancelVrsktQualityReportCommand}" />
+									</StackPanel>
+								</Grid>
+								<Grid IsVisible="{Binding VrsktQualityReasonSelectionVisible}" ColumnDefinitions="*,20,*">
+									<StackPanel Grid.Column="0" Spacing="10">
+										<TextBlock Text="Wybierz typ elementu" HorizontalAlignment="Center" Foreground="WhiteSmoke" FontSize="26" FontWeight="SemiBold"/>
+										<Border Background="OrangeRed" BorderBrush="#FFB980" BorderThickness="2" CornerRadius="12" Padding="10" HorizontalAlignment="Center">
+											<TextBlock Text="{Binding SelectedVrsktQualityElementType, StringFormat=Wybrano: {0}}" Foreground="WhiteSmoke" FontSize="20" FontWeight="Bold"/>
+										</Border>
+										<ItemsControl ItemsSource="{Binding VrsktQualityElementTypes}">
+											<ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Rows="4" Columns="3"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+											<ItemsControl.ItemTemplate><DataTemplate x:DataType="x:String"><Button Classes="PopupButton" Content="{Binding}" Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).SelectVrsktQualityElementTypeCommand}" CommandParameter="{Binding}"/></DataTemplate></ItemsControl.ItemTemplate>
+										</ItemsControl>
+										<Button Classes="PopupButton" Content="Anuluj" Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).CancelVrsktQualityReportCommand}" />
+									</StackPanel>
+									<Border Grid.Column="1" Width="1" Background="#6B6F78" HorizontalAlignment="Center" VerticalAlignment="Stretch"/>
+							<StackPanel Grid.Column="2" Spacing="10">
 								<TextBlock Text="Wybierz powód jakościowy" HorizontalAlignment="Center" Foreground="WhiteSmoke" FontSize="26" FontWeight="SemiBold"/>
-								<Border Background="#4D5A75" BorderBrush="#8EA0C4" BorderThickness="2" CornerRadius="12" Padding="10" HorizontalAlignment="Center">
+								<Border Background="OrangeRed" BorderBrush="#FFB980" BorderThickness="2" CornerRadius="12" Padding="10" HorizontalAlignment="Center">
 									<TextBlock Text="{Binding SelectedVrsktQualityElementType, StringFormat=Wybrana kategoria: {0}}" HorizontalAlignment="Center" Foreground="WhiteSmoke" FontSize="20" FontWeight="Bold"/>
 								</Border>
 							<ItemsControl ItemsSource="{Binding VrsktQualityReasons}">
@@ -1556,9 +1569,10 @@
 								<StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10">
 									<Button Classes="PopupButton" Content="Wstecz" Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).BackVrsktQualityToCategoryCommand}" />
 									<Button Classes="PopupButton" Content="Anuluj" Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).CancelVrsktQualityReportCommand}" />
-							</StackPanel>
-							</StackPanel>
-						</Grid>
+								</StackPanel>
+								</StackPanel>
+								</Grid>
+							</Grid>
 							<Border IsVisible="{Binding VrsktQualitySuccessOverlayVisible}"
 									Background="#90000000"
 								CornerRadius="18"
@@ -1593,7 +1607,7 @@
 										MaxWidth="900">
 									<StackPanel Spacing="16">
 										<TextBlock Text="Wpisz własny opis wady" HorizontalAlignment="Center" Foreground="WhiteSmoke" FontSize="28" FontWeight="Bold"/>
-										<TextBox Watermark="Własny opis" Text="{Binding VrsktQualityCustomDescription, Mode=TwoWay}" MinHeight="100" TextWrapping="Wrap" AcceptsReturn="True"/>
+											<TextBox Watermark="Własny opis" Text="{Binding VrsktQualityCustomDescription, Mode=TwoWay}" MinHeight="100" FontSize="24" TextWrapping="Wrap" AcceptsReturn="True"/>
 										<StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="16">
 											<Button Classes="PopupButton" Content="Wyślij zgłoszenie" Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).SubmitVrsktQualityCustomDescriptionCommand}" />
 											<Button Classes="PopupButton" Content="Wstecz" Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).BackVrsktQualityToCategoryCommand}" />
