@@ -591,6 +591,7 @@ namespace ViSyncMaster.ViewModels
         [ObservableProperty] private bool _legacyProductionIssuesVisible = true;
         [ObservableProperty] private string _vrsktQualityConfirmationText = string.Empty;
         [ObservableProperty] private bool _vrsktQualityConfirmationVisible;
+        [ObservableProperty] private bool _vrsktQualitySuccessOverlayVisible;
         [ObservableProperty] private ObservableCollection<string> _vrsktQualityElementTypes = new();
         [ObservableProperty] private ObservableCollection<string> _vrsktQualityReasons = new();
         [ObservableProperty] private string? _selectedVrsktQualityElementType;
@@ -817,6 +818,13 @@ namespace ViSyncMaster.ViewModels
             await SendMessageToSplunk(qualityReport);
             VrsktQualityConfirmationText = "Zgłoszenie jakościowe wysłane poprawnie";
             VrsktQualityConfirmationVisible = true;
+            VrsktQualitySuccessOverlayVisible = true;
+            await Task.Delay(TimeSpan.FromSeconds(3));
+            VrsktQualitySuccessOverlayVisible = false;
+            VrsktQualityConfirmationVisible = false;
+            ProductionIssuesPanelIsOpen = false;
+            ControlPanelVisible = false;
+            ResetVrsktQualityFlowState();
         }
 
         private static string NormalizeActiveProductNumber(string productNumber)
@@ -1970,6 +1978,7 @@ namespace ViSyncMaster.ViewModels
             VrsktQualityCustomDescriptionVisible = false;
             VrsktQualityConfirmationVisible = false;
             VrsktQualityConfirmationText = string.Empty;
+            VrsktQualitySuccessOverlayVisible = false;
         }
 
         private void ResetVrsktQualityFlowState()

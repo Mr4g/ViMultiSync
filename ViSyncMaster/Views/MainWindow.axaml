@@ -1559,11 +1559,27 @@
 								<Button Classes="PopupButton" Content="Wstecz" Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).BackVrsktQualityToCategoryCommand}" />
 								<Button Classes="PopupButton" Content="Anuluj" Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).CancelVrsktQualityReportCommand}" />
 							</StackPanel>
-								<Border IsVisible="{Binding VrsktQualityConfirmationVisible}" Background="#1E7D32" CornerRadius="10" Padding="10" HorizontalAlignment="Stretch">
-									<TextBlock Text="{Binding VrsktQualityConfirmationText}" HorizontalAlignment="Center" Foreground="WhiteSmoke" FontWeight="Bold"/>
-								</Border>
 							</StackPanel>
 						</Grid>
+						<Border IsVisible="{Binding VrsktQualitySuccessOverlayVisible}"
+								Background="#90000000"
+								CornerRadius="18"
+								ZIndex="1000">
+							<Border HorizontalAlignment="Center"
+									VerticalAlignment="Center"
+									Background="#1E7D32"
+									CornerRadius="18"
+									Padding="28,20"
+									MinWidth="520"
+									MaxWidth="760">
+								<TextBlock Text="{Binding VrsktQualityConfirmationText}"
+										   HorizontalAlignment="Center"
+										   TextAlignment="Center"
+										   Foreground="WhiteSmoke"
+										   FontWeight="Bold"
+										   FontSize="24"/>
+							</Border>
+						</Border>
 
 					<ItemsControl IsVisible="{Binding LegacyProductionIssuesVisible}" ItemsSource="{Binding ProductionIssuesStatusPanel}">
 					<ItemsControl.ItemTemplate>
