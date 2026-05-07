@@ -599,7 +599,8 @@ namespace ViSyncMaster.ViewModels
         [ObservableProperty] private string? _selectedVrsktQualityReason;
         [ObservableProperty] private string? _vrsktQualityCustomDescription;
         [ObservableProperty] private bool _vrsktQualityCustomDescriptionVisible;
-        [ObservableProperty] private int _vrsktQualityQuantity = 1;
+        [ObservableProperty] private string _vrsktQualityQuantityInput = "1";
+        [ObservableProperty] private string _vrsktQualityQuantityValidationMessage = string.Empty;
 
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(ReasonDowntimeMechanicalPanelButtonText))]
@@ -810,11 +811,15 @@ namespace ViSyncMaster.ViewModels
                 ShowMessageBox("Dla kategorii Inne wymagany jest własny opis.");
                 return;
             }
-            if (VrsktQualityQuantity <= 0)
+            if (string.IsNullOrWhiteSpace(VrsktQualityQuantityInput) ||
+                VrsktQualityQuantityInput.Any(ch => !char.IsDigit(ch)) ||
+                !int.TryParse(VrsktQualityQuantityInput, out var parsedQuantity) ||
+                parsedQuantity < 1 || parsedQuantity > 9999)
             {
-                ShowMessageBox("Liczba sztuk musi być większa od 0.");
+                VrsktQualityQuantityValidationMessage = "Liczba sztuk: tylko cyfry 1-9999.";
                 return;
             }
+            VrsktQualityQuantityValidationMessage = string.Empty;
 
             var qualityReport = new QualityIssueReportMessage
             {
@@ -823,7 +828,7 @@ namespace ViSyncMaster.ViewModels
                 ElementType = SelectedVrsktQualityElementType,
                 QualityReason = SelectedVrsktQualityReason,
                 CustomDescription = VrsktQualityCustomDescriptionVisible ? VrsktQualityCustomDescription : null,
-                Quantity = VrsktQualityQuantity,
+                Quantity = parsedQuantity,
                 EventType = "QualityIssueReported",
                 ReportNature = "InformationalOnly_NoMachineOrProcessImpact",
                 TimestampUtc = DateTime.UtcNow
@@ -2006,7 +2011,8 @@ namespace ViSyncMaster.ViewModels
             SelectedVrsktQualityReason = null;
             VrsktQualityCustomDescription = string.Empty;
             VrsktQualityCustomDescriptionVisible = false;
-            VrsktQualityQuantity = 1;
+            VrsktQualityQuantityInput = "1";
+            VrsktQualityQuantityValidationMessage = string.Empty;
             VrsktQualityConfirmationVisible = false;
             VrsktQualityConfirmationText = string.Empty;
             VrsktQualitySuccessOverlayVisible = false;
@@ -2023,7 +2029,25 @@ namespace ViSyncMaster.ViewModels
             SelectedVrsktQualityReason = null;
             VrsktQualityCustomDescription = string.Empty;
             VrsktQualityCustomDescriptionVisible = false;
-            VrsktQualityQuantity = 1;
+            VrsktQualityQuantityInput = "1";
+            VrsktQualityQuantityValidationMessage = string.Empty;
+        }
+
+        partial void OnVrsktQualityQuantityInputChanged(string value)
+        {
+            var digitsOnly = new string((value ?? string.Empty).Where(char.IsDigit).ToArray());
+            if (digitsOnly.Length > 4)
+            {
+                digitsOnly = digitsOnly[..4];
+            }
+
+            if (digitsOnly != value)
+            {
+                VrsktQualityQuantityInput = digitsOnly;
+                return;
+            }
+
+            VrsktQualityQuantityValidationMessage = string.Empty;
         }
 
         public void ResetVrsktQualityFlowAfterPopupDismiss()

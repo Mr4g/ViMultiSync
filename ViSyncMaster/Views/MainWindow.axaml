@@ -1594,8 +1594,9 @@
 								</ItemsControl>
 								<StackPanel Orientation="Horizontal" Spacing="12" HorizontalAlignment="Center">
 									<TextBlock Text="Liczba sztuk:" VerticalAlignment="Center" Foreground="WhiteSmoke" FontSize="22" FontWeight="SemiBold"/>
-									<TextBox Width="140" Text="{Binding VrsktQualityQuantity, Mode=TwoWay}" FontSize="22" HorizontalContentAlignment="Center"/>
+									<TextBox Width="140" MaxLength="4" Text="{Binding VrsktQualityQuantityInput, Mode=TwoWay}" FontSize="22" HorizontalContentAlignment="Center"/>
 								</StackPanel>
+								<TextBlock Text="{Binding VrsktQualityQuantityValidationMessage}" Foreground="#FF5252" FontSize="18" HorizontalAlignment="Center" TextWrapping="Wrap" MaxWidth="460"/>
 								<Button Classes="PopupButton" Content="Wyślij zgłoszenie" Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).SendSelectedVrsktQualityReportCommand}" />
 									<StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10">
 										<Button Classes="PopupButton" Content="Wstecz" Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).BackVrsktQualityToCategoryCommand}" />
