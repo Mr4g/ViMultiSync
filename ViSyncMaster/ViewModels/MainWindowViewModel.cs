@@ -852,7 +852,7 @@ namespace ViSyncMaster.ViewModels
             }
 
             await sendTask;
-            VrsktQualityConfirmationText = $"Zgłoszenie jakościowe wysłane poprawnie dla produktu: {qualityReport.ActiveProductNumber}";
+            VrsktQualityConfirmationText = $"Zgłoszenie jakościowe wysłane poprawnie dla produktu: {qualityReport.ActiveProductNumber}, ilość sztuk: {qualityReport.Quantity}.";
             VrsktQualityOverlayBackground = "#1E7D32";
             await Task.Delay(TimeSpan.FromSeconds(3));
             VrsktQualitySuccessOverlayVisible = false;
