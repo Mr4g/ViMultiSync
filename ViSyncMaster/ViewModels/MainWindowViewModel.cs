@@ -750,6 +750,11 @@ namespace ViSyncMaster.ViewModels
             if (!string.Equals(appConfig.AppMode, "VRSKT", StringComparison.OrdinalIgnoreCase)) return;
             SelectedVrsktQualityReason = qualityReason;
             VrsktQualityCustomDescriptionVisible = string.Equals(SelectedVrsktQualityElementType, "Inne", StringComparison.OrdinalIgnoreCase);
+            if (VrsktQualityCustomDescriptionVisible)
+            {
+                return;
+            }
+            await SendVrsktQualityReportAsync();
         }
 
         [RelayCommand]
