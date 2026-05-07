@@ -216,7 +216,7 @@ namespace ViSyncMaster.Repositories
                         || propertyName == "isBreak" || propertyName == "isBreakActive" || propertyName == "lostUnitsDueToDowntime"
                         || propertyName == "sendTime" || propertyName == "sendStatus" || propertyName == "period" || propertyName == "efficiency"
                         || propertyName == "activeProductNumber" || propertyName == "elementType" || propertyName == "qualityReason"
-                        || propertyName == "customDescription")
+                        || propertyName == "customDescription" || propertyName == "quantity")
 
                     {
                         eventFields[propertyName] = propertyValue.ToString();

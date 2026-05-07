@@ -20,6 +20,7 @@ namespace ViSyncMaster.DataModel
         public string? CustomDescription { get; set; }
         public string? EventType { get; set; }
         public string? ReportNature { get; set; }
+        public int Quantity { get; set; } = 1;
         public DateTime TimestampUtc { get; set; }
         public bool IsQualityReportOnly { get; set; }
     }

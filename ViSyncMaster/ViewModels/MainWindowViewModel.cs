@@ -599,6 +599,7 @@ namespace ViSyncMaster.ViewModels
         [ObservableProperty] private string? _selectedVrsktQualityReason;
         [ObservableProperty] private string? _vrsktQualityCustomDescription;
         [ObservableProperty] private bool _vrsktQualityCustomDescriptionVisible;
+        [ObservableProperty] private int _vrsktQualityQuantity = 1;
 
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(ReasonDowntimeMechanicalPanelButtonText))]
@@ -748,6 +749,12 @@ namespace ViSyncMaster.ViewModels
             if (!string.Equals(appConfig.AppMode, "VRSKT", StringComparison.OrdinalIgnoreCase)) return;
             SelectedVrsktQualityReason = qualityReason;
             VrsktQualityCustomDescriptionVisible = string.Equals(SelectedVrsktQualityElementType, "Inne", StringComparison.OrdinalIgnoreCase);
+        }
+
+        [RelayCommand]
+        public async Task SendSelectedVrsktQualityReport()
+        {
+            if (!string.Equals(appConfig.AppMode, "VRSKT", StringComparison.OrdinalIgnoreCase)) return;
             if (VrsktQualityCustomDescriptionVisible)
             {
                 return;
@@ -803,6 +810,11 @@ namespace ViSyncMaster.ViewModels
                 ShowMessageBox("Dla kategorii Inne wymagany jest własny opis.");
                 return;
             }
+            if (VrsktQualityQuantity <= 0)
+            {
+                ShowMessageBox("Liczba sztuk musi być większa od 0.");
+                return;
+            }
 
             var qualityReport = new QualityIssueReportMessage
             {
@@ -811,6 +823,7 @@ namespace ViSyncMaster.ViewModels
                 ElementType = SelectedVrsktQualityElementType,
                 QualityReason = SelectedVrsktQualityReason,
                 CustomDescription = VrsktQualityCustomDescriptionVisible ? VrsktQualityCustomDescription : null,
+                Quantity = VrsktQualityQuantity,
                 EventType = "QualityIssueReported",
                 ReportNature = "InformationalOnly_NoMachineOrProcessImpact",
                 TimestampUtc = DateTime.UtcNow
@@ -1993,6 +2006,7 @@ namespace ViSyncMaster.ViewModels
             SelectedVrsktQualityReason = null;
             VrsktQualityCustomDescription = string.Empty;
             VrsktQualityCustomDescriptionVisible = false;
+            VrsktQualityQuantity = 1;
             VrsktQualityConfirmationVisible = false;
             VrsktQualityConfirmationText = string.Empty;
             VrsktQualitySuccessOverlayVisible = false;
@@ -2009,6 +2023,7 @@ namespace ViSyncMaster.ViewModels
             SelectedVrsktQualityReason = null;
             VrsktQualityCustomDescription = string.Empty;
             VrsktQualityCustomDescriptionVisible = false;
+            VrsktQualityQuantity = 1;
         }
 
         public void ResetVrsktQualityFlowAfterPopupDismiss()
