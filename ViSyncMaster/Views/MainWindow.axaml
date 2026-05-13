@@ -1555,13 +1555,13 @@
 									<Button Classes="PopupButton" Content="Anuluj" Command="{Binding $parent[controls:AnimatedPopup].((viewModels:MainWindowViewModel)DataContext).CancelVrsktQualityReportCommand}" />
 									</StackPanel>
 								</Grid>
-								<Grid IsVisible="{Binding VrsktQualityReasonSelectionVisible}" ColumnDefinitions="*,20,*">
-									<StackPanel Grid.Column="0" Spacing="10">
-										<TextBlock Text="Wybierz typ elementu" HorizontalAlignment="Center" Foreground="WhiteSmoke" FontSize="26" FontWeight="SemiBold"/>
-											<Border Background="OrangeRed" BorderThickness="0" CornerRadius="12" Padding="10" HorizontalAlignment="Center">
-											<TextBlock Text="{Binding SelectedVrsktQualityElementType, StringFormat=Wybrano: {0}}" Foreground="WhiteSmoke" FontSize="20" FontWeight="Bold"/>
-										</Border>
-										<ItemsControl ItemsSource="{Binding VrsktQualityElementTypes}">
+									<Grid IsVisible="{Binding VrsktQualityReasonSelectionVisible}" ColumnDefinitions="*,20,*">
+										<StackPanel Grid.Column="0" Spacing="6">
+											<TextBlock Margin="0,0,0,6" Text="Wybierz typ elementu" HorizontalAlignment="Center" Foreground="WhiteSmoke" FontSize="26" FontWeight="SemiBold"/>
+											<Border Margin="0,0,0,6" Background="OrangeRed" BorderThickness="0" CornerRadius="12" Padding="10" HorizontalAlignment="Center">
+												<TextBlock Text="{Binding SelectedVrsktQualityElementType, StringFormat=Wybrano: {0}}" Foreground="WhiteSmoke" FontSize="20" FontWeight="Bold"/>
+											</Border>
+											<ItemsControl Margin="0,0,0,6" ItemsSource="{Binding VrsktQualityElementTypes}">
 											<ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Rows="4" Columns="3"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
 												<ItemsControl.ItemTemplate>
 													<DataTemplate x:DataType="x:String">
