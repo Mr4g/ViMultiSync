@@ -89,6 +89,7 @@ public class MessageQueue
             await EnqueueAndMark(m3, _repositoryProductionEfficiency, _productionEfficiencyQueue);
             // FirstPartData Pending
             var m4 = await _repositoryFirstPartQueue.GetByStatusAsync();
+            Log.Information("[FirstPartData] Found {Count} records with Pending status in DB.", m4.Count);
             await EnqueueAndMark(m4, _repositoryFirstPartQueue, _firstPartDataQueue);
 
             // HourlyPlan Pending
@@ -140,6 +141,10 @@ public class MessageQueue
             await repo.AddOrUpdate(m);
 
             q.Enqueue(m);
+            if (typeof(T) == typeof(FirstPartModel))
+            {
+                Log.Information("[FirstPartData] Added Id={Id} to in-memory queue. QueueCount={QueueCount}", m.Id, q.Count);
+            }
         }
     }
 
@@ -199,11 +204,23 @@ public class MessageQueue
             bool ok;
             try
             {
+                if (typeof(T) == typeof(FirstPartModel))
+                {
+                    Log.Information("[FirstPartData] Sending attempt for Id={Id}, Name={Name}, SendStatus={SendStatus}", msg.Id, msg.Name, msg.SendStatus);
+                }
                 ok = await _messageSender.SendMessageAsync(msg);
+                if (typeof(T) == typeof(FirstPartModel))
+                {
+                    Log.Information("[FirstPartData] SendMessageAsync result for Id={Id}: {Result}", msg.Id, ok);
+                }
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"Błąd wysyłania: {ex.Message}");
+                if (typeof(T) == typeof(FirstPartModel))
+                {
+                    Log.Error(ex, "[FirstPartData] Exception during sending Id={Id}", msg.Id);
+                }
                 ok = false;
             }
             if (ok)
@@ -213,12 +230,17 @@ public class MessageQueue
                     Log.Debug("[QueueSend] Success {Type} Id={Id}; deleting from queue table", typeof(T).Name, msg.Id);
                     await repo.DeleteAsync(msg.Id);
                     queue.Dequeue();
+                    if (typeof(T) == typeof(FirstPartModel))
+                    {
+                        Log.Information("[FirstPartData] Successfully deleted sent record Id={Id} from DB queue table.", msg.Id);
+                    }
                 }
                 catch (Exception ex)
                 {
                     Log.Error(ex, "Failed to delete message ID={Id}", msg.Id);
                     msg.SendStatus = "Pending";
                     await repo.AddOrUpdate(msg);
+                    queue.Dequeue();
                     await Task.Delay(500);
                 }
             }
@@ -227,6 +249,7 @@ public class MessageQueue
                 Log.Warning("[QueueSend] Failed {Type} Id={Id}; status InProgress -> Pending", typeof(T).Name, msg.Id);
                 msg.SendStatus = "Pending";
                 await repo.AddOrUpdate(msg);
+                queue.Dequeue();
                 await Task.Delay(500);
             }
         }
