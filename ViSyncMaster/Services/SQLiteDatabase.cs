@@ -59,6 +59,51 @@ namespace ViSyncMaster.Services
             }
         }
 
+        public async Task EnsureColumnExists(string tableName, string columnName, string columnType)
+        {
+            try
+            {
+                using (var connection = new SQLiteConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+
+                    bool columnExists = false;
+                    using (var command = new SQLiteCommand($"PRAGMA table_info({tableName});", connection))
+                    using (var reader = await command.ExecuteReaderAsync())
+                    {
+                        while (await reader.ReadAsync())
+                        {
+                            var existingColumnName = reader["name"]?.ToString();
+                            if (string.Equals(existingColumnName, columnName, StringComparison.OrdinalIgnoreCase))
+                            {
+                                columnExists = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (columnExists)
+                    {
+                        Log.Information("[DB Migration] Column {ColumnName} already exists in table {TableName}.", columnName, tableName);
+                        return;
+                    }
+
+                    var alterQuery = $"ALTER TABLE {tableName} ADD COLUMN {columnName} {columnType};";
+                    using (var alterCommand = new SQLiteCommand(alterQuery, connection))
+                    {
+                        await alterCommand.ExecuteNonQueryAsync();
+                    }
+
+                    Log.Information("[DB Migration] Added column {ColumnName} ({ColumnType}) to table {TableName}.", columnName, columnType, tableName);
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "[DB Migration] Failed to ensure column {ColumnName} in table {TableName}.", columnName, tableName);
+                throw;
+            }
+        }
+
         // Generate columns for the specified model type
         private IEnumerable<string> GetColumnsForType<T>()
         {

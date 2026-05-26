@@ -2482,6 +2482,7 @@ namespace ViSyncMaster.ViewModels
             _database.CreateTableIfNotExists<MachineStatus>("TestingResult");
             _database.CreateTableIfNotExists<ProductionEfficiency>("ProductionEfficiency");
             _database.CreateTableIfNotExists<FirstPartModel>("FirstPartData");
+            _database.EnsureColumnExists("FirstPartData", "HeightPlug", "TEXT").GetAwaiter().GetResult();
             _database.CreateTableIfNotExists<HourlyPlanMessage>("HourlyPlanMessage");
             _repositoryMachineStatus = new GenericRepository<MachineStatus>(_database, "MachineStatus");
             _repositoryMachineStatusQueue = new GenericRepository<MachineStatus>(_database, "MachineStatusQueue");
