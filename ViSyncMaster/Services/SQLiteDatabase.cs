@@ -104,6 +104,15 @@ namespace ViSyncMaster.Services
             }
         }
 
+        public async Task EnsureRetryMetadataColumns(string tableName)
+        {
+            await EnsureColumnExists(tableName, "RetryCount", "INTEGER DEFAULT 0");
+            await EnsureColumnExists(tableName, "LastAttemptAt", "TEXT NULL");
+            await EnsureColumnExists(tableName, "LastError", "TEXT NULL");
+            await EnsureColumnExists(tableName, "CreatedAt", "TEXT NULL");
+            await EnsureColumnExists(tableName, "UpdatedAt", "TEXT NULL");
+        }
+
         // Generate columns for the specified model type
         private IEnumerable<string> GetColumnsForType<T>()
         {

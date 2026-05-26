@@ -68,6 +68,8 @@ public class MessageQueue
     {
         try
         {
+            // Offline bootstrap: ładujemy rekordy Pending z DB i oznaczamy je jako InProgress,
+            // aby uniknąć wielokrotnego podniesienia tych samych rekordów przez równoległe przebiegi.
             // MachineStatus Pending
             var m1 = await _repositoryMachineStatusQueue.GetByStatusAsync();
             await EnqueueAndMark(m1, _repositoryMachineStatusQueue, _machineStatusQueue);
@@ -133,6 +135,7 @@ public class MessageQueue
     {
         foreach (var m in msgs)
         {
+            Log.Debug("[QueueLoad] {Type} Id={Id} status Pending -> InProgress", typeof(T).Name, m.Id);
             m.SendStatus = "InProgress";
             await repo.AddOrUpdate(m);
 
@@ -207,6 +210,7 @@ public class MessageQueue
             {
                 try
                 {
+                    Log.Debug("[QueueSend] Success {Type} Id={Id}; deleting from queue table", typeof(T).Name, msg.Id);
                     await repo.DeleteAsync(msg.Id);
                     queue.Dequeue();
                 }
@@ -220,6 +224,7 @@ public class MessageQueue
             }
             else
             {
+                Log.Warning("[QueueSend] Failed {Type} Id={Id}; status InProgress -> Pending", typeof(T).Name, msg.Id);
                 msg.SendStatus = "Pending";
                 await repo.AddOrUpdate(msg);
                 await Task.Delay(500);

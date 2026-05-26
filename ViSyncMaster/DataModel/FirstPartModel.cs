@@ -100,6 +100,11 @@ namespace ViSyncMaster.DataModel
         public string? Name { get; set; }
         public long? SendTime { get; set; }
         public string SendStatus { get; set; } = "Pending";
+        public int RetryCount { get; set; } = 0;
+        public string? LastAttemptAt { get; set; }
+        public string? LastError { get; set; }
+        public string? CreatedAt { get; set; }
+        public string? UpdatedAt { get; set; }
         public bool ValidateAllModel()
         {
             ValidateAllProperties();
