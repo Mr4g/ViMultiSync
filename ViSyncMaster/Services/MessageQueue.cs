@@ -206,7 +206,7 @@ public class MessageQueue
             {
                 if (typeof(T) == typeof(FirstPartModel))
                 {
-                    Log.Information("[FirstPartData] Sending attempt for Id={Id}, Name={Name}, SendStatus={SendStatus}", msg.Id, msg.Name, msg.SendStatus);
+                    Log.Information("[FirstPartData] Sending attempt for Id={Id}, SendStatus={SendStatus}", msg.Id, msg.SendStatus);
                 }
                 ok = await _messageSender.SendMessageAsync(msg);
                 if (typeof(T) == typeof(FirstPartModel))
