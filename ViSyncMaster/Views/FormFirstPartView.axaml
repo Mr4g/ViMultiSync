@@ -118,7 +118,7 @@
 				<StackPanel Grid.Row="0" Grid.Column="1" Spacing="10" Margin="30,10,30,10">
 					<TextBlock Classes="Title" Text="Podaj numer produktu:"/>
 					<TextBox Text="{Binding FirstPartModel.NumberProduct, UpdateSourceTrigger=PropertyChanged}"/>
-					<CheckBox Content="Filtruj po numerze" IsChecked="{Binding ApplyCsvFilter}" Classes="CsvFilterCheckBox"/>
+					<CheckBox Content="Pokaż wszystkie pola" IsChecked="{Binding ShowAllFields}" Classes="CsvFilterCheckBox"/>
 
 					<TextBlock  IsVisible="{Binding IsNumberClampVisible}" Classes="Title" Text="Podaj numer zacisku:"/>
 					<TextBox IsVisible="{Binding IsNumberClampVisible}" 
@@ -135,6 +135,10 @@
 
 					<TextBlock IsVisible="{Binding IsBreakingForcePlugVisible}" Classes="Title" Text="Siła zerwania wtyczki:"/>
 					<TextBox IsVisible="{Binding IsBreakingForcePlugVisible}" Text="{Binding FirstPartModel.BreakingForcePlug, UpdateSourceTrigger=PropertyChanged}"/>
+
+
+					<TextBlock IsVisible="{Binding IsHeightPlugVisible}" Classes="Title" Text="Wysokość wtyczki:"/>
+					<TextBox IsVisible="{Binding IsHeightPlugVisible}" Text="{Binding FirstPartModel.HeightPlug, UpdateSourceTrigger=PropertyChanged}"/>
 
 					<TextBlock IsVisible="{Binding IsShellSizeVisible}" Classes="Title" Text="Wymiar łuski:" />
 					<TextBox IsVisible="{Binding IsShellSizeVisible}" Text="{Binding FirstPartModel.ShellSize, UpdateSourceTrigger=PropertyChanged}"/>

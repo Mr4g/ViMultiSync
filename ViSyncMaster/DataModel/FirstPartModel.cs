@@ -51,6 +51,11 @@ namespace ViSyncMaster.DataModel
         private string? _breakingForcePlug;
         [ObservableProperty]
         [NotifyDataErrorInfo]
+        [Required(ErrorMessage = "Wysokość wtyczki powinna zawierać cyfry lub '-'.")]
+        [RegularExpression(@"^(-|((?!0$)\d+([,/]\d+)*))?$", ErrorMessage = "Wartość nie może być 0 i musi zawierać tylko cyfry z ',' '/' lub '-' jeśli jest pusta.")]
+        private string? _heightPlug;
+        [ObservableProperty]
+        [NotifyDataErrorInfo]
         [Required(ErrorMessage = "Siła łamania wtrysku powinna zawierać cyfry  lub '-'.")]
         [RegularExpression(@"^(-|((?!0$)\d+([,/]\d+)*))?$", ErrorMessage = "Wartość nie może być 0 i musi zawierać tylko cyfry z ',' '/' lub '-' jeśli jest pusta.")]
         private string? _breakingForceInjection;
@@ -124,6 +129,8 @@ namespace ViSyncMaster.DataModel
                     ClearErrors(nameof(BreakingForceInjection));
                 if (!visibilityMap["IsBreakingForcePlugVisible"])
                     ClearErrors(nameof(BreakingForcePlug));
+                if (!visibilityMap["IsHeightPlugVisible"])
+                    ClearErrors(nameof(HeightPlug));
                 if (!visibilityMap["IsHeightClampVisible"])
                     ClearErrors(nameof(HeightClamp));
                 if (!visibilityMap["IsBreakingForceLumbergVisible"])

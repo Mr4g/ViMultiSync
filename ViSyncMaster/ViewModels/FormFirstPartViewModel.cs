@@ -18,11 +18,13 @@ namespace ViSyncMaster.ViewModels
         Dictionary<string, bool> _visibilityMap = new Dictionary<string, bool>();
 
         private readonly MachineStatusService _machineStatusService;
-        private List<ProductSettings> _productSettingsList = new();
-        string _settingsFilePath = Path.Combine("C:", "ViSM", "ConfigFiles", "ProductSettings.csv");
+        private readonly FirstPartFieldConfigService _fieldConfigService;
+        private readonly Dictionary<string, Action<bool>> _visibilitySetters;
+        private readonly Dictionary<string, Func<string?>> _fieldValueGetters;
+        private readonly List<string> _allFieldKeys;
 
         [ObservableProperty]
-        private bool _applyCsvFilter = true;
+        private bool _showAllFields;
 
         [ObservableProperty]
         private FirstPartModel _firstPartModel = new FirstPartModel();
@@ -43,6 +45,8 @@ namespace ViSyncMaster.ViewModels
         [ObservableProperty]
         public bool _isBreakingForcePlugVisible;
         [ObservableProperty]
+        public bool _isHeightPlugVisible;
+        [ObservableProperty]
         public bool _isInjectionHardnessVisible;
         [ObservableProperty]
         public bool _isScrewdriverTorqueVisible;
@@ -57,33 +61,55 @@ namespace ViSyncMaster.ViewModels
         [ObservableProperty]
         public bool _isSignatureVisible;
 
-        partial void OnApplyCsvFilterChanged(bool oldValue, bool newValue)
+        partial void OnShowAllFieldsChanged(bool oldValue, bool newValue)
         {
-            if (!string.IsNullOrEmpty(FirstPartModel.NumberProduct))
-            {
-                if (newValue)
-                {
-                    var settings = GetProductSettings(FirstPartModel.NumberProduct, _productSettingsList);
-                    UpdateFieldVisibility(settings);
-                }
-                else
-                {
-                    UpdateFieldVisibility(null);
-                }
-            }
+            ApplyFieldVisibilityByProduct();
         }
 
         public FormFirstPartViewModel(MachineStatusService machineStatusService)
         {
             _machineStatusService = machineStatusService;
-            try
+            var dbPath = Path.Combine("C:", "ViSM", "ConfigFiles", "FirstPartFieldConfig.json");
+            _fieldConfigService = new FirstPartFieldConfigService(dbPath);
+
+            _visibilitySetters = new Dictionary<string, Action<bool>>
             {
-                _productSettingsList = LoadProductSettings.LoadSettings(_settingsFilePath);
-            }
-            catch (Exception ex)
+                ["NumberClamp"] = v => IsNumberClampVisible = v,
+                ["BreakingForceClamp"] = v => IsBreakingForceClampVisible = v,
+                ["BreakingForceInjection"] = v => IsBreakingForceInjectionVisible = v,
+                ["BreakingForcePlug"] = v => IsBreakingForcePlugVisible = v,
+                ["HeightClamp"] = v => IsHeightClampVisible = v,
+                ["HeightPlug"] = v => IsHeightPlugVisible = v,
+                ["BreakingForceLumberg"] = v => IsBreakingForceLumbergVisible = v,
+                ["InjectionHardness"] = v => IsInjectionHardnessVisible = v,
+                ["ScrewdriverTorque"] = v => IsScrewdriverTorqueVisible = v,
+                ["PasteWeight"] = v => IsPasteWeightVisible = v,
+                ["ShellSize"] = v => IsShellSizeVisible = v,
+                ["Department"] = v => IsDepartmentVisible = v,
+                ["Eq"] = v => IsEqVisible = v,
+                ["Signature"] = v => IsSignatureVisible = v
+            };
+
+            _fieldValueGetters = new Dictionary<string, Func<string?>>
             {
-                _productSettingsList = new List<ProductSettings>();
-            }
+                ["NumberClamp"] = () => FirstPartModel.NumberClamp,
+                ["BreakingForceClamp"] = () => FirstPartModel.BreakingForceClamp,
+                ["BreakingForceInjection"] = () => FirstPartModel.BreakingForceInjection,
+                ["BreakingForcePlug"] = () => FirstPartModel.BreakingForcePlug,
+                ["HeightClamp"] = () => FirstPartModel.HeightClamp,
+                ["HeightPlug"] = () => FirstPartModel.HeightPlug,
+                ["BreakingForceLumberg"] = () => FirstPartModel.BreakingForceLumberg,
+                ["InjectionHardness"] = () => FirstPartModel.InjectionHardness,
+                ["ScrewdriverTorque"] = () => FirstPartModel.ScrewdriverTorque,
+                ["PasteWeight"] = () => FirstPartModel.PasteWeight,
+                ["ShellSize"] = () => FirstPartModel.ShellSize,
+                ["Department"] = () => FirstPartModel.Department,
+                ["Eq"] = () => FirstPartModel.Eq,
+                ["Signature"] = () => FirstPartModel.Signature
+            };
+
+            _allFieldKeys = _visibilitySetters.Keys.ToList();
+
             FirstPartModel.ErrorsChanged += FirstPartModel_ErrorsChanged;
             FirstPartModel.NumberProductChanged += FirstPartModel_NumberProductChanged;
         }
@@ -92,15 +118,7 @@ namespace ViSyncMaster.ViewModels
         {
             if (!string.IsNullOrEmpty(FirstPartModel.NumberProduct))
             {
-                if (ApplyCsvFilter)
-                {
-                    var settings = GetProductSettings(FirstPartModel.NumberProduct, _productSettingsList);
-                    UpdateFieldVisibility(settings);
-                }
-                else
-                {
-                    UpdateFieldVisibility(null);
-                }
+                ApplyFieldVisibilityByProduct();
             }
         }
 
@@ -144,6 +162,7 @@ namespace ViSyncMaster.ViewModels
                         }
                     }
                 }
+                PersistFieldConfigurationForProduct();
                 await _machineStatusService.SendFirstPartAsync(FirstPartModel);
                 BackToDefaultForm();
             }
@@ -156,49 +175,32 @@ namespace ViSyncMaster.ViewModels
             ValidationMessage = "";
         }
 
-        public ProductSettings? GetProductSettings(string numberProduct, List<ProductSettings> data)
+        private void ApplyFieldVisibilityByProduct()
         {
-            return data.FirstOrDefault(p => p.NumberProduct == numberProduct);
-        }
-        public void UpdateFieldVisibility(ProductSettings? settings)
-        {
-            if (settings == null)
+            if (ShowAllFields || string.IsNullOrWhiteSpace(FirstPartModel.NumberProduct))
             {
-                IsNumberClampVisible = true;
-                IsBreakingForceClampVisible = true;
-                IsBreakingForceInjectionVisible = true;
-                IsBreakingForcePlugVisible = true;
-                IsHeightClampVisible = true;
-                IsBreakingForceLumbergVisible = true;
-                IsInjectionHardnessVisible = true;
-                IsScrewdriverTorqueVisible = true;
-                IsPasteWeightVisible = true;
-                IsShellSizeVisible = true;
-                IsDepartmentVisible = true;
-                IsEqVisible = true;
-                IsSignatureVisible = true;
+                SetVisibilityForFields(_allFieldKeys);
                 return;
             }
-            IsNumberClampVisible = settings?.NumberClamp == 1;
-            IsBreakingForceClampVisible = settings?.BreakingForceClamp == 1;
-            IsBreakingForceInjectionVisible = settings?.BreakingForceInjection == 1;
-            IsBreakingForcePlugVisible = settings?.BreakingForcePlug == 1;
-            IsHeightClampVisible = settings?.HeightClamp == 1;
-            IsBreakingForceLumbergVisible = settings?.BreakingForceLumberg == 1;
-            IsInjectionHardnessVisible = settings?.InjectionHardness == 1;
-            IsScrewdriverTorqueVisible = settings?.ScrewdriverTorque == 1;
-            IsPasteWeightVisible = settings?.PasteWeight == 1;
-            IsShellSizeVisible = settings?.ShellSize == 1;
-            IsDepartmentVisible = settings?.Department == 1;
-            IsEqVisible = settings?.Eq == 1;
-            IsSignatureVisible = settings?.Signature == 1;
 
-            // Dodajemy informacje o widoczności pól do słownika
+            var visibleFields = _fieldConfigService.GetVisibleFieldsForProduct(FirstPartModel.NumberProduct);
+            SetVisibilityForFields(visibleFields ?? _allFieldKeys);
+        }
+
+        private void SetVisibilityForFields(IEnumerable<string> visibleFields)
+        {
+            var set = new HashSet<string>(visibleFields);
+            foreach (var key in _allFieldKeys)
+            {
+                _visibilitySetters[key](set.Contains(key));
+            }
+
             _visibilityMap["IsNumberClampVisible"] = IsNumberClampVisible;
             _visibilityMap["IsBreakingForceClampVisible"] = IsBreakingForceClampVisible;
             _visibilityMap["IsBreakingForceInjectionVisible"] = IsBreakingForceInjectionVisible;
             _visibilityMap["IsBreakingForcePlugVisible"] = IsBreakingForcePlugVisible;
             _visibilityMap["IsHeightClampVisible"] = IsHeightClampVisible;
+            _visibilityMap["IsHeightPlugVisible"] = IsHeightPlugVisible;
             _visibilityMap["IsBreakingForceLumbergVisible"] = IsBreakingForceLumbergVisible;
             _visibilityMap["IsInjectionHardnessVisible"] = IsInjectionHardnessVisible;
             _visibilityMap["IsScrewdriverTorqueVisible"] = IsScrewdriverTorqueVisible;
@@ -207,6 +209,22 @@ namespace ViSyncMaster.ViewModels
             _visibilityMap["IsDepartmentVisible"] = IsDepartmentVisible;
             _visibilityMap["IsEqVisible"] = IsEqVisible;
             _visibilityMap["IsSignatureVisible"] = IsSignatureVisible;
+        }
+
+        private void PersistFieldConfigurationForProduct()
+        {
+            if (string.IsNullOrWhiteSpace(FirstPartModel.NumberProduct))
+            {
+                return;
+            }
+
+            var fieldsToPersist = _allFieldKeys
+                .Where(key => _fieldValueGetters.TryGetValue(key, out var getter)
+                              && !string.IsNullOrWhiteSpace(getter())
+                              && getter() != "-")
+                .ToList();
+
+            _fieldConfigService.SaveVisibleFieldsForProduct(FirstPartModel.NumberProduct, fieldsToPersist);
         }
 
         public void BackToDefaultForm()
@@ -218,6 +236,7 @@ namespace ViSyncMaster.ViewModels
             IsBreakingForceInjectionVisible = false;
             IsBreakingForcePlugVisible = false;
             IsHeightClampVisible = false;
+            IsHeightPlugVisible = false;
             IsBreakingForceLumbergVisible = false;
             IsInjectionHardnessVisible = false;
             IsScrewdriverTorqueVisible = false;
