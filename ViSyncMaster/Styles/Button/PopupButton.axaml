@@ -20,6 +20,7 @@
         <Setter Property="HorizontalAlignment" Value="Stretch" />
         <Setter Property="BorderBrush" Value="Black"/>
         <Setter Property="BorderThickness" Value="3"/>
+        <Setter Property="FocusAdorner" Value="{x:Null}"/>
 		<Setter Property="Background">
             <Setter.Value>
                 <ConicGradientBrush Center="0.5,0.5">
@@ -106,6 +107,27 @@
         <Setter Property="Foreground" Value="#0B0A0F"/>
     </Style>
 
+
+    <Style Selector="Button:focus.PopupButton /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="OrangeRed" />
+        <Setter Property="Foreground" Value="WhiteSmoke"/>
+    </Style>
+
+    <Style Selector="Button:focus.NavigationButton /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="OrangeRed" />
+        <Setter Property="Foreground" Value="#0B0A0F"/>
+    </Style>
+
+    <Style Selector="Button:focus.NavigationInfoButton /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="OrangeRed" />
+        <Setter Property="Foreground" Value="#0B0A0F"/>
+    </Style>
+
+    <Style Selector="Button:focus.TitleBarFlyoutsButton /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="OrangeRed" />
+        <Setter Property="Foreground" Value="WhiteSmoke"/>
+    </Style>
+
     <!-- Style for Button of Menu Fly-outs Information-->
 
     <Style Selector="Button.TitleBarFlyoutsButton">
@@ -139,7 +161,6 @@
         <Setter Property="Background" Value="OrangeRed" />
         <Setter Property="Foreground" Value="#0B0A0F"/>
     </Style>
-
     <!-- Style for Button of ToggleButton Setting-->
 
     <Style Selector="ToggleButton.ToggleOptions, Label">

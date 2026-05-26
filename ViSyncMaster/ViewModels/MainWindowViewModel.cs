@@ -591,12 +591,16 @@ namespace ViSyncMaster.ViewModels
         [ObservableProperty] private bool _legacyProductionIssuesVisible = true;
         [ObservableProperty] private string _vrsktQualityConfirmationText = string.Empty;
         [ObservableProperty] private bool _vrsktQualityConfirmationVisible;
+        [ObservableProperty] private bool _vrsktQualitySuccessOverlayVisible;
+        [ObservableProperty] private string _vrsktQualityOverlayBackground = "#1E7D32";
         [ObservableProperty] private ObservableCollection<string> _vrsktQualityElementTypes = new();
         [ObservableProperty] private ObservableCollection<string> _vrsktQualityReasons = new();
         [ObservableProperty] private string? _selectedVrsktQualityElementType;
         [ObservableProperty] private string? _selectedVrsktQualityReason;
         [ObservableProperty] private string? _vrsktQualityCustomDescription;
         [ObservableProperty] private bool _vrsktQualityCustomDescriptionVisible;
+        [ObservableProperty] private string _vrsktQualityQuantityInput = "1";
+        [ObservableProperty] private string _vrsktQualityQuantityValidationMessage = string.Empty;
 
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(ReasonDowntimeMechanicalPanelButtonText))]
@@ -754,6 +758,17 @@ namespace ViSyncMaster.ViewModels
         }
 
         [RelayCommand]
+        public async Task SendSelectedVrsktQualityReport()
+        {
+            if (!string.Equals(appConfig.AppMode, "VRSKT", StringComparison.OrdinalIgnoreCase)) return;
+            if (VrsktQualityCustomDescriptionVisible)
+            {
+                return;
+            }
+            await SendVrsktQualityReportAsync();
+        }
+
+        [RelayCommand]
         public async Task SubmitVrsktQualityCustomDescription()
         {
             if (!string.Equals(appConfig.AppMode, "VRSKT", StringComparison.OrdinalIgnoreCase)) return;
@@ -763,46 +778,109 @@ namespace ViSyncMaster.ViewModels
         private async Task SendVrsktQualityReportAsync()
         {
             var activeProductNumber = _lastRs232Data?.ProductName;
+            if (string.IsNullOrWhiteSpace(activeProductNumber))
+            {
+                var resultHistory = await _repositoryTestingResult.GetFromCacheTestResult();
+                activeProductNumber = resultHistory?
+                    .Where(x => !string.IsNullOrWhiteSpace(x.ProductName))
+                    .OrderByDescending(x => x.Id)
+                    .Select(x => x.ProductName)
+                    .FirstOrDefault();
+            }
 
             if (string.IsNullOrWhiteSpace(activeProductNumber) ||
                 string.IsNullOrWhiteSpace(SelectedVrsktQualityElementType) ||
                 string.IsNullOrWhiteSpace(SelectedVrsktQualityReason))
             {
-                VrsktQualityConfirmationText = "Brak wymaganych danych zgłoszenia jakościowego.";
-                VrsktQualityConfirmationVisible = true;
-                await Task.Delay(TimeSpan.FromSeconds(3));
-                VrsktQualityConfirmationVisible = false;
+                var missingFields = new List<string>();
+
+                if (string.IsNullOrWhiteSpace(activeProductNumber))
+                {
+                    missingFields.Add("numer aktualnie produkowanej sztuki (ActiveProductNumber)");
+                }
+                if (string.IsNullOrWhiteSpace(SelectedVrsktQualityElementType))
+                {
+                    missingFields.Add("typ elementu");
+                }
+                if (string.IsNullOrWhiteSpace(SelectedVrsktQualityReason))
+                {
+                    missingFields.Add("powód jakościowy");
+                }
+
+                var details = string.Join(Environment.NewLine, missingFields.Select(field => $"- {field}"));
+                ShowMessageBox($"Brak wymaganych danych zgłoszenia jakościowego:{Environment.NewLine}{details}");
                 return;
             }
             if (VrsktQualityCustomDescriptionVisible && string.IsNullOrWhiteSpace(VrsktQualityCustomDescription))
             {
-                VrsktQualityConfirmationText = "Dla kategorii Inne wymagany jest własny opis.";
-                VrsktQualityConfirmationVisible = true;
-                await Task.Delay(TimeSpan.FromSeconds(3));
-                VrsktQualityConfirmationVisible = false;
+                ShowMessageBox("Dla kategorii Inne wymagany jest własny opis.");
                 return;
             }
+            if (string.IsNullOrWhiteSpace(VrsktQualityQuantityInput) ||
+                VrsktQualityQuantityInput.Any(ch => !char.IsDigit(ch)) ||
+                !int.TryParse(VrsktQualityQuantityInput, out var parsedQuantity) ||
+                parsedQuantity < 1 || parsedQuantity > 9999)
+            {
+                VrsktQualityQuantityValidationMessage = "Liczba sztuk: tylko cyfry 1-9999.";
+                return;
+            }
+            VrsktQualityQuantityValidationMessage = string.Empty;
 
             var qualityReport = new QualityIssueReportMessage
             {
                 AppMode = "VRSKT",
-                ActiveProductNumber = activeProductNumber,
+                ActiveProductNumber = NormalizeActiveProductNumber(activeProductNumber),
                 ElementType = SelectedVrsktQualityElementType,
                 QualityReason = SelectedVrsktQualityReason,
                 CustomDescription = VrsktQualityCustomDescriptionVisible ? VrsktQualityCustomDescription : null,
+                Quantity = parsedQuantity,
                 EventType = "QualityIssueReported",
                 ReportNature = "InformationalOnly_NoMachineOrProcessImpact",
                 TimestampUtc = DateTime.UtcNow
             };
 
-            await SendMessageToSplunk(qualityReport);
-            VrsktQualityConfirmationText = "Zgłoszenie jakościowe wysłane poprawnie";
+            VrsktQualityConfirmationText = "Wysyłanie zgłoszenia jakościowego...";
+            VrsktQualityOverlayBackground = "#3A3F4B";
             VrsktQualityConfirmationVisible = true;
+            VrsktQualitySuccessOverlayVisible = true;
+
+            var sendTask = SendMessageToSplunk(qualityReport);
+            var completedTask = await Task.WhenAny(sendTask, Task.Delay(TimeSpan.FromSeconds(5)));
+            if (completedTask != sendTask)
+            {
+                VrsktQualityConfirmationText = "Błąd wysyłki: brak potwierdzenia do 5 sekund. Sprawdź połączenie i spróbuj ponownie.";
+                VrsktQualityOverlayBackground = "#B3261E";
+                await Task.Delay(TimeSpan.FromSeconds(3));
+                VrsktQualitySuccessOverlayVisible = false;
+                VrsktQualityConfirmationVisible = false;
+                return;
+            }
+
+            await sendTask;
+            VrsktQualityConfirmationText = $"Zgłoszenie jakościowe wysłane poprawnie dla produktu: {qualityReport.ActiveProductNumber}, ilość sztuk: {qualityReport.Quantity}.";
+            VrsktQualityOverlayBackground = "#1E7D32";
             await Task.Delay(TimeSpan.FromSeconds(3));
+            VrsktQualitySuccessOverlayVisible = false;
             VrsktQualityConfirmationVisible = false;
             ProductionIssuesPanelIsOpen = false;
             ControlPanelVisible = false;
             ResetVrsktQualityFlowState();
+        }
+
+        private static string NormalizeActiveProductNumber(string productNumber)
+        {
+            if (string.IsNullOrWhiteSpace(productNumber))
+            {
+                return string.Empty;
+            }
+
+            var digitsOnly = new string(productNumber.Where(char.IsDigit).ToArray());
+            if (digitsOnly.Length >= 7)
+            {
+                return digitsOnly[..7];
+            }
+
+            return productNumber.Trim();
         }
 
         [RelayCommand]
@@ -1938,8 +2016,12 @@ namespace ViSyncMaster.ViewModels
             SelectedVrsktQualityReason = null;
             VrsktQualityCustomDescription = string.Empty;
             VrsktQualityCustomDescriptionVisible = false;
+            VrsktQualityQuantityInput = "1";
+            VrsktQualityQuantityValidationMessage = string.Empty;
             VrsktQualityConfirmationVisible = false;
             VrsktQualityConfirmationText = string.Empty;
+            VrsktQualitySuccessOverlayVisible = false;
+            VrsktQualityOverlayBackground = "#1E7D32";
         }
 
         private void ResetVrsktQualityFlowState()
@@ -1952,6 +2034,38 @@ namespace ViSyncMaster.ViewModels
             SelectedVrsktQualityReason = null;
             VrsktQualityCustomDescription = string.Empty;
             VrsktQualityCustomDescriptionVisible = false;
+            VrsktQualityQuantityInput = "1";
+            VrsktQualityQuantityValidationMessage = string.Empty;
+        }
+
+        partial void OnVrsktQualityQuantityInputChanged(string value)
+        {
+            var digitsOnly = new string((value ?? string.Empty).Where(char.IsDigit).ToArray());
+            if (digitsOnly.Length > 4)
+            {
+                digitsOnly = digitsOnly[..4];
+            }
+
+            if (digitsOnly != value)
+            {
+                VrsktQualityQuantityInput = digitsOnly;
+                return;
+            }
+
+            VrsktQualityQuantityValidationMessage = string.Empty;
+        }
+
+        public void ResetVrsktQualityFlowAfterPopupDismiss()
+        {
+            if (!VrsktQualityFlowActive)
+            {
+                return;
+            }
+
+            ResetVrsktQualityFlowState();
+            VrsktQualityConfirmationVisible = false;
+            VrsktQualityConfirmationText = string.Empty;
+            VrsktQualityOverlayBackground = "#1E7D32";
         }
 
         private void OnProducingStarted(object sender, Rs232Data data)

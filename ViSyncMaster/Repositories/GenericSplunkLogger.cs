@@ -214,7 +214,9 @@ namespace ViSyncMaster.Repositories
                         || propertyName == "sendTime" || propertyName == "sendStatus"
                         || propertyName == "expectedUnits" || propertyName == "producedUnits" || propertyName == "downtimeMinutes"
                         || propertyName == "isBreak" || propertyName == "isBreakActive" || propertyName == "lostUnitsDueToDowntime"
-                        || propertyName == "sendTime" || propertyName == "sendStatus" || propertyName == "period" || propertyName == "efficiency")
+                        || propertyName == "sendTime" || propertyName == "sendStatus" || propertyName == "period" || propertyName == "efficiency"
+                        || propertyName == "activeProductNumber" || propertyName == "elementType" || propertyName == "qualityReason"
+                        || propertyName == "customDescription" || propertyName == "quantity")
 
                     {
                         eventFields[propertyName] = propertyValue.ToString();
@@ -284,9 +286,15 @@ namespace ViSyncMaster.Repositories
             }
 
 
-            // Clear line and blank symbols
-            var jsonPayloadWithoutWhitespace = Regex.Replace(jsonPayload, @"\s+", "");
+            // Dla zgłoszeń jakościowych zachowujemy oryginalne spacje i polskie znaki
+            // (np. "Uszkodzenia mechaniczne"), aby raporty w Splunku były czytelne.
+            if (data is QualityIssueReportMessage)
+            {
+                return jsonPayload;
+            }
 
+            // Dotychczasowe zachowanie dla pozostałych komunikatów
+            var jsonPayloadWithoutWhitespace = Regex.Replace(jsonPayload, @"\s+", "");
             return jsonPayloadWithoutWhitespace;
         }
 

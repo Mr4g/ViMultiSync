@@ -16,6 +16,7 @@
 		<converters:BoolToBrushConverter x:Key="BoolToBrushConverter"/>
 		<converters:BoolToThicknessConverter x:Key="BoolToThicknessConverter"/>
 		<converters:InverseBoolConverter x:Key="InverseBoolConverter"/>
+		<converters:StringToUpperConverter x:Key="StringToUpperConverter"/>
 		<converters:StringPairEqualsConverter x:Key="StringPairEqualsConverter"/>
 		<SolidColorBrush x:Key="OrangeRedBrush" Color="OrangeRed" />
 		<SolidColorBrush x:Key="GrayBrush" Color="Gray" />
