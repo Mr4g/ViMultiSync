@@ -1874,11 +1874,12 @@ namespace ViSyncMaster.ViewModels
 
             if (!_instructionService.TryGetInstructionForProduct(productNumber ?? string.Empty, out var url, out var title, out var error))
             {
+                ShowMessageBox(error);
                 InstructionViewerErrorMessage = error;
                 CurrentInstructionTitle = "Instrukcja";
                 CurrentInstructionUrl = string.Empty;
                 InstructionBrowserControl = null;
-                IsInstructionViewerOpen = true;
+                IsInstructionViewerOpen = false;
                 return;
             }
 
