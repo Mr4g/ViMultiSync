@@ -15,7 +15,24 @@ namespace ViSyncMaster.Services
         public InstructionService(string instructionsRootPath)
         {
             _instructionsRootPath = instructionsRootPath;
+            EnsureInstructionsDirectoryExists();
             _manifestPath = Path.Combine(_instructionsRootPath, "manifest.json");
+        }
+
+        private void EnsureInstructionsDirectoryExists()
+        {
+            try
+            {
+                if (!Directory.Exists(_instructionsRootPath))
+                {
+                    Directory.CreateDirectory(_instructionsRootPath);
+                    Log.Information("Created missing instructions directory: {DirectoryPath}", _instructionsRootPath);
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Failed to ensure instructions directory exists: {DirectoryPath}", _instructionsRootPath);
+            }
         }
 
         public bool TryGetInstructionForProduct(string productNumber, out string instructionUrl, out string instructionTitle, out string errorMessage)
