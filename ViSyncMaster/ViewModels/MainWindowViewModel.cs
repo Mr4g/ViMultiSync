@@ -1913,6 +1913,22 @@ namespace ViSyncMaster.ViewModels
             return productNumber ?? string.Empty;
         }
 
+        private static string NormalizeProductNumber(string? productNumber)
+        {
+            if (string.IsNullOrWhiteSpace(productNumber))
+            {
+                return string.Empty;
+            }
+
+            var digitsOnly = new string(productNumber.Where(char.IsDigit).ToArray());
+            if (digitsOnly.Length >= 7)
+            {
+                return digitsOnly[..7];
+            }
+
+            return productNumber.Trim();
+        }
+
         [RelayCommand]
         private void CloseInstruction()
         {
