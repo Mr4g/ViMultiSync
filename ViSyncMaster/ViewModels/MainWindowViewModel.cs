@@ -1861,16 +1861,7 @@ namespace ViSyncMaster.ViewModels
         [RelayCommand]
         private void OpenInstruction()
         {
-            var productNumber = _lastRs232Data?.ProductName;
-            if (string.IsNullOrWhiteSpace(productNumber))
-            {
-                var firstPartData = _repositoryFirstPartData.GetAllAsync("WHERE Name = 'S7.FirstPartData'").GetAwaiter().GetResult();
-                productNumber = firstPartData
-                    .Where(x => !string.IsNullOrWhiteSpace(x.NumberProduct))
-                    .OrderByDescending(x => x.Id)
-                    .Select(x => x.NumberProduct)
-                    .FirstOrDefault();
-            }
+            var productNumber = ResolveCurrentProductNumberForInstruction();
 
             if (!_instructionService.TryGetInstructionForProduct(productNumber ?? string.Empty, out var url, out var title, out var error))
             {
@@ -1888,6 +1879,38 @@ namespace ViSyncMaster.ViewModels
             InstructionViewerErrorMessage = string.Empty;
             InstructionBrowserControl = new UCBrowser(url);
             IsInstructionViewerOpen = true;
+        }
+
+        private string ResolveCurrentProductNumberForInstruction()
+        {
+            // 1) Aktualny produkt z RS232
+            var productNumber = NormalizeProductNumber(_lastRs232Data?.ProductName);
+            if (!string.IsNullOrWhiteSpace(productNumber))
+            {
+                return productNumber;
+            }
+
+            // 2) Ostatni produkt z tabeli testów
+            var resultHistory = _repositoryTestingResult.GetFromCacheTestResult().GetAwaiter().GetResult();
+            productNumber = resultHistory?
+                .Where(x => !string.IsNullOrWhiteSpace(x.ProductName))
+                .OrderByDescending(x => x.Id)
+                .Select(x => NormalizeProductNumber(x.ProductName))
+                .FirstOrDefault(x => !string.IsNullOrWhiteSpace(x));
+            if (!string.IsNullOrWhiteSpace(productNumber))
+            {
+                return productNumber;
+            }
+
+            // 3) Ostatni produkt z zapisów FirstPartData (bez filtrowania po Name)
+            var firstPartData = _repositoryFirstPartData.GetAllAsync().GetAwaiter().GetResult();
+            productNumber = firstPartData
+                .Where(x => !string.IsNullOrWhiteSpace(x.NumberProduct))
+                .OrderByDescending(x => x.Id)
+                .Select(x => NormalizeProductNumber(x.NumberProduct))
+                .FirstOrDefault(x => !string.IsNullOrWhiteSpace(x));
+
+            return productNumber ?? string.Empty;
         }
 
         [RelayCommand]
