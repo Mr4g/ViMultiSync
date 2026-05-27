@@ -1818,6 +1818,8 @@ namespace ViSyncMaster.ViewModels
 
         private void LoadPage(string url)
         {
+            HideInstructionViewerIfOpen();
+
             if (ActivePage is UCBrowser browser)
             {
                 // Jeśli przeglądarka już istnieje, zmieniamy adres
@@ -1828,6 +1830,20 @@ namespace ViSyncMaster.ViewModels
                 // Jeśli nie ma przeglądarki, tworzymy nową instancję
                 ActivePage = new UCBrowser(url);
             }
+        }
+
+        private void HideInstructionViewerIfOpen()
+        {
+            if (!IsInstructionViewerOpen)
+            {
+                return;
+            }
+
+            IsInstructionViewerOpen = false;
+            InstructionBrowserControl = null;
+            CurrentInstructionUrl = string.Empty;
+            CurrentInstructionTitle = string.Empty;
+            InstructionViewerErrorMessage = string.Empty;
         }
         public void LoadPageManualViSyncMaster()
         {
@@ -1952,6 +1968,7 @@ namespace ViSyncMaster.ViewModels
         [RelayCommand]
         private void LoadStatusTableOfMachine()
         {
+            HideInstructionViewerIfOpen();
             ActivePage = new MachineStatusTableView();
             (ActivePage as MachineStatusTableView)?.SetDataContext(MachineStatuses);
         }
@@ -1959,11 +1976,13 @@ namespace ViSyncMaster.ViewModels
         [RelayCommand]
         private void LoadStatusTableOfResult()
         {
+            HideInstructionViewerIfOpen();
             ActivePage = _resultTableView;
         }
         [RelayCommand]
         private void LoadFormFirstPart()
         {
+            HideInstructionViewerIfOpen();
             ActivePage = _firstPartView;
         }
 
@@ -1971,6 +1990,7 @@ namespace ViSyncMaster.ViewModels
         public async Task LoadScadaSystemAsync()
         {
             await ScadaProcessManager.Instance.EnsureStartedAsync();
+            HideInstructionViewerIfOpen();
             if (ActivePage != _scadaView)
             {
                 ActivePage = _scadaView;
