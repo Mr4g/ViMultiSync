@@ -89,7 +89,7 @@ namespace ViSyncMaster.ViewModels
         private string googleDiskUrl;
         private string googleInstructionUrl;
         private string googleTargetPlanUrl;
-
+        private readonly InstructionService _instructionService;
 
         public event EventHandler? ResultTableUpdate;
 
@@ -680,6 +680,28 @@ namespace ViSyncMaster.ViewModels
 
         [ObservableProperty]
         private Control? _activePage;
+
+
+        [ObservableProperty]
+        private bool _isInstructionViewerOpen;
+
+        [ObservableProperty]
+        private string _currentInstructionUrl = string.Empty;
+
+        [ObservableProperty]
+        private string _currentInstructionTitle = string.Empty;
+
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(HasInstructionError))]
+        [NotifyPropertyChangedFor(nameof(HasInstructionContent))]
+        private string _instructionViewerErrorMessage = string.Empty;
+
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(HasInstructionContent))]
+        private Control? _instructionBrowserControl;
+
+        public bool HasInstructionError => !string.IsNullOrWhiteSpace(InstructionViewerErrorMessage);
+        public bool HasInstructionContent => !HasInstructionError && InstructionBrowserControl != null;
 
         #region Public Command
 
@@ -1835,6 +1857,48 @@ namespace ViSyncMaster.ViewModels
             LoadPage(googleDiskUrl);
         }
 
+
+        [RelayCommand]
+        private void OpenInstruction()
+        {
+            var productNumber = _lastRs232Data?.ProductName;
+            if (string.IsNullOrWhiteSpace(productNumber))
+            {
+                var firstPartData = _repositoryFirstPartData.GetAllAsync("WHERE Name = 'S7.FirstPartData'").GetAwaiter().GetResult();
+                productNumber = firstPartData
+                    .Where(x => !string.IsNullOrWhiteSpace(x.NumberProduct))
+                    .OrderByDescending(x => x.Id)
+                    .Select(x => x.NumberProduct)
+                    .FirstOrDefault();
+            }
+
+            if (!_instructionService.TryGetInstructionForProduct(productNumber ?? string.Empty, out var url, out var title, out var error))
+            {
+                InstructionViewerErrorMessage = error;
+                CurrentInstructionTitle = "Instrukcja";
+                CurrentInstructionUrl = string.Empty;
+                InstructionBrowserControl = null;
+                IsInstructionViewerOpen = true;
+                return;
+            }
+
+            CurrentInstructionUrl = url;
+            CurrentInstructionTitle = $"{title} ({productNumber})";
+            InstructionViewerErrorMessage = string.Empty;
+            InstructionBrowserControl = new UCBrowser(url);
+            IsInstructionViewerOpen = true;
+        }
+
+        [RelayCommand]
+        private void CloseInstruction()
+        {
+            IsInstructionViewerOpen = false;
+            InstructionBrowserControl = null;
+            CurrentInstructionUrl = string.Empty;
+            CurrentInstructionTitle = string.Empty;
+            InstructionViewerErrorMessage = string.Empty;
+        }
+
         public void LoadPageInstruction()
         {
             LoadPage(googleInstructionUrl);
@@ -2473,6 +2537,7 @@ namespace ViSyncMaster.ViewModels
             mStatusInterfaceService = statusInterfaceService;
             _pendingMachineStatus = new MachineStatus();
             _sharedDataService = new SharedDataService();
+            _instructionService = new InstructionService(@"C:\ViSM\Instructions");
             appConfig = _sharedDataService.AppConfig ?? new AppConfigData();
             mqttConfig = _sharedDataService.ConfigMqtt ?? new ConfigMqtt();
             _database = new SQLiteDatabase(@"C:\ViSM\Database\databaseViSM.db");
@@ -2531,6 +2596,7 @@ namespace ViSyncMaster.ViewModels
         public MainWindowViewModel()
         {
             mStatusInterfaceService = new DummyStatusInterfaceService();
+            _instructionService = new InstructionService(@"C:\ViSM\Instructions");
         }
 
         #endregion

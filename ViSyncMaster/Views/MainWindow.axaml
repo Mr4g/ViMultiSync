@@ -2140,7 +2140,7 @@
 				<Button Grid.Column="11"
 					Name = "InstructionButton"
 					IsVisible="{Binding InstructionButtonIsVisible}"
-					Command="{Binding LoadPageInstruction}">
+					Command="{Binding OpenInstructionCommand}">
 					<Image Source="{SvgImage /Assets/icons/info.svg}"/>
 				</Button>
 				<Button Grid.Column="12"
@@ -2266,6 +2266,29 @@
 						HorizontalAlignment="Stretch"
 						VerticalAlignment="Stretch"
 						Margin="10,20,10,0"/>
+
+					<Border IsVisible="{Binding IsInstructionViewerOpen}"
+						Background="#DD111111"
+						Margin="10,20,10,0"
+						CornerRadius="8"
+						ZIndex="1000"
+						Padding="12">
+						<Grid RowDefinitions="Auto,*" ColumnDefinitions="*,Auto">
+							<TextBlock Grid.Row="0" Grid.Column="0"
+								Text="{Binding CurrentInstructionTitle}"
+								FontSize="18" FontWeight="Bold" Foreground="White" Margin="0,0,10,10"/>
+							<Button Grid.Row="0" Grid.Column="1" Content="Zamknij" Command="{Binding CloseInstructionCommand}"/>
+
+							<TextBlock Grid.Row="1" Grid.ColumnSpan="2"
+								IsVisible="{Binding HasInstructionError}"
+								Text="{Binding InstructionViewerErrorMessage}"
+								Foreground="OrangeRed" FontSize="18" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+
+							<ContentControl Grid.Row="1" Grid.ColumnSpan="2"
+								IsVisible="{Binding HasInstructionContent}"
+								Content="{Binding InstructionBrowserControl}"/>
+						</Grid>
+					</Border>
 				</Grid>
 			</Border>
 			<StackPanel Margin ="0,2,2,2" Grid.RowSpan="3" Grid.Column="2" VerticalAlignment="Center" Orientation="Horizontal" IsVisible="{Binding VacuumButtonIsVisible}">
