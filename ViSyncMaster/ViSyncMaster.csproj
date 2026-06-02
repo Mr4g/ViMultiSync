@@ -10,7 +10,23 @@
     <ApplicationIcon>W16icon.ico</ApplicationIcon>
     <AssemblyName>ViSyncMaster</AssemblyName>
     <RootNamespace>ViSyncMaster</RootNamespace>
+    <VersionPrefix>1.7.0</VersionPrefix>
   </PropertyGroup>
+
+  <Target Name="SetAutomaticInformationalVersion" BeforeTargets="GenerateAssemblyInfo">
+    <Exec Command="git rev-parse --short HEAD"
+          ConsoleToMSBuild="true"
+          IgnoreExitCode="true"
+          StandardOutputImportance="Low"
+          StandardErrorImportance="Low">
+      <Output TaskParameter="ConsoleOutput" PropertyName="GitShortCommit" />
+    </Exec>
+    <PropertyGroup>
+      <GitShortCommit Condition="'$(GitShortCommit)' == ''">nogit</GitShortCommit>
+      <BuildTimestamp>$([System.DateTime]::UtcNow.ToString('yyyyMMdd.HHmm'))</BuildTimestamp>
+      <InformationalVersion>$(VersionPrefix)+build.$(BuildTimestamp).$(GitShortCommit)</InformationalVersion>
+    </PropertyGroup>
+  </Target>
 
   <ItemGroup>
     <AvaloniaResource Include="Assets\**" />
