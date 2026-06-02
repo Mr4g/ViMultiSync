@@ -10,7 +10,7 @@
     <ApplicationIcon>W16icon.ico</ApplicationIcon>
     <AssemblyName>ViSyncMaster</AssemblyName>
     <RootNamespace>ViSyncMaster</RootNamespace>
-    <VersionPrefix>1.7.0</VersionPrefix>
+    <VersionPrefix>1.10.0</VersionPrefix>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <BuildTimestamp>$([System.DateTime]::UtcNow.ToString('yyMMdd-HHmm'))</BuildTimestamp>
   </PropertyGroup>
