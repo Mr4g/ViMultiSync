@@ -15,7 +15,7 @@
     <BuildTimestamp>$([System.DateTime]::UtcNow.ToString('yyMMdd-HHmm'))</BuildTimestamp>
   </PropertyGroup>
 
-  <Target Name="SetAutomaticInformationalVersion" BeforeTargets="GenerateAssemblyInfo">
+  <Target Name="SetAutomaticInformationalVersion" BeforeTargets="GetAssemblyAttributes">
     <Exec Command="git rev-parse --short HEAD"
           ConsoleToMSBuild="true"
           IgnoreExitCode="true"
