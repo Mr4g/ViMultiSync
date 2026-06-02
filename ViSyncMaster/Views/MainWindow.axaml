@@ -85,7 +85,9 @@
 												    FontWeight="Bold"
 													Foreground="Black" />
 										<TextBlock Text="{Binding VersionApp}"
-												   FontSize="18"
+												   FontSize="14"
+												   MaxWidth="260"
+												   TextWrapping="Wrap"
 												   Foreground="Black" />
 									</StackPanel>
 								</StackPanel>

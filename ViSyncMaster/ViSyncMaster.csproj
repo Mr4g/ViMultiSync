@@ -11,6 +11,8 @@
     <AssemblyName>ViSyncMaster</AssemblyName>
     <RootNamespace>ViSyncMaster</RootNamespace>
     <VersionPrefix>1.7.0</VersionPrefix>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <BuildTimestamp>$([System.DateTime]::UtcNow.ToString('yyMMdd-HHmm'))</BuildTimestamp>
   </PropertyGroup>
 
   <Target Name="SetAutomaticInformationalVersion" BeforeTargets="GenerateAssemblyInfo">
@@ -23,8 +25,7 @@
     </Exec>
     <PropertyGroup>
       <GitShortCommit Condition="'$(GitShortCommit)' == ''">nogit</GitShortCommit>
-      <BuildTimestamp>$([System.DateTime]::UtcNow.ToString('yyyyMMdd.HHmm'))</BuildTimestamp>
-      <InformationalVersion>$(VersionPrefix)+build.$(BuildTimestamp).$(GitShortCommit)</InformationalVersion>
+      <InformationalVersion>$(VersionPrefix)+$(BuildTimestamp).$(GitShortCommit)</InformationalVersion>
     </PropertyGroup>
   </Target>
 
