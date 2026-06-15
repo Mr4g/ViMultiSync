@@ -24,5 +24,10 @@ namespace ViSyncMaster.DataModel
         public int? PassedPiecesPerShift { get; set; }
         public int? FailedPiecesPerShift { get; set; }
         public long Id { get; set; }
+        public int RetryCount { get; set; } = 0;
+        public string? LastAttemptAt { get; set; }
+        public string? LastError { get; set; }
+        public string? CreatedAt { get; set; }
+        public string? UpdatedAt { get; set; }
     }
 }

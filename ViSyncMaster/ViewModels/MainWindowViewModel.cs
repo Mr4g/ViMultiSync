@@ -89,7 +89,7 @@ namespace ViSyncMaster.ViewModels
         private string googleDiskUrl;
         private string googleInstructionUrl;
         private string googleTargetPlanUrl;
-
+        private readonly InstructionService _instructionService;
 
         public event EventHandler? ResultTableUpdate;
 
@@ -680,6 +680,28 @@ namespace ViSyncMaster.ViewModels
 
         [ObservableProperty]
         private Control? _activePage;
+
+
+        [ObservableProperty]
+        private bool _isInstructionViewerOpen;
+
+        [ObservableProperty]
+        private string _currentInstructionUrl = string.Empty;
+
+        [ObservableProperty]
+        private string _currentInstructionTitle = string.Empty;
+
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(HasInstructionError))]
+        [NotifyPropertyChangedFor(nameof(HasInstructionContent))]
+        private string _instructionViewerErrorMessage = string.Empty;
+
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(HasInstructionContent))]
+        private Control? _instructionBrowserControl;
+
+        public bool HasInstructionError => !string.IsNullOrWhiteSpace(InstructionViewerErrorMessage);
+        public bool HasInstructionContent => !HasInstructionError && InstructionBrowserControl != null;
 
         #region Public Command
 
@@ -1796,6 +1818,8 @@ namespace ViSyncMaster.ViewModels
 
         private void LoadPage(string url)
         {
+            HideInstructionViewerIfOpen();
+
             if (ActivePage is UCBrowser browser)
             {
                 // Jeśli przeglądarka już istnieje, zmieniamy adres
@@ -1806,6 +1830,20 @@ namespace ViSyncMaster.ViewModels
                 // Jeśli nie ma przeglądarki, tworzymy nową instancję
                 ActivePage = new UCBrowser(url);
             }
+        }
+
+        private void HideInstructionViewerIfOpen()
+        {
+            if (!IsInstructionViewerOpen)
+            {
+                return;
+            }
+
+            IsInstructionViewerOpen = false;
+            InstructionBrowserControl = null;
+            CurrentInstructionUrl = string.Empty;
+            CurrentInstructionTitle = string.Empty;
+            InstructionViewerErrorMessage = string.Empty;
         }
         public void LoadPageManualViSyncMaster()
         {
@@ -1835,6 +1873,88 @@ namespace ViSyncMaster.ViewModels
             LoadPage(googleDiskUrl);
         }
 
+
+        [RelayCommand]
+        private void OpenInstruction()
+        {
+            var productNumber = ResolveCurrentProductNumberForInstruction();
+
+            if (!_instructionService.TryGetInstructionForProduct(productNumber ?? string.Empty, out var url, out var title, out var error))
+            {
+                ShowMessageBox(error);
+                InstructionViewerErrorMessage = error;
+                CurrentInstructionTitle = "Instrukcja";
+                CurrentInstructionUrl = string.Empty;
+                InstructionBrowserControl = null;
+                IsInstructionViewerOpen = false;
+                return;
+            }
+
+            CurrentInstructionUrl = url;
+            CurrentInstructionTitle = $"{title} ({productNumber})";
+            InstructionViewerErrorMessage = string.Empty;
+            InstructionBrowserControl = new UCBrowser(url);
+            IsInstructionViewerOpen = true;
+        }
+
+        private string ResolveCurrentProductNumberForInstruction()
+        {
+            // 1) Aktualny produkt z RS232
+            var productNumber = NormalizeProductNumber(_lastRs232Data?.ProductName);
+            if (!string.IsNullOrWhiteSpace(productNumber))
+            {
+                return productNumber;
+            }
+
+            // 2) Ostatni produkt z tabeli testów
+            var resultHistory = _repositoryTestingResult.GetFromCacheTestResult().GetAwaiter().GetResult();
+            productNumber = resultHistory?
+                .Where(x => !string.IsNullOrWhiteSpace(x.ProductName))
+                .OrderByDescending(x => x.Id)
+                .Select(x => NormalizeProductNumber(x.ProductName))
+                .FirstOrDefault(x => !string.IsNullOrWhiteSpace(x));
+            if (!string.IsNullOrWhiteSpace(productNumber))
+            {
+                return productNumber;
+            }
+
+            // 3) Ostatni produkt z zapisów FirstPartData (bez filtrowania po Name)
+            var firstPartData = _repositoryFirstPartData.GetAllAsync().GetAwaiter().GetResult();
+            productNumber = firstPartData
+                .Where(x => !string.IsNullOrWhiteSpace(x.NumberProduct))
+                .OrderByDescending(x => x.Id)
+                .Select(x => NormalizeProductNumber(x.NumberProduct))
+                .FirstOrDefault(x => !string.IsNullOrWhiteSpace(x));
+
+            return productNumber ?? string.Empty;
+        }
+
+        private static string NormalizeProductNumber(string? productNumber)
+        {
+            if (string.IsNullOrWhiteSpace(productNumber))
+            {
+                return string.Empty;
+            }
+
+            var digitsOnly = new string(productNumber.Where(char.IsDigit).ToArray());
+            if (digitsOnly.Length >= 7)
+            {
+                return digitsOnly[..7];
+            }
+
+            return productNumber.Trim();
+        }
+
+        [RelayCommand]
+        private void CloseInstruction()
+        {
+            IsInstructionViewerOpen = false;
+            InstructionBrowserControl = null;
+            CurrentInstructionUrl = string.Empty;
+            CurrentInstructionTitle = string.Empty;
+            InstructionViewerErrorMessage = string.Empty;
+        }
+
         public void LoadPageInstruction()
         {
             LoadPage(googleInstructionUrl);
@@ -1848,6 +1968,7 @@ namespace ViSyncMaster.ViewModels
         [RelayCommand]
         private void LoadStatusTableOfMachine()
         {
+            HideInstructionViewerIfOpen();
             ActivePage = new MachineStatusTableView();
             (ActivePage as MachineStatusTableView)?.SetDataContext(MachineStatuses);
         }
@@ -1855,11 +1976,13 @@ namespace ViSyncMaster.ViewModels
         [RelayCommand]
         private void LoadStatusTableOfResult()
         {
+            HideInstructionViewerIfOpen();
             ActivePage = _resultTableView;
         }
         [RelayCommand]
         private void LoadFormFirstPart()
         {
+            HideInstructionViewerIfOpen();
             ActivePage = _firstPartView;
         }
 
@@ -1867,6 +1990,7 @@ namespace ViSyncMaster.ViewModels
         public async Task LoadScadaSystemAsync()
         {
             await ScadaProcessManager.Instance.EnsureStartedAsync();
+            HideInstructionViewerIfOpen();
             if (ActivePage != _scadaView)
             {
                 ActivePage = _scadaView;
@@ -2473,16 +2597,11 @@ namespace ViSyncMaster.ViewModels
             mStatusInterfaceService = statusInterfaceService;
             _pendingMachineStatus = new MachineStatus();
             _sharedDataService = new SharedDataService();
+            _instructionService = new InstructionService(@"C:\ViSM\Instructions");
             appConfig = _sharedDataService.AppConfig ?? new AppConfigData();
             mqttConfig = _sharedDataService.ConfigMqtt ?? new ConfigMqtt();
             _database = new SQLiteDatabase(@"C:\ViSM\Database\databaseViSM.db");
-            _database.CreateTableIfNotExists<MachineStatus>("MachineStatus");
-            _database.CreateTableIfNotExists<MachineStatus>("MachineStatusQueue");
-            _database.CreateTableIfNotExists<MachineStatus>("TestingResultQueue");
-            _database.CreateTableIfNotExists<MachineStatus>("TestingResult");
-            _database.CreateTableIfNotExists<ProductionEfficiency>("ProductionEfficiency");
-            _database.CreateTableIfNotExists<FirstPartModel>("FirstPartData");
-            _database.CreateTableIfNotExists<HourlyPlanMessage>("HourlyPlanMessage");
+            InitializeDatabaseSchema();
             _repositoryMachineStatus = new GenericRepository<MachineStatus>(_database, "MachineStatus");
             _repositoryMachineStatusQueue = new GenericRepository<MachineStatus>(_database, "MachineStatusQueue");
             _repositoryTestingResultQueue = new GenericRepository<MachineStatus>(_database, "TestingResultQueue");
@@ -2519,12 +2638,39 @@ namespace ViSyncMaster.ViewModels
             _messageFromPlc = new GenericMessageFromPlc();
         }
 
+        private void InitializeDatabaseSchema()
+        {
+            // Najpierw czekamy na utworzenie wszystkich tabel, a dopiero potem uruchamiamy
+            // idempotentne migracje. Dzięki temu zapis refleksyjny GenericRepository nie próbuje
+            // używać nowych właściwości modelu zanim odpowiadające im kolumny istnieją w SQLite.
+            _database.CreateTableIfNotExists<MachineStatus>("MachineStatus").GetAwaiter().GetResult();
+            _database.CreateTableIfNotExists<MachineStatus>("MachineStatusQueue").GetAwaiter().GetResult();
+            _database.CreateTableIfNotExists<MachineStatus>("TestingResultQueue").GetAwaiter().GetResult();
+            _database.CreateTableIfNotExists<MachineStatus>("TestingResult").GetAwaiter().GetResult();
+            _database.CreateTableIfNotExists<ProductionEfficiency>("ProductionEfficiency").GetAwaiter().GetResult();
+            _database.CreateTableIfNotExists<FirstPartModel>("FirstPartData").GetAwaiter().GetResult();
+            _database.CreateTableIfNotExists<HourlyPlanMessage>("HourlyPlanMessage").GetAwaiter().GetResult();
+
+            // MachineStatus i TestingResult również przechowują model MachineStatus. Muszą mieć
+            // te same kolumny metadanych co ich tabele Queue, ponieważ GenericRepository zapisuje
+            // wszystkie publiczne właściwości modelu.
+            _database.EnsureRetryMetadataColumns("MachineStatus").GetAwaiter().GetResult();
+            _database.EnsureRetryMetadataColumns("MachineStatusQueue").GetAwaiter().GetResult();
+            _database.EnsureRetryMetadataColumns("TestingResultQueue").GetAwaiter().GetResult();
+            _database.EnsureRetryMetadataColumns("TestingResult").GetAwaiter().GetResult();
+            _database.EnsureRetryMetadataColumns("ProductionEfficiency").GetAwaiter().GetResult();
+            _database.EnsureRetryMetadataColumns("FirstPartData").GetAwaiter().GetResult();
+            _database.EnsureRetryMetadataColumns("HourlyPlanMessage").GetAwaiter().GetResult();
+            _database.EnsureColumnExists("FirstPartData", "HeightPlug", "TEXT").GetAwaiter().GetResult();
+        }
+
         /// <summary>
         /// Design - time constructor
         /// </summary>
         public MainWindowViewModel()
         {
             mStatusInterfaceService = new DummyStatusInterfaceService();
+            _instructionService = new InstructionService(@"C:\ViSM\Instructions");
         }
 
         #endregion

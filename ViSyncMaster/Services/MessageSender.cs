@@ -202,6 +202,7 @@ namespace ViSyncMaster.Services
                         || property.PropertyName == "stepOfStatus" || property.PropertyName == "efficiency" || property.PropertyName == "efficiencyRequired" 
                         || property.PropertyName == "target" || property.PropertyName == "passedPiecesPerShift" || property.PropertyName == "failedPiecesPerShift"
                         || property.PropertyName == "numberProduct" || property.PropertyName == "numberClamp" || property.PropertyName == "heightClamp" 
+                        || property.PropertyName == "heightPlug"
                         || property.PropertyName == "breakingForceLumberg" || property.PropertyName == "breakingForceClamp" || property.PropertyName == "breakingForcePlug"
                         || property.PropertyName == "breakingForceInjection" || property.PropertyName == "injectionHardness" || property.PropertyName == "eq"
                         || property.PropertyName == "screwdriverTorque" || property.PropertyName == "shellSize" || property.PropertyName == "pasteWeight"

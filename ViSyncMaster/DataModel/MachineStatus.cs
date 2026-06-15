@@ -100,6 +100,11 @@ namespace ViSyncMaster.DataModel
         /// Aktualny status wysłania przez http..
         /// </summary>
         public string SendStatus {  get; set; } = "Pending";
+        public int RetryCount { get; set; } = 0;
+        public string? LastAttemptAt { get; set; }
+        public string? LastError { get; set; }
+        public string? CreatedAt { get; set; }
+        public string? UpdatedAt { get; set; }
 
         /// <summary>
         /// Aktualny krok statusu:

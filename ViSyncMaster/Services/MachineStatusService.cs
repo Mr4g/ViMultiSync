@@ -89,7 +89,11 @@ namespace ViSyncMaster.Services
             _repositoryMachineStatusQueue.CacheUpdated += info => OnRepoUpdated(info);
             _repositoryTestingResultQueue.CacheUpdated += info => OnRepoUpdated(info);
             _repositoryProductionEfficiency.CacheUpdated += info => OnRepoUpdated(info);
-            _repositoryFirstPartQueue.CacheUpdated += info => OnRepoUpdated(info);
+            _repositoryFirstPartQueue.CacheUpdated += info =>
+            {
+                Log.Information("FirstPartData repo CacheUpdated fired. Table={TableName}, Operation={Operation}", info.TableName, info.Operation);
+                OnRepoUpdated(info);
+            };
             _repositoryHourlyPlan.CacheUpdated += info => OnRepoUpdated(info);
 
             // Jeden centralny scheduler: co 15 min potwierdza ostatnie zamknięcie awarii.
@@ -206,6 +210,9 @@ namespace ViSyncMaster.Services
             firstPartModel.SendTime = epochMilliseconds;
             firstPartModel.Id = uniqueId;
             await _repositoryFirstPartQueue.AddOrUpdate(firstPartModel);
+            Log.Information("FirstPartData saved to DB request queued. Id={Id}, Product={Product}", firstPartModel.Id, firstPartModel.NumberProduct);
+            Log.Information("FirstPartData enqueue requested (trigger immediate SendAllMessages). Id={Id}", firstPartModel.Id);
+            _ = _messageQueue.SendAllMessages();
             return firstPartModel;
         }
 
@@ -329,6 +336,7 @@ namespace ViSyncMaster.Services
 
             try
             {
+                Log.Information("MessageQueue SendAllMessages triggered. LastQueueTable={LastQueueTable}", _lastQueueTable);
                 TableResultTestUpdate?.Invoke();
                 _ = _messageQueue.SendAllMessages().ContinueWith(t =>
                 {

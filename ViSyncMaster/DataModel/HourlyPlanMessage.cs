@@ -26,5 +26,10 @@ namespace ViSyncMaster.DataModel
         public bool IsBreakActive { get; set; }
         public int LostUnitsDueToDowntime { get; set; }
         public double Efficiency { get; set; }
+        public int RetryCount { get; set; } = 0;
+        public string? LastAttemptAt { get; set; }
+        public string? LastError { get; set; }
+        public string? CreatedAt { get; set; }
+        public string? UpdatedAt { get; set; }
     }
 }
