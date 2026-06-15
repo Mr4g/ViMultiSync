@@ -108,6 +108,13 @@ namespace ViSyncMaster.Repositories
                         // Jeśli dane są typu MessagePgToSplunk, używamy specyficznej metody konwersji
                         jsonPayload = ConvertDataToJsonForMessagePgToSplunk(messageData, unixTimeMilliSeconds, currentTime);
                     }
+                    else if (data is RetestResultData retestResult)
+                    {
+                        jsonPayload = ConvertDataToJsonForRetestResult(
+                            retestResult,
+                            unixTimeMilliSeconds,
+                            currentTime);
+                    }
                     else
                     {
                         // W przeciwnym razie używamy ogólnej metody konwersji
@@ -296,6 +303,62 @@ namespace ViSyncMaster.Repositories
             // Dotychczasowe zachowanie dla pozostałych komunikatów
             var jsonPayloadWithoutWhitespace = Regex.Replace(jsonPayload, @"\s+", "");
             return jsonPayloadWithoutWhitespace;
+        }
+
+        private string ConvertDataToJsonForRetestResult(
+            RetestResultData data,
+            string unixTimeMilliSeconds,
+            string currentTime)
+        {
+            string source = string.IsNullOrWhiteSpace(data.Source)
+                ? appConfig.Source
+                : data.Source;
+
+            var eventFields = new Dictionary<string, string?>
+            {
+                ["eventType"] = data.EventType,
+                ["source"] = source,
+                ["testObject"] = data.TestObject,
+                ["totalAbs"] = data.TotalAbs,
+                ["date"] = data.Date,
+                ["time"] = data.Time,
+                ["fault"] = data.Fault,
+                ["fromPoint"] = data.FromPoint,
+                ["toPoint"] = data.ToPoint,
+                ["value"] = data.Value,
+                ["measurementType"] = data.MeasurementType,
+                ["rawFrame"] = data.RawFrame,
+                ["timeEpoch"] = unixTimeMilliSeconds
+            };
+
+            var fields = new Dictionary<string, string?>
+            {
+                ["workplaceName"] = appConfig.WorkplaceName,
+                ["isMachine"] = appConfig.IsMachine,
+                ["line"] = appConfig.Line,
+                ["hostname"] = appConfig.Hostname,
+                ["workplace"] = appConfig.Workplace
+            };
+
+            var payload = new Dictionary<string, object?>
+            {
+                ["sourcetype"] = "_json",
+                ["index"] = appConfig.Index,
+                ["source"] = source,
+                ["event"] = eventFields,
+                ["fields"] = fields
+            };
+
+            if (_viewModel.IsTimeStampFromiPC)
+            {
+                payload["time"] = unixTimeMilliSeconds;
+            }
+            else
+            {
+                eventFields["receivedTime"] = currentTime;
+            }
+
+            return JsonConvert.SerializeObject(payload, Formatting.None);
         }
 
         private string ConvertDataToJsonForMessagePgToSplunk(MessagePgToSplunk data, string unixTimeMilliSeconds, string currentTime)

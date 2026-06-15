@@ -77,12 +77,17 @@ namespace ViSyncMaster.AuxiliaryClasses
             }
         }
 
-        public event EventHandler<Rs232Data> FrameReceived;
+        public event EventHandler<Rs232Data>? FrameReceived;
+        public event EventHandler<RetestResultData>? RetestResultReceived;
 
-        private async void SerialPort_DataReceived(object sender, SerialDataReceivedEventArgs e)
+        private void SerialPort_DataReceived(object sender, SerialDataReceivedEventArgs e)
         {
             string data = ((SerialPort)sender).ReadExisting();
+            ProcessReceivedData(data);
+        }
 
+        public void ProcessReceivedData(string data)
+        {
             lock (bufferLock)
             {
                 dataBuffer.Append(data);
@@ -91,31 +96,198 @@ namespace ViSyncMaster.AuxiliaryClasses
                 {
                     string bufferContent = dataBuffer.ToString();
 
-                    int startIndex = bufferContent.IndexOf("Frame_start");
-                    int endIndex = bufferContent.IndexOf("Frame_end");
+                    int frameStartIndex = bufferContent.IndexOf("Frame_start", StringComparison.Ordinal);
+                    int retestStartIndex = bufferContent.IndexOf("Retest_start", StringComparison.Ordinal);
 
-                    if (startIndex == -1 || endIndex == -1 || endIndex < startIndex)
-                        break;
-
-                    endIndex += "Frame_end".Length;
-                    string frame = bufferContent.Substring(startIndex, endIndex - startIndex);
-                    dataBuffer.Remove(0, endIndex);
-
-                    if (!IsFrameValid(frame))
+                    if (frameStartIndex < 0 && retestStartIndex < 0)
                     {
-                        Log.Warning("Odrzucono ramkę z powodu zakłóceń (zbyt wiele znaków '?'):\n{Frame}", frame);
+                        break;
+                    }
+
+                    int firstStartIndex = GetFirstStartIndex(frameStartIndex, retestStartIndex);
+                    if (firstStartIndex > 0)
+                    {
+                        dataBuffer.Remove(0, firstStartIndex);
                         continue;
                     }
 
-                    Log.Information("Odebrano ramkę RS232:\n{Frame}", frame);
-
-                    Task.Run(() =>
+                    if (frameStartIndex == 0)
                     {
-                        var testData = ParseData(frame);
-                        FrameReceived?.Invoke(this, testData);
-                    });
+                        int frameEndIndex = bufferContent.IndexOf(
+                            "Frame_end",
+                            "Frame_start".Length,
+                            StringComparison.Ordinal);
+
+                        if (frameEndIndex < 0)
+                        {
+                            break;
+                        }
+
+                        int frameEndExclusive = frameEndIndex + "Frame_end".Length;
+                        string frame = bufferContent[..frameEndExclusive];
+                        dataBuffer.Remove(0, frameEndExclusive);
+
+                        if (!IsFrameValid(frame))
+                        {
+                            Log.Warning("Odrzucono ramkę z powodu zakłóceń (zbyt wiele znaków '?'):\n{Frame}", frame);
+                            continue;
+                        }
+
+                        Log.Information("Odebrano ramkę RS232:\n{Frame}", frame);
+
+                        Task.Run(() =>
+                        {
+                            var testData = ParseData(frame);
+                            FrameReceived?.Invoke(this, testData);
+                        });
+
+                        continue;
+                    }
+
+                    int retestEndIndex = bufferContent.IndexOf(
+                        "Retest_end",
+                        "Retest_start".Length,
+                        StringComparison.Ordinal);
+
+                    if (retestEndIndex < 0)
+                    {
+                        break;
+                    }
+
+                    int retestEndExclusive = retestEndIndex + "Retest_end".Length;
+                    string retestFrame = bufferContent[..retestEndExclusive];
+                    dataBuffer.Remove(0, retestEndExclusive);
+
+                    if (!TryParseRetestData(retestFrame, out RetestResultData? retestResult))
+                    {
+                        continue;
+                    }
+
+                    retestResult.Source = serialPort.PortName;
+                    Log.Information("Odebrano pełną ramkę retestu RDFDiag: {Frame}", retestFrame);
+                    RetestResultReceived?.Invoke(this, retestResult);
                 }
             }
+        }
+
+        public static bool TryParseRetestData(string? data, out RetestResultData? result)
+        {
+            result = null;
+
+            if (string.IsNullOrWhiteSpace(data))
+            {
+                return false;
+            }
+
+            string[] segments = data.Split(';', StringSplitOptions.TrimEntries);
+            bool hasCompleteEnvelope = segments.Length >= 2
+                && segments[0].Equals("Retest_start", StringComparison.Ordinal)
+                && segments[^1].Equals("Retest_end", StringComparison.Ordinal);
+
+            if (!hasCompleteEnvelope)
+            {
+                if (data.Contains("Retest_end", StringComparison.Ordinal))
+                {
+                    Log.Warning("Odrzucono uszkodzoną pełną ramkę retestu RDFDiag: {Frame}", data);
+                }
+
+                return false;
+            }
+
+            try
+            {
+                var values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                foreach (string segment in segments[1..^1])
+                {
+                    int separatorIndex = segment.IndexOf(':');
+                    if (separatorIndex <= 0 || separatorIndex == segment.Length - 1)
+                    {
+                        Log.Warning(
+                            "Niepoprawne mapowanie segmentu {Segment} w ramce retestu RDFDiag: {Frame}",
+                            segment,
+                            data);
+                        return false;
+                    }
+
+                    string key = segment[..separatorIndex].Trim();
+                    string value = segment[(separatorIndex + 1)..].Trim();
+
+                    if (key.Length == 0 || value.Length == 0)
+                    {
+                        Log.Warning(
+                            "Niepoprawne mapowanie segmentu {Segment} w ramce retestu RDFDiag: {Frame}",
+                            segment,
+                            data);
+                        return false;
+                    }
+
+                    values[key] = value;
+                }
+
+                string[] requiredKeys =
+                {
+                    "TEST_OBJECT",
+                    "TOTAL_ABS",
+                    "DATE",
+                    "TIME",
+                    "FAULT",
+                    "FROM",
+                    "TO_POINT",
+                    "VALUE",
+                    "MEAS_TYPE"
+                };
+
+                string[] missingKeys = requiredKeys.Where(key => !values.ContainsKey(key)).ToArray();
+                if (missingKeys.Length > 0)
+                {
+                    Log.Warning(
+                        "Brak wymaganych pól {MissingKeys} w ramce retestu RDFDiag: {Frame}",
+                        string.Join(", ", missingKeys),
+                        data);
+                    return false;
+                }
+
+                result = new RetestResultData
+                {
+                    TestObject = GetValue(values, "TEST_OBJECT"),
+                    TotalAbs = GetValue(values, "TOTAL_ABS"),
+                    Date = GetValue(values, "DATE"),
+                    Time = GetValue(values, "TIME"),
+                    Fault = GetValue(values, "FAULT"),
+                    FromPoint = GetValue(values, "FROM"),
+                    ToPoint = GetValue(values, "TO_POINT"),
+                    Value = GetValue(values, "VALUE"),
+                    MeasurementType = GetValue(values, "MEAS_TYPE"),
+                    RawFrame = data
+                };
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Log.Warning(ex, "Nie udało się sparsować ramki retestu RDFDiag: {Frame}", data);
+                return false;
+            }
+        }
+
+        private static string? GetValue(IReadOnlyDictionary<string, string> values, string key)
+        {
+            return values.TryGetValue(key, out string? value) ? value : null;
+        }
+
+        private static int GetFirstStartIndex(int frameStartIndex, int retestStartIndex)
+        {
+            if (frameStartIndex < 0)
+            {
+                return retestStartIndex;
+            }
+
+            if (retestStartIndex < 0)
+            {
+                return frameStartIndex;
+            }
+
+            return Math.Min(frameStartIndex, retestStartIndex);
         }
 
         public static Rs232Data ParseData(string data)

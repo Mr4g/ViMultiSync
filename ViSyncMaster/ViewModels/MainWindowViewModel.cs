@@ -2022,6 +2022,7 @@ namespace ViSyncMaster.ViewModels
         {
             _serialPortListener = new SerialPortListener();
             _serialPortListener.FrameReceived += OnFrameReceived;
+            _serialPortListener.RetestResultReceived += OnRetestResultReceived;
             StartListeningAsync();
         }
 
@@ -2126,6 +2127,18 @@ namespace ViSyncMaster.ViewModels
 
             // Nowa logika – delegujemy analizę danych do Rs232DataProcessor
             _rs232Processor.Process(testData);
+        }
+
+        private async void OnRetestResultReceived(object? sender, RetestResultData retestResult)
+        {
+            Log.Information(
+                "Retest RDFDiag received → TestObject: {TestObject}, Fault: {Fault}, From: {FromPoint}, To: {ToPoint}",
+                retestResult.TestObject,
+                retestResult.Fault,
+                retestResult.FromPoint,
+                retestResult.ToPoint);
+
+            await SendMessageToSplunk(retestResult);
         }
 
         private void InitializeVrsktQualityFlow()
@@ -2450,6 +2463,7 @@ namespace ViSyncMaster.ViewModels
             _rs232Processor.TestBatchReady += OnTestBatchReady;
             _rs232Processor.ProductionMetricsReady += OnProductionMetricsReady;
             _serialPortListener.FrameReceived += OnFrameReceived;
+            _serialPortListener.RetestResultReceived += OnRetestResultReceived;
             _machineStatusService.TableResultTestUpdate += LoadResultToTable;
             adaptronicUrl = appConfig.UrlAdaptronic;
             googleDiskUrl = appConfig.UrlDiscGoogle;
